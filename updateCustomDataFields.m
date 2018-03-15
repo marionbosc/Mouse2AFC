@@ -21,13 +21,18 @@ statesThisTrial = BpodSystem.Data.RawData.OriginalStateNamesByNumber{iTrial}(Bpo
 if any(strcmp('stay_Cin',statesThisTrial))
     BpodSystem.Data.Custom.FixDur(iTrial) = diff(BpodSystem.Data.RawEvents.Trial{end}.States.stay_Cin);
 end
-if any(strcmp('stimulus_delivery_min',statesThisTrial))
-    if any(strcmp('stimulus_delivery',statesThisTrial))
-        BpodSystem.Data.Custom.ST(iTrial) = BpodSystem.Data.RawEvents.Trial{end}.States.stimulus_delivery(1,2) - BpodSystem.Data.RawEvents.Trial{end}.States.stimulus_delivery_min(1,1);
+if any(strcmp('stimulus_delivery',statesThisTrial))
+    if TaskParameters.GUI.RewardAfterMinSampling
+        BpodSystem.Data.Custom.ST(iTrial) = diff(BpodSystem.Data.RawEvents.Trial{end}.States.stimulus_delivery); 
     else
-        BpodSystem.Data.Custom.ST(iTrial) = diff(BpodSystem.Data.RawEvents.Trial{end}.States.stimulus_delivery_min);
+        if any(strcmp('CenterPortRewardDelivery',statesThisTrial)) && TaskParameters.GUI.AuditoryStimulusTime > TaskParameters.GUI.MinSampleAud
+            BpodSystem.Data.Custom.ST(iTrial) = BpodSystem.Data.RawEvents.Trial{end}.States.CenterPortRewardDelivery(1,2) - BpodSystem.Data.RawEvents.Trial{end}.States.stimulus_delivery(1,1);
+        else
+            BpodSystem.Data.Custom.ST(iTrial) = diff(BpodSystem.Data.RawEvents.Trial{end}.States.stimulus_delivery);
+        end
     end
 end
+
 if any(strcmp('wait_Sin',statesThisTrial))
     BpodSystem.Data.Custom.MT(end) = diff(BpodSystem.Data.RawEvents.Trial{end}.States.wait_Sin);
 end
