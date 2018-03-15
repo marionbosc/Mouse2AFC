@@ -13,6 +13,7 @@ BpodSystem.Data.Custom.FixDur(iTrial) = NaN;
 BpodSystem.Data.Custom.MT(iTrial) = NaN;
 BpodSystem.Data.Custom.ST(iTrial) = NaN;
 BpodSystem.Data.Custom.Rewarded(iTrial) = false;
+BpodSystem.Data.Custom.RewardAfterMinSampling(iTrial) = false;
 BpodSystem.Data.Custom.TrialNumber(iTrial) = iTrial;
 
 %% Checking states and rewriting standard
@@ -64,13 +65,14 @@ end
 if any(strncmp('water_',statesThisTrial,6))
     BpodSystem.Data.Custom.Rewarded(iTrial) = true;
 end
-
+if any(strcmp('CenterPortRewardDelivery',statesThisTrial)) && TaskParameters.GUI.RewardAfterMinSampling
+    BpodSystem.Data.Custom.RewardAfterMinSampling(iTrial) = true;
+end
 %% State-independent fields
 BpodSystem.Data.Custom.StimDelay(iTrial) = TaskParameters.GUI.StimDelay;
 BpodSystem.Data.Custom.FeedbackDelay(iTrial) = TaskParameters.GUI.FeedbackDelay;
 BpodSystem.Data.Custom.MinSampleAud(iTrial) = TaskParameters.GUI.MinSampleAud;
-
-BpodSystem.Data.Custom.RewardMagnitude(iTrial+1,:) = TaskParameters.GUI.RewardAmount*[1,1];%...
+BpodSystem.Data.Custom.RewardMagnitude(iTrial+1,:) = TaskParameters.GUI.RewardAmount*[1,1];
 
 %% Updating Delays
 %stimulus delay
@@ -241,7 +243,6 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
 end%if trial > - 5
 
 % send auditory stimuli to PulsePal for next trial
-
 if BpodSystem.Data.Custom.AuditoryTrial(iTrial+1)
     if  ~BpodSystem.EmulatorMode
         SendCustomPulseTrain(1, BpodSystem.Data.Custom.RightClickTrain{iTrial+1}, ones(1,length(BpodSystem.Data.Custom.RightClickTrain{iTrial+1}))*5);

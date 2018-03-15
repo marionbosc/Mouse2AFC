@@ -142,11 +142,16 @@ switch Action
         indxToPlot = mn:iTrial;
         %Cumulative Reward Amount
         R = BpodSystem.Data.Custom.RewardMagnitude;
+        RCP = ones(1,size(BpodSystem.Data.Custom.RewardMagnitude,1))*0.5;
         ndxRwd = BpodSystem.Data.Custom.Rewarded;
+        ndxCPRwd = BpodSystem.Data.Custom.RewardAfterMinSampling;
         C = zeros(size(R)); C(BpodSystem.Data.Custom.ChoiceLeft==1&ndxRwd,1) = 1; C(BpodSystem.Data.Custom.ChoiceLeft==0&ndxRwd,2) = 1;
-        R = R.*C;
+        CPC = zeros(size(RCP));CPC(ndxCPRwd) = 1;
+        RCP = RCP.*CPC;
+        R = R.*C; 
+        RewardObtained = sum([sum(R(:)) sum(RCP)]);
         set(BpodSystem.GUIHandles.OutcomePlot.CumRwd, 'position', [iTrial+1 1], 'string', ...
-            [num2str(sum(R(:))/1000) ' mL']);
+            [num2str(RewardObtained/1000) ' mL']);
         clear R C
         %Plot Rewarded
         ndxCor = BpodSystem.Data.Custom.ChoiceCorrect(indxToPlot)==1;
