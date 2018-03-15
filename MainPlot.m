@@ -14,9 +14,7 @@ switch Action
             nTrialsToShow =varargin{1};
         end
         axes(AxesHandles.HandleOutcome);
-        %         Xdata = 1:numel(SideList); Ydata = SideList(Xdata);
         %plot in specified axes
-%         BpodSystem.GUIHandles.OutcomePlot.Olf = line(-1,1, 'LineStyle','none','Marker','o','MarkerEdge','k','MarkerFace','k', 'MarkerSize',8);
         BpodSystem.GUIHandles.OutcomePlot.Aud = line(-1,1, 'LineStyle','none','Marker','o','MarkerEdge',[.5,.5,.5],'MarkerFace',[.7,.7,.7], 'MarkerSize',8);
         BpodSystem.GUIHandles.OutcomePlot.DV = line(1:numel(BpodSystem.Data.Custom.DV),BpodSystem.Data.Custom.DV, 'LineStyle','none','Marker','o','MarkerEdge','b','MarkerFace','b', 'MarkerSize',6);
         BpodSystem.GUIHandles.OutcomePlot.CurrentTrialCircle = line(1,0, 'LineStyle','none','Marker','o','MarkerEdge','k','MarkerFace',[1 1 1], 'MarkerSize',6);
@@ -30,18 +28,9 @@ switch Action
         BpodSystem.GUIHandles.OutcomePlot.NoResponse = line(-1,[0 1], 'LineStyle','none','Marker','x','MarkerEdge','w','MarkerFace','none', 'MarkerSize',6);
         BpodSystem.GUIHandles.OutcomePlot.Catch = line(-1,[0 1], 'LineStyle','none','Marker','o','MarkerEdge',[0,0,0],'MarkerFace',[0,0,0], 'MarkerSize',4);
         set(AxesHandles.HandleOutcome,'TickDir', 'out','XLim',[0, nTrialsToShow],'YLim', [-1.25, 1.25], 'YTick', [-1, 1],'YTickLabel', {'Right','Left'}, 'FontSize', 13);
-%         set(BpodSystem.GUIHandles.OutcomePlot.Olf,'xdata',find(~BpodSystem.Data.Custom.AuditoryTrial),'ydata',BpodSystem.Data.Custom.DV(~BpodSystem.Data.Custom.AuditoryTrial));
         set(BpodSystem.GUIHandles.OutcomePlot.Aud,'xdata',find(BpodSystem.Data.Custom.AuditoryTrial),'ydata',BpodSystem.Data.Custom.DV(BpodSystem.Data.Custom.AuditoryTrial));
         xlabel(AxesHandles.HandleOutcome, 'Trial#', 'FontSize', 14);
         hold(AxesHandles.HandleOutcome, 'on');
-%         %% Psyc Olfactory
-%         BpodSystem.GUIHandles.OutcomePlot.PsycOlf = line(AxesHandles.HandlePsycOlf,[5 95],[.5 .5], 'LineStyle','none','Marker','o','MarkerEdge','k','MarkerFace','k', 'MarkerSize',6,'Visible','off');
-%         BpodSystem.GUIHandles.OutcomePlot.PsycOlfFit = line(AxesHandles.HandlePsycOlf,[0 100],[.5 .5],'color','k','Visible','off');
-%         AxesHandles.HandlePsycOlf.YLim = [-.05 1.05];
-%         AxesHandles.HandlePsycOlf.XLim = 100*[-.05 1.05];
-%         AxesHandles.HandlePsycOlf.XLabel.String = '% odor A'; % FIGURE OUT UNIT
-%         AxesHandles.HandlePsycOlf.YLabel.String = '% left';
-%         AxesHandles.HandlePsycOlf.Title.String = 'Psychometric Olf';
         %% Psyc Auditory
         BpodSystem.GUIHandles.OutcomePlot.PsycAud = line(AxesHandles.HandlePsycAud,[-1 1],[.5 .5], 'LineStyle','none','Marker','o','MarkerEdge','k','MarkerFace','k', 'MarkerSize',6,'Visible','off');
         BpodSystem.GUIHandles.OutcomePlot.PsycAudFit = line(AxesHandles.HandlePsycAud,[-1. 1.],[.5 .5],'color','k','Visible','off');
@@ -84,19 +73,11 @@ switch Action
         AxesHandles.HandleFeedback.Title.String = 'Feedback delay';
     case 'update'
         %% Reposition and hide/show axes
-        ShowPlots = [TaskParameters.GUI.ShowPsycAud,TaskParameters.GUI.ShowVevaiometric,...%TaskParameters.GUI.ShowPsycOlf,TaskParameters.GUI.ShowPsycAud,TaskParameters.GUI.ShowVevaiometric,...
+        ShowPlots = [TaskParameters.GUI.ShowPsycAud,TaskParameters.GUI.ShowVevaiometric,...
                      TaskParameters.GUI.ShowTrialRate,TaskParameters.GUI.ShowFix,TaskParameters.GUI.ShowST,TaskParameters.GUI.ShowFeedback];
         NoPlots = sum(ShowPlots);
         NPlot = cumsum(ShowPlots);
-%         if ShowPlots(1)
-%             BpodSystem.GUIHandles.OutcomePlot.HandlePsycOlf.Position =      [NPlot(1)*.05+0.005                                    .6   1/(1.65*NoPlots) 0.3];
-%             BpodSystem.GUIHandles.OutcomePlot.HandlePsycOlf.Visible = 'on';
-%             set(get(BpodSystem.GUIHandles.OutcomePlot.HandlePsycOlf,'Children'),'Visible','on');
-%         else
-%             BpodSystem.GUIHandles.OutcomePlot.HandlePsycOlf.Visible = 'off';
-%             set(get(BpodSystem.GUIHandles.OutcomePlot.HandlePsycOlf,'Children'),'Visible','off');
-%         end
-        if ShowPlots(1)%(2)
+        if ShowPlots(1)
             BpodSystem.GUIHandles.OutcomePlot.HandlePsycAud.Position =      [NPlot(1)*.05+0.005 + (NPlot(1)-1)*1/(1.65*NoPlots)    .6   1/(1.65*NoPlots) 0.3];
             BpodSystem.GUIHandles.OutcomePlot.HandlePsycAud.Visible = 'on';
             set(get(BpodSystem.GUIHandles.OutcomePlot.HandlePsycAud,'Children'),'Visible','on');
@@ -104,7 +85,7 @@ switch Action
             BpodSystem.GUIHandles.OutcomePlot.HandlePsycAud.Visible = 'off';
             set(get(BpodSystem.GUIHandles.OutcomePlot.HandlePsycAud,'Children'),'Visible','off');
         end
-        if ShowPlots(2)%(3)
+        if ShowPlots(2)
             BpodSystem.GUIHandles.OutcomePlot.HandleVevaiometric.Position = [NPlot(2)*.05+0.005 + (NPlot(2)-1)*1/(1.65*NoPlots)    .6   1/(1.65*NoPlots) 0.3];
             BpodSystem.GUIHandles.OutcomePlot.HandleVevaiometric.Visible = 'on';
             set(get(BpodSystem.GUIHandles.OutcomePlot.HandleVevaiometric,'Children'),'Visible','on');
@@ -112,7 +93,7 @@ switch Action
             BpodSystem.GUIHandles.OutcomePlot.HandleVevaiometric.Visible = 'off';
             set(get(BpodSystem.GUIHandles.OutcomePlot.HandleVevaiometric,'Children'),'Visible','off');
         end
-        if ShowPlots(3)%(4)
+        if ShowPlots(3)
             BpodSystem.GUIHandles.OutcomePlot.HandleTrialRate.Position =    [NPlot(3)*.05+0.005 + (NPlot(3)-1)*1/(1.65*NoPlots)    .6   1/(1.65*NoPlots) 0.3];
             BpodSystem.GUIHandles.OutcomePlot.HandleTrialRate.Visible = 'on';
             set(get(BpodSystem.GUIHandles.OutcomePlot.HandleTrialRate,'Children'),'Visible','on');
@@ -120,7 +101,7 @@ switch Action
             BpodSystem.GUIHandles.OutcomePlot.HandleTrialRate.Visible = 'off';
             set(get(BpodSystem.GUIHandles.OutcomePlot.HandleTrialRate,'Children'),'Visible','off');
         end
-        if ShowPlots(4)%(5)
+        if ShowPlots(4)
             BpodSystem.GUIHandles.OutcomePlot.HandleFix.Position =          [NPlot(4)*.05+0.005 + (NPlot(4)-1)*1/(1.65*NoPlots)    .6   1/(1.65*NoPlots) 0.3];
             BpodSystem.GUIHandles.OutcomePlot.HandleFix.Visible = 'on';
             set(get(BpodSystem.GUIHandles.OutcomePlot.HandleFix,'Children'),'Visible','on');
@@ -128,7 +109,7 @@ switch Action
             BpodSystem.GUIHandles.OutcomePlot.HandleFix.Visible = 'off';
             set(get(BpodSystem.GUIHandles.OutcomePlot.HandleFix,'Children'),'Visible','off');
         end
-        if ShowPlots(5)%(6)
+        if ShowPlots(5)
             BpodSystem.GUIHandles.OutcomePlot.HandleST.Position =           [NPlot(5)*.05+0.005 + (NPlot(5)-1)*1/(1.65*NoPlots)    .6   1/(1.65*NoPlots) 0.3];
             BpodSystem.GUIHandles.OutcomePlot.HandleST.Visible = 'on';
             set(get(BpodSystem.GUIHandles.OutcomePlot.HandleST,'Children'),'Visible','on');
@@ -136,7 +117,7 @@ switch Action
             BpodSystem.GUIHandles.OutcomePlot.HandleST.Visible = 'off';
             set(get(BpodSystem.GUIHandles.OutcomePlot.HandleST,'Children'),'Visible','off');
         end
-        if ShowPlots(6)%(7)
+        if ShowPlots(6)
             BpodSystem.GUIHandles.OutcomePlot.HandleFeedback.Position =     [NPlot(6)*.05+0.005 + (NPlot(6)-1)*1/(1.65*NoPlots)    .6   1/(1.65*NoPlots) 0.3];
             BpodSystem.GUIHandles.OutcomePlot.HandleFeedback.Visible = 'on';
             set(get(BpodSystem.GUIHandles.OutcomePlot.HandleFeedback,'Children'),'Visible','on');
@@ -153,7 +134,6 @@ switch Action
         set(BpodSystem.GUIHandles.OutcomePlot.CurrentTrialCross, 'xdata', iTrial+1, 'ydata', 0);
         
         %plot modality background
-%         set(BpodSystem.GUIHandles.OutcomePlot.Olf,'xdata',find(~BpodSystem.Data.Custom.AuditoryTrial),'ydata',BpodSystem.Data.Custom.DV(~BpodSystem.Data.Custom.AuditoryTrial));
         set(BpodSystem.GUIHandles.OutcomePlot.Aud,'xdata',find(BpodSystem.Data.Custom.AuditoryTrial),'ydata',BpodSystem.Data.Custom.DV(BpodSystem.Data.Custom.AuditoryTrial));
         %plot past&future trials
         set(BpodSystem.GUIHandles.OutcomePlot.DV, 'xdata', mn:numel(BpodSystem.Data.Custom.DV), 'ydata',BpodSystem.Data.Custom.DV(mn:end));
@@ -201,61 +181,7 @@ switch Action
         ndxCatch = BpodSystem.Data.Custom.CatchTrial(indxToPlot);
         Xdata = indxToPlot(ndxCatch&~ndxMiss);
         Ydata = BpodSystem.Data.Custom.DV(indxToPlot); Ydata = Ydata(ndxCatch&~ndxMiss);
-        set(BpodSystem.GUIHandles.OutcomePlot.Catch, 'xdata', Xdata, 'ydata', Ydata);
-%         %% Psyc Olf
-%         if TaskParameters.GUI.ShowPsycOlf
-%             OdorFracA = BpodSystem.Data.Custom.OdorFracA(1:numel(BpodSystem.Data.Custom.ChoiceLeft));
-%             ndxOlf = ~BpodSystem.Data.Custom.AuditoryTrial(1:numel(BpodSystem.Data.Custom.ChoiceLeft));
-%             if isfield(BpodSystem.Data.Custom,'BlockNumber')
-%                 BlockNumber = BpodSystem.Data.Custom.BlockNumber;
-%             else
-%                 BlockNumber = ones(size(BpodSystem.Data.Custom.ChoiceLeft));
-%             end
-%             setBlocks = reshape(unique(BlockNumber),1,[]); % STOPPED HERE
-%             ndxNan = isnan(BpodSystem.Data.Custom.ChoiceLeft);
-%             for iBlock = setBlocks(end)
-%                 ndxBlock = BpodSystem.Data.Custom.BlockNumber(1:numel(BpodSystem.Data.Custom.ChoiceLeft)) == iBlock;
-%                 if any(ndxBlock)
-%                     setStim = reshape(unique(OdorFracA(ndxBlock)),1,[]);
-%                     psyc = nan(size(setStim));
-%                     for iStim = setStim
-%                         ndxStim = reshape(OdorFracA == iStim,1,[]);
-%                         psyc(setStim==iStim) = sum(BpodSystem.Data.Custom.ChoiceLeft(ndxStim&~ndxNan&ndxBlock&ndxOlf))/...
-%                             sum(ndxStim&~ndxNan&ndxBlock&ndxOlf);
-%                     end
-%                     if iBlock <= numel(BpodSystem.GUIHandles.OutcomePlot.PsycOlf) && ishandle(BpodSystem.GUIHandles.OutcomePlot.PsycOlf(iBlock))
-%                         BpodSystem.GUIHandles.OutcomePlot.PsycOlf(iBlock).XData = setStim;
-%                         BpodSystem.GUIHandles.OutcomePlot.PsycOlf(iBlock).YData = psyc;
-%                         BpodSystem.GUIHandles.OutcomePlot.PsycOlfFit(iBlock).XData = linspace(min(setStim),max(setStim),100);
-%                         if sum(OdorFracA(ndxBlock&ndxOlf))>0
-%                             BpodSystem.GUIHandles.OutcomePlot.PsycOlfFit(iBlock).YData = glmval(glmfit(OdorFracA(ndxBlock&ndxOlf),...
-%                                 BpodSystem.Data.Custom.ChoiceLeft(ndxBlock&ndxOlf)','binomial'),linspace(min(setStim),max(setStim),100),'logit');
-%                         end
-%                     else
-%                         lineColor = rgb2hsv([0.8314    0.5098    0.4157]);
-%                         bias = tanh(.3 * BpodSystem.Data.Custom.RewardMagnitude(find(ndxBlock,1),:) * [1 -1]');
-%                         lineColor(1) = 0.08+0.04*bias; lineColor(2) = .75; lineColor(3) = abs(bias); lineColor = hsv2rgb(lineColor);
-%                         %                     lineColor = lineColor + [0 0.3843*(tanh(BpodSystem.Data.Custom.RewardMagnitude(find(ndxBlock,1),:) * [1 -1]')) 0]
-%                         BpodSystem.GUIHandles.OutcomePlot.PsycOlf(iBlock) = line(AxesHandles.HandlePsycOlf,setStim,psyc, 'LineStyle','none','Marker','o',...
-%                             'MarkerEdge',lineColor,'MarkerFace',lineColor, 'MarkerSize',6);
-%                         BpodSystem.GUIHandles.OutcomePlot.PsycOlfFit(iBlock) = line(AxesHandles.HandlePsycOlf,[0 100],[.5 .5],'color',lineColor);
-%                     end
-%                 end
-%                 % GUIHandles.OutcomePlot.Psyc.YData = psyc;
-%             end
-%             %
-%             %
-%             %         stimSet = unique(OdorFracA);
-%             %         BpodSystem.GUIHandles.OutcomePlot.PsycOlf.XData = stimSet;
-%             %         psyc = nan(size(stimSet));
-%             %         for iStim = 1:numel(stimSet)
-%             %             ndxStim = OdorFracA == stimSet(iStim);
-%             %             ndxNan = isnan(BpodSystem.Data.Custom.ChoiceLeft(:));
-%             %             psyc(iStim) = nansum(BpodSystem.Data.Custom.ChoiceLeft(ndxStim)/sum(ndxStim&~ndxNan));
-%             %         end
-%             %         BpodSystem.GUIHandles.OutcomePlot.PsycOlf.YData = psyc;
-%         end
-        
+        set(BpodSystem.GUIHandles.OutcomePlot.Catch, 'xdata', Xdata, 'ydata', Ydata);        
         %% Psych Aud
         if TaskParameters.GUI.ShowPsycAud
             AudDV = BpodSystem.Data.Custom.DV(1:numel(BpodSystem.Data.Custom.ChoiceLeft));
