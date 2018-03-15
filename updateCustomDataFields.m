@@ -172,7 +172,6 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
     switch TaskParameters.GUIMeta.TrialSelection.String{TaskParameters.GUI.TrialSelection}
         case 'Flat'
             TaskParameters.GUI.LeftBiasAud = 0.5;
-        case 'Manual'
         case 'BiasCorrecting' % Favors side with fewer rewards. Contrast drawn flat & independently.
             %auditory
             ndxRewd = BpodSystem.Data.Custom.Rewarded(1:iTrial) == 1 & BpodSystem.Data.Custom.AuditoryTrial(1:iTrial);

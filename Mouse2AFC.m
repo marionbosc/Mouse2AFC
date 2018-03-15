@@ -27,9 +27,9 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUIMeta.Wire1VideoTrigger.Style = 'checkbox';
     TaskParameters.GUIPanels.General = {'ITI','RewardAmount','ChoiceDeadLine','TimeOutIncorrectChoice','TimeOutBrokeFixation','TimeOutEarlyWithdrawal','TimeOutSkippedFeedback','PercentAuditory','StartEasyTrials','Percent50Fifty','PercentCatch','CatchError','Ports_LMR','Wire1VideoTrigger'};
     %% BiasControl
-    TaskParameters.GUI.TrialSelection = 3;
+    TaskParameters.GUI.TrialSelection = 2;
     TaskParameters.GUIMeta.TrialSelection.Style = 'popupmenu';
-    TaskParameters.GUIMeta.TrialSelection.String = {'Flat','Manual','BiasCorrecting','Competitive'};
+    TaskParameters.GUIMeta.TrialSelection.String = {'Flat','BiasCorrecting'};
     TaskParameters.GUIPanels.BiasControl = {'TrialSelection'};
     %% StimDelay
     TaskParameters.GUI.StimDelayAutoincrement = 1;
