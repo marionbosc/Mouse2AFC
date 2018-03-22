@@ -9,6 +9,7 @@ BpodSystem.Data.Custom.Feedback(iTrial) = true;
 BpodSystem.Data.Custom.FeedbackTime(iTrial) = NaN;
 BpodSystem.Data.Custom.FixBroke(iTrial) = false;
 BpodSystem.Data.Custom.EarlyWithdrawal(iTrial) = false;
+BpodSystem.Data.Custom.MissedChoice(iTrial) = false;
 BpodSystem.Data.Custom.FixDur(iTrial) = NaN;
 BpodSystem.Data.Custom.MT(iTrial) = NaN;
 BpodSystem.Data.Custom.ST(iTrial) = NaN;
@@ -18,8 +19,8 @@ BpodSystem.Data.Custom.TrialNumber(iTrial) = iTrial;
 
 %% Checking states and rewriting standard
 statesThisTrial = BpodSystem.Data.RawData.OriginalStateNamesByNumber{iTrial}(BpodSystem.Data.RawData.OriginalStateData{iTrial});
-if any(strcmp('stay_Cin',statesThisTrial))
-    BpodSystem.Data.Custom.FixDur(iTrial) = diff(BpodSystem.Data.RawEvents.Trial{end}.States.stay_Cin);
+if any(strcmp('WaitForStimulus',statesThisTrial))
+    BpodSystem.Data.Custom.FixDur(iTrial) = diff(BpodSystem.Data.RawEvents.Trial{end}.States.WaitForStimulus);
 end
 if any(strcmp('stimulus_delivery',statesThisTrial))
     if TaskParameters.GUI.RewardAfterMinSampling
@@ -33,41 +34,42 @@ if any(strcmp('stimulus_delivery',statesThisTrial))
     end
 end
 
-if any(strcmp('wait_Sin',statesThisTrial))
-    BpodSystem.Data.Custom.MT(end) = diff(BpodSystem.Data.RawEvents.Trial{end}.States.wait_Sin);
+if any(strcmp('WaitForChoice',statesThisTrial)) && ~any(strcmp('timeOut_missed_choice',statesThisTrial))
+    BpodSystem.Data.Custom.MT(end) = diff(BpodSystem.Data.RawEvents.Trial{end}.States.WaitForChoice);
 end
-if any(strcmp('rewarded_Lin',statesThisTrial))
-    BpodSystem.Data.Custom.ChoiceLeft(iTrial) = 1;
-    BpodSystem.Data.Custom.ChoiceCorrect(iTrial) = 1;
-    FeedbackPortTimes = BpodSystem.Data.RawEvents.Trial{end}.States.rewarded_Lin;
-    BpodSystem.Data.Custom.FeedbackTime(iTrial) = FeedbackPortTimes(end,end)-FeedbackPortTimes(1,1);
-elseif any(strcmp('rewarded_Rin',statesThisTrial))
-    BpodSystem.Data.Custom.ChoiceLeft(iTrial) = 0;
-    BpodSystem.Data.Custom.ChoiceCorrect(iTrial) = 1;
-    FeedbackPortTimes = BpodSystem.Data.RawEvents.Trial{end}.States.rewarded_Rin;
-    BpodSystem.Data.Custom.FeedbackTime(iTrial) = FeedbackPortTimes(end,end)-FeedbackPortTimes(1,1);
-elseif any(strcmp('unrewarded_Lin',statesThisTrial))
-    BpodSystem.Data.Custom.ChoiceLeft(iTrial) = 1;
+
+if any(strcmp('WaitForRewardStart',statesThisTrial))  % CorrectChoice
+    BpodSystem.Data.Custom.ChoiceCorrect(iTrial) = 1; 
+    if any(strcmp('WaitForReward',statesThisTrial))  % Feedback waiting time
+        BpodSystem.Data.Custom.FeedbackTime(iTrial) = BpodSystem.Data.RawEvents.Trial{end}.States.WaitForReward(end,end) - BpodSystem.Data.RawEvents.Trial{end}.States.WaitForRewardStart(1,1);
+        if BpodSystem.Data.Custom.LeftRewarded(iTrial) == 1 % Correct choice = left
+            BpodSystem.Data.Custom.ChoiceLeft(iTrial) = 1; % Left choosen
+        else
+            BpodSystem.Data.Custom.ChoiceLeft(iTrial) = 0;
+        end
+    end
+elseif any(strcmp('WaitForPunishStart',statesThisTrial))  % WrongChoice
     BpodSystem.Data.Custom.ChoiceCorrect(iTrial) = 0;
-    FeedbackPortTimes = BpodSystem.Data.RawEvents.Trial{end}.States.unrewarded_Lin;
-    BpodSystem.Data.Custom.FeedbackTime(iTrial) = FeedbackPortTimes(end,end)-FeedbackPortTimes(1,1);
-elseif any(strcmp('unrewarded_Rin',statesThisTrial))
-    BpodSystem.Data.Custom.ChoiceLeft(iTrial) = 0;
-    BpodSystem.Data.Custom.ChoiceCorrect(iTrial) = 0;
-    FeedbackPortTimes = BpodSystem.Data.RawEvents.Trial{end}.States.unrewarded_Rin;
-    BpodSystem.Data.Custom.FeedbackTime(iTrial) = FeedbackPortTimes(end,end)-FeedbackPortTimes(1,1);
+    if any(strcmp('WaitForPunish',statesThisTrial))  % Feedback waiting time
+        BpodSystem.Data.Custom.FeedbackTime(iTrial) = BpodSystem.Data.RawEvents.Trial{end}.States.WaitForPunish(end,end) - BpodSystem.Data.RawEvents.Trial{end}.States.WaitForPunishStart(1,1);
+        if BpodSystem.Data.Custom.LeftRewarded(iTrial) == 1 % Correct choice = left
+            BpodSystem.Data.Custom.ChoiceLeft(iTrial) = 0; % Left not choosen
+        else
+            BpodSystem.Data.Custom.ChoiceLeft(iTrial) = 1;
+        end
+    end
 elseif any(strcmp('broke_fixation',statesThisTrial))
     BpodSystem.Data.Custom.FixBroke(iTrial) = true;
 elseif any(strcmp('early_withdrawal',statesThisTrial))
     BpodSystem.Data.Custom.EarlyWithdrawal(iTrial) = true;
-end
-if any(strcmp('missed_choice',statesThisTrial))
+elseif any(strcmp('missed_choice',statesThisTrial))
     BpodSystem.Data.Custom.Feedback(iTrial) = false;
+    BpodSystem.Data.Custom.MissedChoice(iTrial) = true;
 end
 if any(strcmp('skipped_feedback',statesThisTrial))
     BpodSystem.Data.Custom.Feedback(iTrial) = false;
 end
-if any(strncmp('water_',statesThisTrial,6))
+if any(strncmp('Reward',statesThisTrial,6))
     BpodSystem.Data.Custom.Rewarded(iTrial) = true;
 end
 if any(strcmp('CenterPortRewardDelivery',statesThisTrial)) && TaskParameters.GUI.RewardAfterMinSampling

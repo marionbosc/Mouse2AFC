@@ -15,6 +15,7 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUI.TimeOutIncorrectChoice = 0; % (s)
     TaskParameters.GUI.TimeOutBrokeFixation = 0; % (s)
     TaskParameters.GUI.TimeOutEarlyWithdrawal = 0; % (s)
+    TaskParameters.GUI.TimeOutMissedChoice = 0; % (s)
     TaskParameters.GUI.TimeOutSkippedFeedback = 0; % (s)
     TaskParameters.GUI.PercentAuditory = 1;
     TaskParameters.GUI.StartEasyTrials = 0;
@@ -25,7 +26,7 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUI.Ports_LMR = 123;
     TaskParameters.GUI.Wire1VideoTrigger = false;
     TaskParameters.GUIMeta.Wire1VideoTrigger.Style = 'checkbox';
-    TaskParameters.GUIPanels.General = {'ITI','RewardAmount','ChoiceDeadLine','TimeOutIncorrectChoice','TimeOutBrokeFixation','TimeOutEarlyWithdrawal','TimeOutSkippedFeedback','PercentAuditory','StartEasyTrials','Percent50Fifty','PercentCatch','CatchError','Ports_LMR','Wire1VideoTrigger'};
+    TaskParameters.GUIPanels.General = {'ITI','RewardAmount','ChoiceDeadLine','TimeOutIncorrectChoice','TimeOutBrokeFixation','TimeOutEarlyWithdrawal','TimeOutMissedChoice','TimeOutSkippedFeedback','PercentAuditory','StartEasyTrials','Percent50Fifty','PercentCatch','CatchError','Ports_LMR','Wire1VideoTrigger'};
     %% BiasControl
     TaskParameters.GUI.TrialSelection = 2;
     TaskParameters.GUIMeta.TrialSelection.Style = 'popupmenu';
@@ -52,15 +53,15 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUI.FeedbackDelayDecr = 0.01;
     TaskParameters.GUI.FeedbackDelayTau = 0.05;
     TaskParameters.GUI.FeedbackDelayGrace = 0;
-    TaskParameters.GUI.IncorrectChoiceFBType = 2;
-    TaskParameters.GUIMeta.IncorrectChoiceFBType.Style = 'popupmenu';
-    TaskParameters.GUIMeta.IncorrectChoiceFBType.String = {'None','Tone','PortLED'};
-    TaskParameters.GUI.SkippedFeedbackFBType = 2;
-    TaskParameters.GUIMeta.SkippedFeedbackFBType.Style = 'popupmenu';
-    TaskParameters.GUIMeta.SkippedFeedbackFBType.String = {'None','Tone','PortLED'};
+    TaskParameters.GUI.IncorrectChoiceSignalType = 2;
+    TaskParameters.GUIMeta.IncorrectChoiceSignalType.Style = 'popupmenu';
+    TaskParameters.GUIMeta.IncorrectChoiceSignalType.String = {'None','Noise','PortLED'};
+    TaskParameters.GUI.ITISignalType = 2;
+    TaskParameters.GUIMeta.ITISignalType.Style = 'popupmenu';
+    TaskParameters.GUIMeta.ITISignalType.String = {'None','Beep','PortLED'};
     TaskParameters.GUI.FeedbackDelay = TaskParameters.GUI.FeedbackDelayMin;
     TaskParameters.GUIMeta.FeedbackDelay.Style = 'text';
-    TaskParameters.GUIPanels.FeedbackDelay = {'FeedbackDelaySelection','FeedbackDelayMin','FeedbackDelayMax','FeedbackDelayIncr','FeedbackDelayDecr','FeedbackDelayTau','FeedbackDelayGrace','FeedbackDelay','IncorrectChoiceFBType','SkippedFeedbackFBType'};
+    TaskParameters.GUIPanels.FeedbackDelay = {'FeedbackDelaySelection','FeedbackDelayMin','FeedbackDelayMax','FeedbackDelayIncr','FeedbackDelayDecr','FeedbackDelayTau','FeedbackDelayGrace','FeedbackDelay','IncorrectChoiceSignalType','ITISignalType'};
     %% Auditory Params
     %clicks
     TaskParameters.GUI.AuditoryAlpha = 1;
@@ -123,6 +124,7 @@ BpodSystem.Data.Custom.Feedback = false(0);
 BpodSystem.Data.Custom.FeedbackTime = [];
 BpodSystem.Data.Custom.FixBroke = false(0);
 BpodSystem.Data.Custom.EarlyWithdrawal = false(0);
+BpodSystem.Data.Custom.MissedChoice = false(0);
 BpodSystem.Data.Custom.FixDur = [];
 BpodSystem.Data.Custom.MT = [];
 BpodSystem.Data.Custom.CatchTrial = false;
