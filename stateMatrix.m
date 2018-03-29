@@ -27,6 +27,7 @@ end
 
 % Trial type (left = correct or right = correct)
 if LeftRewarded == 1
+    RewardedPort = LeftPort;
     LeftActionState = 'WaitForRewardStart';
     RightActionState = 'WaitForPunishStart';
     RewardIn = LeftPortIn;
@@ -36,6 +37,7 @@ if LeftRewarded == 1
     ValveTime = LeftValveTime;
     ValveCode = LeftValve;
 elseif LeftRewarded == 0
+    RewardedPort = RightPort;
     LeftActionState = 'WaitForPunishStart';
     RightActionState = 'WaitForRewardStart';
     RewardIn = RightPortIn;
@@ -110,6 +112,13 @@ else
     Wire1OutCorrect =	{};
 end
 
+% LED on the side lateral port to cue the rewarded side at the beginning of
+% the training on auditory discrimination:
+if TaskParameters.GUI.PortLEDtoCueReward
+    LEDActivation = {strcat('PWM',num2str(RewardedPort)),255};
+else
+    LEDActivation = {strcat('PWM',num2str(LeftPort)),255,strcat('PWM',num2str(RightPort)),255};
+end
 %% Build state matrix
 sma = NewStateMatrix();
 sma = SetGlobalTimer(sma,1,FeedbackDelayCorrect);
@@ -141,7 +150,7 @@ sma = AddState(sma, 'Name', 'CenterPortRewardDelivery',...
 sma = AddState(sma, 'Name', 'WaitForChoice',...
     'Timer',TaskParameters.GUI.ChoiceDeadLine,...
     'StateChangeConditions', {LeftPortIn,LeftActionState,RightPortIn,RightActionState,'Tup','timeOut_missed_choice'},...
-    'OutputActions',{'BNCState',0,strcat('PWM',num2str(LeftPort)),255,strcat('PWM',num2str(RightPort)),255});
+    'OutputActions',[{'BNCState',0} LEDActivation]);
 sma = AddState(sma, 'Name','WaitForRewardStart',...
     'Timer',0,...
     'StateChangeConditions', {'Tup','WaitForReward'},...

@@ -36,7 +36,7 @@ switch Action
         BpodSystem.GUIHandles.OutcomePlot.PsycAudFit = line(AxesHandles.HandlePsycAud,[-1. 1.],[.5 .5],'color','k','Visible','off');
         AxesHandles.HandlePsycAud.YLim = [-.05 1.05];
         AxesHandles.HandlePsycAud.XLim = [-1.05, 1.05];
-        AxesHandles.HandlePsycAud.XLabel.String = 'beta'; % FIGURE OUT UNIT
+        AxesHandles.HandlePsycAud.XLabel.String = 'DV'; % FIGURE OUT UNIT
         AxesHandles.HandlePsycAud.YLabel.String = '% left';
         AxesHandles.HandlePsycAud.Title.String = 'Psychometric Aud';
         %% Vevaiometric curve
@@ -186,13 +186,21 @@ switch Action
         set(BpodSystem.GUIHandles.OutcomePlot.Catch, 'xdata', Xdata, 'ydata', Ydata);        
         %% Psych Aud
         if TaskParameters.GUI.ShowPsycAud
-            AudDV = BpodSystem.Data.Custom.DV(1:numel(BpodSystem.Data.Custom.ChoiceLeft));
             ndxAud = BpodSystem.Data.Custom.AuditoryTrial(1:numel(BpodSystem.Data.Custom.ChoiceLeft));
             ndxNan = isnan(BpodSystem.Data.Custom.ChoiceLeft);
-            AudBin = 8;
-            BinIdx = discretize(AudDV,linspace(-1,1,AudBin+1));
-            PsycY = grpstats(BpodSystem.Data.Custom.ChoiceLeft(ndxAud&~ndxNan),BinIdx(ndxAud&~ndxNan),'mean');
-            PsycX = unique(BinIdx(ndxAud&~ndxNan))/AudBin*2-1-1/AudBin;
+                
+%             if TaskParameters.GUI.AuditoryTrialSelection == 1
+                AudDV = BpodSystem.Data.Custom.DV(1:numel(BpodSystem.Data.Custom.ChoiceLeft));
+                AudBin = 8;
+                BinIdx = discretize(AudDV,linspace(-1,1,AudBin+1));
+                PsycY = grpstats(BpodSystem.Data.Custom.ChoiceLeft(ndxAud&~ndxNan),BinIdx(ndxAud&~ndxNan),'mean');
+                PsycX = unique(BinIdx(ndxAud&~ndxNan))/AudBin*2-1-1/AudBin;              
+%             else
+%                 AudDV = round(BpodSystem.Data.Custom.DV(1:numel(BpodSystem.Data.Custom.ChoiceLeft)),2);
+%                 PsycY = grpstats(BpodSystem.Data.Custom.ChoiceLeft(ndxAud&~ndxNan),AudDV(ndxAud&~ndxNan),'mean');
+%                 PsycX = unique(AudDV(ndxAud&~ndxNan));
+%                 PsycX = PsycX(~isnan(PsycX));
+%             end
             BpodSystem.GUIHandles.OutcomePlot.PsycAud.YData = PsycY;
             BpodSystem.GUIHandles.OutcomePlot.PsycAud.XData = PsycX;
             if sum(ndxAud&~ndxNan) > 1

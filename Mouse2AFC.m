@@ -30,7 +30,7 @@ if isempty(fieldnames(TaskParameters))
     %% BiasControl
     TaskParameters.GUI.TrialSelection = 2;
     TaskParameters.GUIMeta.TrialSelection.Style = 'popupmenu';
-    TaskParameters.GUIMeta.TrialSelection.String = {'Flat','BiasCorrecting'};
+    TaskParameters.GUIMeta.TrialSelection.String = {'Flat','BiasCorrecting','Manual'};
     TaskParameters.GUIPanels.BiasControl = {'TrialSelection'};
     %% StimDelay
     TaskParameters.GUI.StimDelayAutoincrement = 0;
@@ -64,12 +64,22 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUIPanels.FeedbackDelay = {'FeedbackDelaySelection','FeedbackDelayMin','FeedbackDelayMax','FeedbackDelayIncr','FeedbackDelayDecr','FeedbackDelayTau','FeedbackDelayGrace','FeedbackDelay','IncorrectChoiceSignalType','ITISignalType'};
     %% Auditory Params
     %clicks
-    TaskParameters.GUI.AuditoryAlpha = 0.3;
     TaskParameters.GUI.LeftBiasAud = 0.5;
     TaskParameters.GUIMeta.LeftBiasAud.Style = 'text';
     TaskParameters.GUI.SumRates = 100;
+    TaskParameters.GUI.PortLEDtoCueReward = false;
+    TaskParameters.GUIMeta.PortLEDtoCueReward.Style = 'checkbox';
+    TaskParameters.GUI.AuditoryTrialSelection = 1;
+    TaskParameters.GUIMeta.AuditoryTrialSelection.Style = 'popupmenu';
+    TaskParameters.GUIMeta.AuditoryTrialSelection.String = {'BetaDistribution','DiscretePairs'};
+    TaskParameters.GUI.AuditoryAlpha = 0.3;
+    TaskParameters.GUI.OmegaTable.Omega = [0, 5, 10, 90, 95, 100]';
+    TaskParameters.GUI.OmegaTable.OmegaProb = ones(size(TaskParameters.GUI.OmegaTable.Omega))/numel(TaskParameters.GUI.OmegaTable.Omega);
+    TaskParameters.GUIMeta.OmegaTable.Style = 'table';
+    TaskParameters.GUIMeta.OmegaTable.String = 'Omega probabilities';
+    TaskParameters.GUIMeta.OmegaTable.ColumnLabel = {'a = Omega*100','P(a)'};  
     %min auditory stimulus and general stuff
-    TaskParameters.GUI.AuditoryStimulusTime = 0.5;
+    TaskParameters.GUI.AuditoryStimulusTime = 0.5;    
     TaskParameters.GUI.RewardAfterMinSampling = true;
     TaskParameters.GUIMeta.RewardAfterMinSampling.Style = 'checkbox';
     TaskParameters.GUI.CenterPortRewAmount = 0.5;
@@ -82,7 +92,7 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUI.MinSampleAud = TaskParameters.GUI.MinSampleAudMin;
     TaskParameters.GUIMeta.MinSampleAud.Style = 'text';
     TaskParameters.GUIPanels.AudGeneral = {'AuditoryStimulusTime'}; %'AuditoryStimulusType',
-    TaskParameters.GUIPanels.AudClicks = {'AuditoryAlpha','LeftBiasAud','SumRates'};
+    TaskParameters.GUIPanels.AudClicks = {'OmegaTable','AuditoryAlpha','AuditoryTrialSelection','LeftBiasAud','SumRates','PortLEDtoCueReward'};
     TaskParameters.GUIPanels.AudMinSample= {'RewardAfterMinSampling','CenterPortRewAmount','MinSampleAudMin','MinSampleAudMax','MinSampleAudAutoincrement','MinSampleAudIncr','MinSampleAudDecr','MinSampleAud'};
     %% Plots
     %Show Plots
@@ -140,7 +150,11 @@ BpodSystem.Data.Custom.AuditoryTrial = rand(1,2) < TaskParameters.GUI.PercentAud
 % make auditory stimuli for first trials
 for a = 1:2
     if BpodSystem.Data.Custom.AuditoryTrial(a)
-        BpodSystem.Data.Custom.AuditoryOmega(a) = betarnd(TaskParameters.GUI.AuditoryAlpha/4,TaskParameters.GUI.AuditoryAlpha/4,1,1);
+        if TaskParameters.GUI.AuditoryTrialSelection == 1
+            BpodSystem.Data.Custom.AuditoryOmega(a) = betarnd(TaskParameters.GUI.AuditoryAlpha/4,TaskParameters.GUI.AuditoryAlpha/4,1,1);
+        else
+            BpodSystem.Data.Custom.AuditoryOmega(a) = randsample([min(TaskParameters.GUI.OmegaTable.Omega) max(TaskParameters.GUI.OmegaTable.Omega)],1)/100;
+        end
         BpodSystem.Data.Custom.LeftClickRate(a) = round(BpodSystem.Data.Custom.AuditoryOmega(a)*TaskParameters.GUI.SumRates);
         BpodSystem.Data.Custom.RightClickRate(a) = round((1-BpodSystem.Data.Custom.AuditoryOmega(a))*TaskParameters.GUI.SumRates);
         BpodSystem.Data.Custom.LeftClickTrain{a} = GeneratePoissonClickTrain(BpodSystem.Data.Custom.LeftClickRate(a), TaskParameters.GUI.AuditoryStimulusTime);
