@@ -162,13 +162,19 @@ end
 
 %% Drawing future trials
 
-%determine if catch trial
+% determine if catch trial
 if iTrial > TaskParameters.GUI.StartEasyTrials
     BpodSystem.Data.Custom.CatchTrial(iTrial+1) = rand(1,1) < TaskParameters.GUI.PercentCatch;
 else
     BpodSystem.Data.Custom.CatchTrial(iTrial+1) = false;
 end
 
+% Determine if Forced LED trial:
+if TaskParameters.GUI.PortLEDtoCueReward
+    BpodSystem.Data.Custom.ForcedLEDTrial(iTrial+1) = rand(1,1) < TaskParameters.GUI.PercentForcedLEDTrial;
+else
+    BpodSystem.Data.Custom.ForcedLEDTrial(iTrial+1) = false;
+end
 
 %create future trials
 if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
@@ -182,16 +188,23 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
             TaskParameters.GUI.LeftBiasAud = 0.5;
             TaskParameters.GUI.OmegaTable.OmegaProb = ones(size(TaskParameters.GUI.OmegaTable.OmegaProb));
         case 'BiasCorrecting' % Favors side with fewer rewards. Contrast drawn flat & independently.
-            ndxRewd = BpodSystem.Data.Custom.Rewarded(1:iTrial) == 1 & BpodSystem.Data.Custom.AuditoryTrial(1:iTrial);
+            ndxAud = BpodSystem.Data.Custom.AuditoryTrial(1:iTrial);
+            ndxRewd = BpodSystem.Data.Custom.Rewarded(1:iTrial) & ndxAud;
+            ndxLeftRewd = BpodSystem.Data.Custom.ChoiceCorrect(1:iTrial) == 1  & BpodSystem.Data.Custom.ChoiceLeft(1:iTrial) == 1;
+            ndxLeftRewDone = BpodSystem.Data.Custom.LeftRewarded(1:iTrial)==1 & ~isnan(BpodSystem.Data.Custom.ChoiceLeft(1:iTrial));
+            ndxRightRewd = BpodSystem.Data.Custom.ChoiceCorrect(1:iTrial) == 1  & BpodSystem.Data.Custom.ChoiceLeft(1:iTrial) == 0;
+            ndxRightRewDone = BpodSystem.Data.Custom.LeftRewarded(1:iTrial)==0 & ~isnan(BpodSystem.Data.Custom.ChoiceLeft(1:iTrial));
             if sum(ndxRewd)>10
-                 TaskParameters.GUI.LeftBiasAud = sum(BpodSystem.Data.Custom.LeftRewarded(1:iTrial)==1&ndxRewd)/sum(ndxRewd);
+                PerfL = sum(ndxAud & ndxLeftRewd)/sum(ndxAud & ndxLeftRewDone);
+                PerfR = sum(ndxAud & ndxRightRewd)/sum(ndxAud & ndxRightRewDone);
+                TaskParameters.GUI.LeftBiasAud = (PerfL-PerfR)/2 + 0.5;
             else
                 TaskParameters.GUI.LeftBiasAud = 0.5;
             end 
             % auditory discrete omega values:
             % Adjust the GUI values of P(Omega) depending on the LeftBias
-            TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega<50) = TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega<50)*(1-TaskParameters.GUI.LeftBiasAud); % P(Right side trials)
-            TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega>50) = TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega>50)*TaskParameters.GUI.LeftBiasAud; % P(Left side trials)           
+            TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega<50) = 2*TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega<50)*(TaskParameters.GUI.LeftBiasAud); % P(Right side trials)
+            TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega>50) = 2*TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega>50)*(1-TaskParameters.GUI.LeftBiasAud); % P(Left side trials)           
              
         case 'Manual' % Don't modify the LeftBias and leave the GUI values of P(Omega)
             TaskParameters.GUI.LeftBiasAud = 0.5;
@@ -225,8 +238,10 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
                 else % Discrete value trial selection
                     if iTrial < TaskParameters.GUI.StartEasyTrials % easy trial 
                         EasyProb = zeros(numel(TaskParameters.GUI.OmegaTable.OmegaProb),1);
-                        EasyProb(1) = 0.5; EasyProb(end)=0.5;
-                        BpodSystem.Data.Custom.AuditoryOmega(lastidx+a) = randsample(TaskParameters.GUI.OmegaTable.Omega,1,1,EasyProb)/100;
+                        EasyProb(1) = 1; EasyProb(end)=1;
+                        TaskParameters.GUI.OmegaTable.OmegaProb = EasyProb .* TaskParameters.GUI.OmegaTable.OmegaProb;
+                        TaskParameters.GUI.OmegaTable.OmegaProb = TaskParameters.GUI.OmegaTable.OmegaProb/sum(TaskParameters.GUI.OmegaTable.OmegaProb);    
+                        BpodSystem.Data.Custom.AuditoryOmega(lastidx+a) = randsample(TaskParameters.GUI.OmegaTable.Omega,1,1,TaskParameters.GUI.OmegaTable.OmegaProb)/100;
                     else % regular trials
                         BpodSystem.Data.Custom.AuditoryOmega(lastidx+a) = randsample(TaskParameters.GUI.OmegaTable.Omega,1,1,TaskParameters.GUI.OmegaTable.OmegaProb)/100;
                     end

@@ -69,6 +69,7 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUI.SumRates = 100;
     TaskParameters.GUI.PortLEDtoCueReward = false;
     TaskParameters.GUIMeta.PortLEDtoCueReward.Style = 'checkbox';
+    TaskParameters.GUI.PercentForcedLEDTrial = 1;
     TaskParameters.GUI.AuditoryTrialSelection = 1;
     TaskParameters.GUIMeta.AuditoryTrialSelection.Style = 'popupmenu';
     TaskParameters.GUIMeta.AuditoryTrialSelection.String = {'BetaDistribution','DiscretePairs'};
@@ -91,8 +92,8 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUI.MinSampleAudDecr = 0.02;
     TaskParameters.GUI.MinSampleAud = TaskParameters.GUI.MinSampleAudMin;
     TaskParameters.GUIMeta.MinSampleAud.Style = 'text';
-    TaskParameters.GUIPanels.AudGeneral = {'AuditoryStimulusTime'}; %'AuditoryStimulusType',
-    TaskParameters.GUIPanels.AudClicks = {'OmegaTable','AuditoryAlpha','AuditoryTrialSelection','LeftBiasAud','SumRates','PortLEDtoCueReward'};
+    TaskParameters.GUIPanels.AudGeneral = {'AuditoryStimulusTime','PortLEDtoCueReward','PercentForcedLEDTrial'}; 
+    TaskParameters.GUIPanels.AudClicks = {'OmegaTable','AuditoryAlpha','AuditoryTrialSelection','LeftBiasAud','SumRates'};
     TaskParameters.GUIPanels.AudMinSample= {'RewardAfterMinSampling','CenterPortRewAmount','MinSampleAudMin','MinSampleAudMax','MinSampleAudAutoincrement','MinSampleAudIncr','MinSampleAudDecr','MinSampleAud'};
     %% Plots
     %Show Plots
@@ -146,7 +147,7 @@ BpodSystem.Data.Custom.RewardMagnitude = TaskParameters.GUI.RewardAmount*[1,1];
 BpodSystem.Data.Custom.CenterPortRewAmount =TaskParameters.GUI.CenterPortRewAmount;
 BpodSystem.Data.Custom.TrialNumber = [];
 BpodSystem.Data.Custom.AuditoryTrial = rand(1,2) < TaskParameters.GUI.PercentAuditory;
-
+BpodSystem.Data.Custom.ForcedLEDTrial = false;
 % make auditory stimuli for first trials
 for a = 1:2
     if BpodSystem.Data.Custom.AuditoryTrial(a)
