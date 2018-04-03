@@ -203,8 +203,8 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
             end 
             % auditory discrete omega values:
             % Adjust the GUI values of P(Omega) depending on the LeftBias
-            TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega<50) = 2*TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega<50)*(TaskParameters.GUI.LeftBiasAud); % P(Right side trials)
-            TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega>50) = 2*TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega>50)*(1-TaskParameters.GUI.LeftBiasAud); % P(Left side trials)           
+            TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega<50) = TaskParameters.GUI.LeftBiasAud; % P(Right side trials)
+            TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega>50) = 1-TaskParameters.GUI.LeftBiasAud; % P(Left side trials)           
              
         case 'Manual' % Don't modify the LeftBias and leave the GUI values of P(Omega)
             TaskParameters.GUI.LeftBiasAud = 0.5;
