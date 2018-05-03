@@ -17,6 +17,8 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUI.TimeOutEarlyWithdrawal = 3; % (s)
     TaskParameters.GUI.TimeOutMissedChoice = 3; % (s)
     TaskParameters.GUI.TimeOutSkippedFeedback = 0; % (s)
+    TaskParameters.GUI.PlayNoiseforError = 0;
+    TaskParameters.GUIMeta.PlayNoiseforError.Style = 'checkbox';
     TaskParameters.GUI.PercentAuditory = 1;
     TaskParameters.GUI.StartEasyTrials = 50;
     TaskParameters.GUI.Percent50Fifty = 0;
@@ -26,7 +28,7 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUI.Ports_LMR = 123;
     TaskParameters.GUI.Wire1VideoTrigger = false;
     TaskParameters.GUIMeta.Wire1VideoTrigger.Style = 'checkbox';
-    TaskParameters.GUIPanels.General = {'ITI','RewardAmount','ChoiceDeadLine','TimeOutIncorrectChoice','TimeOutBrokeFixation','TimeOutEarlyWithdrawal','TimeOutMissedChoice','TimeOutSkippedFeedback','PercentAuditory','StartEasyTrials','Percent50Fifty','PercentCatch','CatchError','Ports_LMR','Wire1VideoTrigger'};
+    TaskParameters.GUIPanels.General = {'ITI','RewardAmount','ChoiceDeadLine','TimeOutIncorrectChoice','TimeOutBrokeFixation','TimeOutEarlyWithdrawal','TimeOutMissedChoice','TimeOutSkippedFeedback','PlayNoiseforError','PercentAuditory','StartEasyTrials','Percent50Fifty','PercentCatch','CatchError','Ports_LMR','Wire1VideoTrigger'};
     %% BiasControl
     TaskParameters.GUI.TrialSelection = 2;
     TaskParameters.GUIMeta.TrialSelection.Style = 'popupmenu';
