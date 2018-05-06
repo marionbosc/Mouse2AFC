@@ -24,7 +24,7 @@ if any(strcmp('WaitForStimulus',statesThisTrial))
 end
 if any(strcmp('stimulus_delivery',statesThisTrial))
     if TaskParameters.GUI.RewardAfterMinSampling
-        BpodSystem.Data.Custom.ST(iTrial) = diff(BpodSystem.Data.RawEvents.Trial{end}.States.stimulus_delivery); 
+        BpodSystem.Data.Custom.ST(iTrial) = diff(BpodSystem.Data.RawEvents.Trial{end}.States.stimulus_delivery);
     else
         if any(strcmp('CenterPortRewardDelivery',statesThisTrial)) && TaskParameters.GUI.AuditoryStimulusTime > TaskParameters.GUI.MinSampleAud
             BpodSystem.Data.Custom.ST(iTrial) = BpodSystem.Data.RawEvents.Trial{end}.States.CenterPortRewardDelivery(1,2) - BpodSystem.Data.RawEvents.Trial{end}.States.stimulus_delivery(1,1);
@@ -39,7 +39,7 @@ if any(strcmp('WaitForChoice',statesThisTrial)) && ~any(strcmp('timeOut_missed_c
 end
 
 if any(strcmp('WaitForRewardStart',statesThisTrial))  % CorrectChoice
-    BpodSystem.Data.Custom.ChoiceCorrect(iTrial) = 1; 
+    BpodSystem.Data.Custom.ChoiceCorrect(iTrial) = 1;
     if any(strcmp('WaitForReward',statesThisTrial))  % Feedback waiting time
         BpodSystem.Data.Custom.FeedbackTime(iTrial) = BpodSystem.Data.RawEvents.Trial{end}.States.WaitForReward(end,end) - BpodSystem.Data.RawEvents.Trial{end}.States.WaitForRewardStart(1,1);
         if BpodSystem.Data.Custom.LeftRewarded(iTrial) == 1 % Correct choice = left
@@ -178,13 +178,13 @@ end
 
 %create future trials
 if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
-    
+
     lastidx = numel(BpodSystem.Data.Custom.DV);
     newAuditoryTrial = rand(1,5) < TaskParameters.GUI.PercentAuditory;
     BpodSystem.Data.Custom.AuditoryTrial = [BpodSystem.Data.Custom.AuditoryTrial,newAuditoryTrial];
-    
+
     switch TaskParameters.GUIMeta.TrialSelection.String{TaskParameters.GUI.TrialSelection}
-        case 'Flat' % Restore equals P(Omega) for all the Omega values of the GUI 
+        case 'Flat' % Restore equals P(Omega) for all the Omega values of the GUI
             TaskParameters.GUI.LeftBiasAud = 0.5;
             TaskParameters.GUI.OmegaTable.OmegaProb = ones(size(TaskParameters.GUI.OmegaTable.OmegaProb));
         case 'BiasCorrecting' % Favors side with fewer rewards. Contrast drawn flat & independently.
@@ -200,22 +200,22 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
                 TaskParameters.GUI.LeftBiasAud = (PerfL-PerfR)/2 + 0.5;
             else
                 TaskParameters.GUI.LeftBiasAud = 0.5;
-            end 
+            end
             % auditory discrete omega values:
             % Adjust the GUI values of P(Omega) depending on the LeftBias
             TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega<50) = TaskParameters.GUI.LeftBiasAud; % P(Right side trials)
-            TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega>50) = 1-TaskParameters.GUI.LeftBiasAud; % P(Left side trials)           
-             
+            TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega>50) = 1-TaskParameters.GUI.LeftBiasAud; % P(Left side trials)
+
         case 'Manual' % Don't modify the LeftBias and leave the GUI values of P(Omega)
             TaskParameters.GUI.LeftBiasAud = 0.5;
     end
-    
-    % Adjustment of P(Omega) to make sure that sum(P(Omega))=1 
+
+    % Adjustment of P(Omega) to make sure that sum(P(Omega))=1
     if sum(TaskParameters.GUI.OmegaTable.OmegaProb) == 0
         TaskParameters.GUI.OmegaTable.OmegaProb = ones(size(TaskParameters.GUI.OmegaTable.OmegaProb));
     end
     TaskParameters.GUI.OmegaTable.OmegaProb = TaskParameters.GUI.OmegaTable.OmegaProb/sum(TaskParameters.GUI.OmegaTable.OmegaProb);
-    
+
     % make future auditory trials
     % easy trial selection for Beta distribution
     if iTrial > TaskParameters.GUI.StartEasyTrials
@@ -236,16 +236,16 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
                 if TaskParameters.GUI.AuditoryTrialSelection == 1 % Beta distribution trial selection
                     BpodSystem.Data.Custom.AuditoryOmega(lastidx+a) = betarnd(max(0,BetaA),max(0,BetaB),1,1); %prevent negative parameters
                 else % Discrete value trial selection
-                    if iTrial < TaskParameters.GUI.StartEasyTrials % easy trial 
+                    if iTrial < TaskParameters.GUI.StartEasyTrials % easy trial
                         EasyProb = zeros(numel(TaskParameters.GUI.OmegaTable.OmegaProb),1);
                         EasyProb(1) = 1; EasyProb(end)=1;
                         TaskParameters.GUI.OmegaTable.OmegaProb = EasyProb .* TaskParameters.GUI.OmegaTable.OmegaProb;
-                        TaskParameters.GUI.OmegaTable.OmegaProb = TaskParameters.GUI.OmegaTable.OmegaProb/sum(TaskParameters.GUI.OmegaTable.OmegaProb);    
+                        TaskParameters.GUI.OmegaTable.OmegaProb = TaskParameters.GUI.OmegaTable.OmegaProb/sum(TaskParameters.GUI.OmegaTable.OmegaProb);
                         BpodSystem.Data.Custom.AuditoryOmega(lastidx+a) = randsample(TaskParameters.GUI.OmegaTable.Omega,1,1,TaskParameters.GUI.OmegaTable.OmegaProb)/100;
                     else % regular trials
                         BpodSystem.Data.Custom.AuditoryOmega(lastidx+a) = randsample(TaskParameters.GUI.OmegaTable.Omega,1,1,TaskParameters.GUI.OmegaTable.OmegaProb)/100;
                     end
-                end            
+                end
             end
             BpodSystem.Data.Custom.LeftClickRate(lastidx+a) = round(BpodSystem.Data.Custom.AuditoryOmega(lastidx+a).*TaskParameters.GUI.SumRates);
             BpodSystem.Data.Custom.RightClickRate(lastidx+a) = round((1-BpodSystem.Data.Custom.AuditoryOmega(lastidx+a)).*TaskParameters.GUI.SumRates);
@@ -279,14 +279,14 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
             BpodSystem.Data.Custom.RightClickTrain{lastidx+a} = [];
         end%if auditory
     end%for a=1:5
-            
+
     % cross-modality difficulty for plotting
     for a = 1 : 5
         if BpodSystem.Data.Custom.AuditoryTrial(lastidx+a)
             BpodSystem.Data.Custom.DV(lastidx+a) = (length(BpodSystem.Data.Custom.LeftClickTrain{lastidx+a}) - length(BpodSystem.Data.Custom.RightClickTrain{lastidx+a}))./(length(BpodSystem.Data.Custom.LeftClickTrain{lastidx+a}) + length(BpodSystem.Data.Custom.RightClickTrain{lastidx+a}));
         end
     end
-    
+
 end%if trial > - 5
 
 % send auditory stimuli to PulsePal for next trial

@@ -80,9 +80,9 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUI.OmegaTable.OmegaProb = ones(size(TaskParameters.GUI.OmegaTable.Omega))/numel(TaskParameters.GUI.OmegaTable.Omega);
     TaskParameters.GUIMeta.OmegaTable.Style = 'table';
     TaskParameters.GUIMeta.OmegaTable.String = 'Omega probabilities';
-    TaskParameters.GUIMeta.OmegaTable.ColumnLabel = {'a = Omega*100','P(a)'};  
+    TaskParameters.GUIMeta.OmegaTable.ColumnLabel = {'a = Omega*100','P(a)'};
     %min auditory stimulus and general stuff
-    TaskParameters.GUI.AuditoryStimulusTime = 0.5;    
+    TaskParameters.GUI.AuditoryStimulusTime = 0.5;
     TaskParameters.GUI.RewardAfterMinSampling = true;
     TaskParameters.GUIMeta.RewardAfterMinSampling.Style = 'checkbox';
     TaskParameters.GUI.CenterPortRewAmount = 0.5;
@@ -94,7 +94,7 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUI.MinSampleAudDecr = 0.02;
     TaskParameters.GUI.MinSampleAud = TaskParameters.GUI.MinSampleAudMin;
     TaskParameters.GUIMeta.MinSampleAud.Style = 'text';
-    TaskParameters.GUIPanels.AudGeneral = {'AuditoryStimulusTime','PortLEDtoCueReward','PercentForcedLEDTrial'}; 
+    TaskParameters.GUIPanels.AudGeneral = {'AuditoryStimulusTime','PortLEDtoCueReward','PercentForcedLEDTrial'};
     TaskParameters.GUIPanels.AudClicks = {'OmegaTable','AuditoryAlpha','AuditoryTrialSelection','LeftBiasAud','SumRates'};
     TaskParameters.GUIPanels.AudMinSample= {'RewardAfterMinSampling','CenterPortRewAmount','MinSampleAudMin','MinSampleAudMax','MinSampleAudAutoincrement','MinSampleAudIncr','MinSampleAudDecr','MinSampleAud'};
     %% Plots
@@ -122,12 +122,12 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUI = orderfields(TaskParameters.GUI);
     %% Tabs
     TaskParameters.GUITabs.General = {'StimDelay','BiasControl','General','FeedbackDelay'};
-    TaskParameters.GUITabs.Auditory = {'AudGeneral','AudMinSample','AudClicks'}; 
+    TaskParameters.GUITabs.Auditory = {'AudGeneral','AudMinSample','AudClicks'};
     TaskParameters.GUITabs.Plots = {'ShowPlots','Vevaiometric'};
     %%Non-GUI Parameters (but saved)
     TaskParameters.Figures.OutcomePlot.Position = [200, 200, 1000, 400];
     TaskParameters.Figures.ParameterGUI.Position =  [9, 454, 1474, 562];
-    
+
 end
 BpodParameterGUI('init', TaskParameters);
 
@@ -245,10 +245,10 @@ while RunSession
     if BpodSystem.BeingUsed == 0
         return
     end
-    
+
     updateCustomDataFields(iTrial);
     MainPlot(BpodSystem.GUIHandles.OutcomePlot,'update',iTrial);
     iTrial = iTrial + 1;
-    
+
 end
 end
