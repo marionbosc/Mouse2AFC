@@ -181,16 +181,13 @@ for a = 1:2
         else
             BpodSystem.Data.Custom.LeftRewarded(a) = rand<0.5;
         end
+        BpodSystem.Data.Custom.DV(a) = (length(BpodSystem.Data.Custom.LeftClickTrain{a}) - length(BpodSystem.Data.Custom.RightClickTrain{a}))./(length(BpodSystem.Data.Custom.LeftClickTrain{a}) + length(BpodSystem.Data.Custom.RightClickTrain{a}));
     else
         BpodSystem.Data.Custom.AuditoryOmega(a) = NaN;
         BpodSystem.Data.Custom.LeftClickRate(a) = NaN;
         BpodSystem.Data.Custom.RightClickRate(a) = NaN;
         BpodSystem.Data.Custom.LeftClickTrain{a} = [];
         BpodSystem.Data.Custom.RightClickTrain{a} = [];
-    end
-
-    if BpodSystem.Data.Custom.AuditoryTrial(a)
-        BpodSystem.Data.Custom.DV(a) = (length(BpodSystem.Data.Custom.LeftClickTrain{a}) - length(BpodSystem.Data.Custom.RightClickTrain{a}))./(length(BpodSystem.Data.Custom.LeftClickTrain{a}) + length(BpodSystem.Data.Custom.RightClickTrain{a}));
     end
 end%for a+1:2
 

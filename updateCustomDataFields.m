@@ -270,6 +270,8 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
             else
                 BpodSystem.Data.Custom.LeftRewarded(lastidx+a) = rand<0.5;
             end
+            % cross-modality difficulty for plotting
+            BpodSystem.Data.Custom.DV(lastidx+a) = (length(BpodSystem.Data.Custom.LeftClickTrain{lastidx+a}) - length(BpodSystem.Data.Custom.RightClickTrain{lastidx+a}))./(length(BpodSystem.Data.Custom.LeftClickTrain{lastidx+a}) + length(BpodSystem.Data.Custom.RightClickTrain{lastidx+a}));
         else
             BpodSystem.Data.Custom.AuditoryOmega(lastidx+a) = NaN;
             BpodSystem.Data.Custom.LeftClickRate(lastidx+a) = NaN;
@@ -279,14 +281,6 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
             BpodSystem.Data.Custom.RightClickTrain{lastidx+a} = [];
         end%if auditory
     end%for a=1:5
-
-    % cross-modality difficulty for plotting
-    for a = 1 : 5
-        if BpodSystem.Data.Custom.AuditoryTrial(lastidx+a)
-            BpodSystem.Data.Custom.DV(lastidx+a) = (length(BpodSystem.Data.Custom.LeftClickTrain{lastidx+a}) - length(BpodSystem.Data.Custom.RightClickTrain{lastidx+a}))./(length(BpodSystem.Data.Custom.LeftClickTrain{lastidx+a}) + length(BpodSystem.Data.Custom.RightClickTrain{lastidx+a}));
-        end
-    end
-
 end%if trial > - 5
 
 % send auditory stimuli to PulsePal for next trial
