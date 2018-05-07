@@ -13,6 +13,8 @@ LeftPortIn = strcat('Port',num2str(LeftPort),'In');
 CenterPortIn = strcat('Port',num2str(CenterPort),'In');
 RightPortIn = strcat('Port',num2str(RightPort),'In');
 
+% Valve opening is a bitmap. Open each valve separately by raising 2 to
+% the power of port number - 1
 LeftValve = 2^(LeftPort-1);
 CenterValve = 2^(CenterPort-1);
 RightValve = 2^(RightPort-1);
@@ -51,6 +53,8 @@ else
 end
 
 % GUI option RewardAfterMinSampling
+% If center-reward is enabled, then a reward is given once MinSampleAud
+% is over and no further sampling is given.
 if TaskParameters.GUI.RewardAfterMinSampling
     RewardCenterPort = {'ValveState',CenterValve,'BNCState',0};
     Timer_CPRD = CenterValveTime;

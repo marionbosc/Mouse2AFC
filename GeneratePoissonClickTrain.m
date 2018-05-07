@@ -2,11 +2,20 @@ function ClickTimes = GeneratePoissonClickTrain(ClickRate, Duration)
 % ClickTimes = click time points in us
 % ClickRate = mean click rate in Hz
 % Duration = click train duration in seconds
+% Poisson distribution is the probability that event occurs x times over an
+% interval of times given that on average it occurs ? times. The probaility
+% distrubition function is P(x; ?) = (pow(?, x) * exp(-?)) / x!
+% https://en.wikipedia.org/wiki/Poisson_distribution
+% https://www.youtube.com/watch?v=Fk02TW6reiA
 
 SamplingRate = 1000000;
-nSamples = Duration*SamplingRate;
-ExponentialMean = round((1/ClickRate)*SamplingRate); % Calculates mean of exponential distribution
+nSamples = Duration*SamplingRate; % Total number of sampling points for the whole duration
+% Calculates mean of exponential distribution, i.e the average between each
+% two time points.
+ExponentialMean = round((1/ClickRate)*SamplingRate);
 InvertedMean = ExponentialMean*-1;
+% A large enough buffer that will hold the time points at which to trigger
+% a tone.
 PreallocateSize = round(ClickRate*Duration*2);
 ClickTimes = zeros(1,PreallocateSize);
 Pos = 0;

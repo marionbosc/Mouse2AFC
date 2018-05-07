@@ -1,23 +1,51 @@
 function updateCustomDataFields(iTrial)
+% iTrial = The sequential number of the trial that just ran
 global BpodSystem
 global TaskParameters
 
 %% Standard values
+% Stores which lateral port the animal poked into (if any)
 BpodSystem.Data.Custom.ChoiceLeft(iTrial) = NaN;
+% Stores whether the animal poked into the correct port (if any)
 BpodSystem.Data.Custom.ChoiceCorrect(iTrial) = NaN;
+% Signals whether confidence was used in this trial. Set to false if
+% lateral ports choice timed-out (i.e, MissedChoice(i) is true), it also
+% should be set to false (but not due to a bug) if the animal poked the
+% a lateral port but didn't complete the feedback period (even with using
+% grace).
 BpodSystem.Data.Custom.Feedback(iTrial) = true;
+% How long the animal spent waiting for the reward (whether in correct or
+% in incorrect ports)
 BpodSystem.Data.Custom.FeedbackTime(iTrial) = NaN;
+% Signals whether the animal broke fixation during stimulus delay state
 BpodSystem.Data.Custom.FixBroke(iTrial) = false;
+% Signals whether the animal broke fixation during sampling but before
+% min-sampling ends
 BpodSystem.Data.Custom.EarlyWithdrawal(iTrial) = false;
+% Signals whether the animal correctly finished min-sampling but failed
+% to poke any of the lateral ports within ChoiceDeadLine period
 BpodSystem.Data.Custom.MissedChoice(iTrial) = false;
+% How long the animal remained fixated in center poke
 BpodSystem.Data.Custom.FixDur(iTrial) = NaN;
+% How long between sample end and making a choice (timeout-choice trials
+% are excluded)
 BpodSystem.Data.Custom.MT(iTrial) = NaN;
+% How long the animal sampled. If RewardAfterMinSampling is enabled and
+% animal completed min sampling, then it's equal to MinSampleAud time,
+% otherwise it's how long the animal remained fixated in center-port until
+% it either poked-out or the max allowed auditory sampling time was
+% reached.
 BpodSystem.Data.Custom.ST(iTrial) = NaN;
+% Signals whether a reward was given to the animal (it also includes if the
+% animal poked into the correct reward port but poked out afterwards and
+% didn't receive a reward, due to 'RewardGrace' being counted as reward).
 BpodSystem.Data.Custom.Rewarded(iTrial) = false;
+% Signals whether a center-port reward was given after min-sampling ends.
 BpodSystem.Data.Custom.RewardAfterMinSampling(iTrial) = false;
 BpodSystem.Data.Custom.TrialNumber(iTrial) = iTrial;
 
 %% Checking states and rewriting standard
+% Extract the states that were used in the last trial
 statesThisTrial = BpodSystem.Data.RawData.OriginalStateNamesByNumber{iTrial}(BpodSystem.Data.RawData.OriginalStateData{iTrial});
 if any(strcmp('WaitForStimulus',statesThisTrial))
     BpodSystem.Data.Custom.FixDur(iTrial) = diff(BpodSystem.Data.RawEvents.Trial{end}.States.WaitForStimulus);
@@ -26,9 +54,13 @@ if any(strcmp('stimulus_delivery',statesThisTrial))
     if TaskParameters.GUI.RewardAfterMinSampling
         BpodSystem.Data.Custom.ST(iTrial) = diff(BpodSystem.Data.RawEvents.Trial{end}.States.stimulus_delivery);
     else
+        % 'CenterPortRewardDelivery' state would exist even if no
+        % 'RewardAfterMinSampling' is active, in such case it means that
+        % min sampling is done and we are in the optional sampling stage.
         if any(strcmp('CenterPortRewardDelivery',statesThisTrial)) && TaskParameters.GUI.AuditoryStimulusTime > TaskParameters.GUI.MinSampleAud
             BpodSystem.Data.Custom.ST(iTrial) = BpodSystem.Data.RawEvents.Trial{end}.States.CenterPortRewardDelivery(1,2) - BpodSystem.Data.RawEvents.Trial{end}.States.stimulus_delivery(1,1);
         else
+            % This covers early_withdrawal.
             BpodSystem.Data.Custom.ST(iTrial) = diff(BpodSystem.Data.RawEvents.Trial{end}.States.stimulus_delivery);
         end
     end
@@ -104,48 +136,74 @@ end
 if TaskParameters.GUI.MinSampleAudAutoincrement
     History = 50;
     Crit = 0.8;
+    % If the sum of the Auditory trials are less than 10.
     if sum(BpodSystem.Data.Custom.AuditoryTrial)<10
         ConsiderTrials = iTrial;
     else
+        % Find the first auditory trial after 50.
+        % Since all the trials are auditory, if iTrial is >= 50 then idxStart will always be 50
         idxStart = find(cumsum(BpodSystem.Data.Custom.AuditoryTrial(iTrial:-1:1))>=History,1,'first');
         if isempty(idxStart)
-            ConsiderTrials = 1:iTrial;
+            ConsiderTrials = 1:iTrial; % Consider all the trials that we have so far
         else
-            ConsiderTrials = iTrial-idxStart+1:iTrial;
+            ConsiderTrials = iTrial-idxStart+1:iTrial; % Consider the last 50 trials
         end
     end
+    % Keep only trials that are relevant, include only trials that are
+    % auditory and trials that either a lateral port decision was made (i,e
+    % min. sampling was completed successfully) or trials that the animal
+    % made an early withdrawal during min. sampling (but after sampling
+    % delay).
     ConsiderTrials = ConsiderTrials((~isnan(BpodSystem.Data.Custom.ChoiceLeft(ConsiderTrials))...
         |BpodSystem.Data.Custom.EarlyWithdrawal(ConsiderTrials))&BpodSystem.Data.Custom.AuditoryTrial(ConsiderTrials)); %choice + early withdrawal + auditory trials
+    % If the last trial was auditory and we don't have empty
+    % consider-trials array after filtering.
     if ~isempty(ConsiderTrials) && BpodSystem.Data.Custom.AuditoryTrial(iTrial)
+        % Divide the considered trials to 2 sets, those whose sampling time
+        % are more than the current MinSampleAud and those that aren't, if
+        % the ratio of those > MinSampleAud are bigger than 'Crit' and the
+        % last trial wasn't an early withdrawal, then increment the
+        % MinSampleAud.
         if mean(BpodSystem.Data.Custom.ST(ConsiderTrials)>TaskParameters.GUI.MinSampleAud) > Crit
             if ~BpodSystem.Data.Custom.EarlyWithdrawal(iTrial)
                 TaskParameters.GUI.MinSampleAud = min(TaskParameters.GUI.MinSampleAudMax,...
                     max(TaskParameters.GUI.MinSampleAudMin,BpodSystem.Data.Custom.MinSampleAud(iTrial) + TaskParameters.GUI.MinSampleAudIncr));
             end
+        % If the ratio of the trials that are less than current min
+        % sampling are less than 'Crit'/2 and the last trial wasn't an early
+        % withdrawal during min sampling then decrement MinSampleAud.
         elseif mean(BpodSystem.Data.Custom.ST(ConsiderTrials)>TaskParameters.GUI.MinSampleAud) < Crit/2
             if BpodSystem.Data.Custom.EarlyWithdrawal(iTrial)
                 TaskParameters.GUI.MinSampleAud = max(TaskParameters.GUI.MinSampleAudMin,...
                     min(TaskParameters.GUI.MinSampleAudMax,BpodSystem.Data.Custom.MinSampleAud(iTrial) - TaskParameters.GUI.MinSampleAudDecr));
             end
+        % Otherwise keep the value as it is unless the user has updated the
+        % GUI values.
         else
             TaskParameters.GUI.MinSampleAud = max(TaskParameters.GUI.MinSampleAudMin,...
                 min(TaskParameters.GUI.MinSampleAudMax,BpodSystem.Data.Custom.MinSampleAud(iTrial)));
         end
+    % Keep the value as it is unless the user updated the GUI values.
     else
         TaskParameters.GUI.MinSampleAud = max(TaskParameters.GUI.MinSampleAudMin,...
             min(TaskParameters.GUI.MinSampleAudMax,BpodSystem.Data.Custom.MinSampleAud(iTrial)));
     end
-else
+else % Use non-incremental fixed value
     TaskParameters.GUI.MinSampleAud = TaskParameters.GUI.MinSampleAudMin;
 end
 
 %feedback delay
 switch TaskParameters.GUIMeta.FeedbackDelaySelection.String{TaskParameters.GUI.FeedbackDelaySelection}
     case 'AutoIncr'
+        % if no feedback was not completed then use the last value unless
+        % then decrement the feedback.
         if ~BpodSystem.Data.Custom.Feedback(iTrial)
             TaskParameters.GUI.FeedbackDelay = max(TaskParameters.GUI.FeedbackDelayMin,...
                 min(TaskParameters.GUI.FeedbackDelayMax,BpodSystem.Data.Custom.FeedbackDelay(iTrial)-TaskParameters.GUI.FeedbackDelayDecr));
         else
+            % Increase the feedback if the feedback was successfully
+            % completed in the last trial, or use the the GUI value that
+            % the user updated if needed.
             TaskParameters.GUI.FeedbackDelay = min(TaskParameters.GUI.FeedbackDelayMax,...
                 max(TaskParameters.GUI.FeedbackDelayMin,BpodSystem.Data.Custom.FeedbackDelay(iTrial)+TaskParameters.GUI.FeedbackDelayIncr));
         end
@@ -177,24 +235,30 @@ else
 end
 
 %create future trials
+% Check if its time to generate more future trials
 if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
 
     lastidx = numel(BpodSystem.Data.Custom.DV);
+    % Randomly choose which of the future trials will be auditory ones
     newAuditoryTrial = rand(1,5) < TaskParameters.GUI.PercentAuditory;
+    % Append new bool array to the current AuditoryTrial array
     BpodSystem.Data.Custom.AuditoryTrial = [BpodSystem.Data.Custom.AuditoryTrial,newAuditoryTrial];
 
     switch TaskParameters.GUIMeta.TrialSelection.String{TaskParameters.GUI.TrialSelection}
         case 'Flat' % Restore equals P(Omega) for all the Omega values of the GUI
             TaskParameters.GUI.LeftBiasAud = 0.5;
+            % Temporarily set all values to one. We will later divide them
+            % into equal probability ratios whose  sum is 1.
             TaskParameters.GUI.OmegaTable.OmegaProb = ones(size(TaskParameters.GUI.OmegaTable.OmegaProb));
         case 'BiasCorrecting' % Favors side with fewer rewards. Contrast drawn flat & independently.
+            % Considers all trials, not just the last x trials
             ndxAud = BpodSystem.Data.Custom.AuditoryTrial(1:iTrial);
             ndxRewd = BpodSystem.Data.Custom.Rewarded(1:iTrial) & ndxAud;
             ndxLeftRewd = BpodSystem.Data.Custom.ChoiceCorrect(1:iTrial) == 1  & BpodSystem.Data.Custom.ChoiceLeft(1:iTrial) == 1;
             ndxLeftRewDone = BpodSystem.Data.Custom.LeftRewarded(1:iTrial)==1 & ~isnan(BpodSystem.Data.Custom.ChoiceLeft(1:iTrial));
             ndxRightRewd = BpodSystem.Data.Custom.ChoiceCorrect(1:iTrial) == 1  & BpodSystem.Data.Custom.ChoiceLeft(1:iTrial) == 0;
             ndxRightRewDone = BpodSystem.Data.Custom.LeftRewarded(1:iTrial)==0 & ~isnan(BpodSystem.Data.Custom.ChoiceLeft(1:iTrial));
-            if sum(ndxRewd)>10
+            if sum(ndxRewd)>10 % Only start bias correction if we have at least 10 trials
                 PerfL = sum(ndxAud & ndxLeftRewd)/sum(ndxAud & ndxLeftRewDone);
                 PerfR = sum(ndxAud & ndxRightRewd)/sum(ndxAud & ndxRightRewDone);
                 TaskParameters.GUI.LeftBiasAud = (PerfL-PerfR)/2 + 0.5;
@@ -211,7 +275,7 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
     end
 
     % Adjustment of P(Omega) to make sure that sum(P(Omega))=1
-    if sum(TaskParameters.GUI.OmegaTable.OmegaProb) == 0
+    if sum(TaskParameters.GUI.OmegaTable.OmegaProb) == 0 % Avoid having no probability and avoid dividing by zero
         TaskParameters.GUI.OmegaTable.OmegaProb = ones(size(TaskParameters.GUI.OmegaTable.OmegaProb));
     end
     TaskParameters.GUI.OmegaTable.OmegaProb = TaskParameters.GUI.OmegaTable.OmegaProb/sum(TaskParameters.GUI.OmegaTable.OmegaProb);
@@ -230,12 +294,15 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
     BetaB = (AuditoryAlpha-BetaA) + AuditoryAlpha;
     for a = 1:5
         if BpodSystem.Data.Custom.AuditoryTrial(lastidx+a)
+            % If it's a fifty-fifty trial, then place stimulus in the middle
             if rand(1,1) < TaskParameters.GUI.Percent50Fifty && iTrial > TaskParameters.GUI.StartEasyTrials % 50Fifty trials
                 BpodSystem.Data.Custom.AuditoryOmega(lastidx+a) = 0.5;
             else
                 if TaskParameters.GUI.AuditoryTrialSelection == 1 % Beta distribution trial selection
                     BpodSystem.Data.Custom.AuditoryOmega(lastidx+a) = betarnd(max(0,BetaA),max(0,BetaB),1,1); %prevent negative parameters
                 else % Discrete value trial selection
+                    % If it's the an easy trial then choose the pair which
+                    % are the table's biggest and the smallest values.
                     if iTrial < TaskParameters.GUI.StartEasyTrials % easy trial
                         EasyProb = zeros(numel(TaskParameters.GUI.OmegaTable.OmegaProb),1);
                         EasyProb(1) = 1; EasyProb(end)=1;
@@ -268,9 +335,10 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
             elseif length(BpodSystem.Data.Custom.LeftClickTrain{lastidx+a}) < length(BpodSystem.Data.Custom.RightClickTrain{lastidx+a})
                 BpodSystem.Data.Custom.LeftRewarded(lastidx+a) = 0;
             else
-                BpodSystem.Data.Custom.LeftRewarded(lastidx+a) = rand<0.5;
+                BpodSystem.Data.Custom.LeftRewarded(lastidx+a) = rand<0.5; % It's equal distribution
             end
             % cross-modality difficulty for plotting
+            %  0 <= (left - right) / (left + right) <= 1
             BpodSystem.Data.Custom.DV(lastidx+a) = (length(BpodSystem.Data.Custom.LeftClickTrain{lastidx+a}) - length(BpodSystem.Data.Custom.RightClickTrain{lastidx+a}))./(length(BpodSystem.Data.Custom.LeftClickTrain{lastidx+a}) + length(BpodSystem.Data.Custom.RightClickTrain{lastidx+a}));
         else
             BpodSystem.Data.Custom.AuditoryOmega(lastidx+a) = NaN;
