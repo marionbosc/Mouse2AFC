@@ -182,7 +182,7 @@ for a = 1:2
         elseif  isempty(BpodSystem.Data.Custom.LeftClickTrain{a}) && ~isempty(BpodSystem.Data.Custom.RightClickTrain{a})
             % No left clicks train found. Use the first click from the right click train
             BpodSystem.Data.Custom.LeftClickTrain{a}(1) = BpodSystem.Data.Custom.RightClickTrain{a}(1);
-        elseif ~isempty(BpodSystem.Data.Custom.LeftClickTrain{1}) &&  isempty(BpodSystem.Data.Custom.RightClickTrain{a})
+        elseif ~isempty(BpodSystem.Data.Custom.LeftClickTrain{a}) &&  isempty(BpodSystem.Data.Custom.RightClickTrain{a})
             % No right clicks train found. Use the first click from the left click train
             BpodSystem.Data.Custom.RightClickTrain{a}(1) = BpodSystem.Data.Custom.LeftClickTrain{a}(1);
         else
