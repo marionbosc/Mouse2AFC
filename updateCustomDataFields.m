@@ -75,7 +75,7 @@ if any(strcmp('WaitForRewardStart',statesThisTrial))  % CorrectChoice
     if any(strcmp('WaitForReward',statesThisTrial))  % Feedback waiting time
         BpodSystem.Data.Custom.FeedbackTime(iTrial) = BpodSystem.Data.RawEvents.Trial{end}.States.WaitForReward(end,end) - BpodSystem.Data.RawEvents.Trial{end}.States.WaitForRewardStart(1,1);
         if BpodSystem.Data.Custom.LeftRewarded(iTrial) == 1 % Correct choice = left
-            BpodSystem.Data.Custom.ChoiceLeft(iTrial) = 1; % Left choosen
+            BpodSystem.Data.Custom.ChoiceLeft(iTrial) = 1; % Left chosen
         else
             BpodSystem.Data.Custom.ChoiceLeft(iTrial) = 0;
         end
@@ -85,7 +85,7 @@ elseif any(strcmp('WaitForPunishStart',statesThisTrial))  % WrongChoice
     if any(strcmp('WaitForPunish',statesThisTrial))  % Feedback waiting time
         BpodSystem.Data.Custom.FeedbackTime(iTrial) = BpodSystem.Data.RawEvents.Trial{end}.States.WaitForPunish(end,end) - BpodSystem.Data.RawEvents.Trial{end}.States.WaitForPunishStart(1,1);
         if BpodSystem.Data.Custom.LeftRewarded(iTrial) == 1 % Correct choice = left
-            BpodSystem.Data.Custom.ChoiceLeft(iTrial) = 0; % Left not choosen
+            BpodSystem.Data.Custom.ChoiceLeft(iTrial) = 0; % Left not chosen
         else
             BpodSystem.Data.Custom.ChoiceLeft(iTrial) = 1;
         end
