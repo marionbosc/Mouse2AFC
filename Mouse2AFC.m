@@ -147,6 +147,7 @@ BpodSystem.Data.Custom.ST = [];
 BpodSystem.Data.Custom.Rewarded = false(0);
 BpodSystem.Data.Custom.RewardAfterMinSampling = false(0);
 % RewardMagnitude is an array of length 2
+% TODO: Use an array of 1 and just assign it to the rewarding port
 BpodSystem.Data.Custom.RewardMagnitude = TaskParameters.GUI.RewardAmount*[1,1];
 BpodSystem.Data.Custom.CenterPortRewAmount =TaskParameters.GUI.CenterPortRewAmount;
 BpodSystem.Data.Custom.TrialNumber = [];
@@ -210,6 +211,7 @@ for a = 1:Const.NUM_EASY_TRIALS
         %  0 <= (left - right) / (left + right) <= 1
         BpodSystem.Data.Custom.DV(a) = (length(BpodSystem.Data.Custom.LeftClickTrain{a}) - length(BpodSystem.Data.Custom.RightClickTrain{a}))./(length(BpodSystem.Data.Custom.LeftClickTrain{a}) + length(BpodSystem.Data.Custom.RightClickTrain{a}));
     else
+        % TODO: Remove non-auditory code
         BpodSystem.Data.Custom.AuditoryOmega(a) = NaN;
         BpodSystem.Data.Custom.LeftClickRate(a) = NaN;
         BpodSystem.Data.Custom.RightClickRate(a) = NaN;

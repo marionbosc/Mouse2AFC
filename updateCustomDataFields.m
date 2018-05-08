@@ -286,6 +286,7 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - Const.PRE_GENERATE_TRIAL_CHECK
             end
             % auditory discrete omega values:
             % Adjust the GUI values of P(Omega) depending on the LeftBias
+            % TODO: Add an option to lean more to easier trials according to how strong the bias is
             TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega<50) = TaskParameters.GUI.LeftBiasAud; % P(Right side trials)
             TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega>50) = 1-TaskParameters.GUI.LeftBiasAud; % P(Left side trials)
 

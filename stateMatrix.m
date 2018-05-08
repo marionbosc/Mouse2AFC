@@ -27,6 +27,7 @@ LeftValveTime  = GetValveTimes(BpodSystem.Data.Custom.RewardMagnitude(iTrial,1),
 CenterValveTime  = GetValveTimes(BpodSystem.Data.Custom.CenterPortRewAmount(iTrial), CenterPort);
 RightValveTime  = GetValveTimes(BpodSystem.Data.Custom.RewardMagnitude(iTrial,2), RightPort);
 
+% TODO: Make code only for auditory trial and remove all the if-conditions
 if BpodSystem.Data.Custom.AuditoryTrial(iTrial) %auditory trial
     IsLeftRewarded = BpodSystem.Data.Custom.LeftRewarded(iTrial);
 else
