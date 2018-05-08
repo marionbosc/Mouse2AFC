@@ -151,10 +151,11 @@ BpodSystem.Data.Custom.RewardMagnitude = TaskParameters.GUI.RewardAmount*[1,1];
 BpodSystem.Data.Custom.CenterPortRewAmount =TaskParameters.GUI.CenterPortRewAmount;
 BpodSystem.Data.Custom.TrialNumber = [];
 % Boolean array that stores which are the auditory trials
-BpodSystem.Data.Custom.AuditoryTrial = rand(1,2) < TaskParameters.GUI.PercentAuditory;
+BpodSystem.Data.Custom.AuditoryTrial = rand(1,Const.NUM_EASY_TRIALS) < TaskParameters.GUI.PercentAuditory;
+
 BpodSystem.Data.Custom.ForcedLEDTrial = false;
 % make auditory stimuli for first trials
-for a = 1:2
+for a = 1:Const.NUM_EASY_TRIALS
     if BpodSystem.Data.Custom.AuditoryTrial(a)
         if TaskParameters.GUI.AuditoryTrialSelection == AuditoryTrialSelection.BetaDistribution
             % This random value is between 0 and 1, the beta distribution

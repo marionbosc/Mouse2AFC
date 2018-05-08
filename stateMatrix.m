@@ -51,10 +51,10 @@ Timer_CPRD = iff(TaskParameters.GUI.RewardAfterMinSampling, CenterValveTime, Tas
 ErrorFeedback = iff(TaskParameters.GUI.PlayNoiseforError, {'SoftCode',11}, {});
 
 % CatchTrial
-FeedbackDelayCorrect = iff(BpodSystem.Data.Custom.CatchTrial(iTrial), 20, TaskParameters.GUI.FeedbackDelay);
+FeedbackDelayCorrect = iff(BpodSystem.Data.Custom.CatchTrial(iTrial), Const.FEEDBACK_CATCH_CORRECT_SEC, TaskParameters.GUI.FeedbackDelay);
 
 % GUI option CatchError
-FeedbackDelayError = iff(TaskParameters.GUI.CatchError, 20, TaskParameters.GUI.FeedbackDelay);
+FeedbackDelayError = iff(TaskParameters.GUI.CatchError, Const.FEEDBACK_CATCH_INCORRECT_SEC, TaskParameters.GUI.FeedbackDelay);
 SkippedFeedbackSignal = iff(TaskParameters.GUI.CatchError, {}, ErrorFeedback);
 
 % Incorrect Choice signal

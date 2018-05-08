@@ -236,11 +236,11 @@ end
 
 %create future trials
 % Check if its time to generate more future trials
-if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
+if iTrial > numel(BpodSystem.Data.Custom.DV) - Const.PRE_GENERATE_TRIAL_CHECK
 
     lastidx = numel(BpodSystem.Data.Custom.DV);
     % Randomly choose which of the future trials will be auditory ones
-    newAuditoryTrial = rand(1,5) < TaskParameters.GUI.PercentAuditory;
+    newAuditoryTrial = rand(1,Const.PRE_GENERATE_TRIAL_COUNT) < TaskParameters.GUI.PercentAuditory;
     % Append new bool array to the current AuditoryTrial array
     BpodSystem.Data.Custom.AuditoryTrial = [BpodSystem.Data.Custom.AuditoryTrial,newAuditoryTrial];
 
@@ -258,7 +258,8 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
             ndxLeftRewDone = BpodSystem.Data.Custom.LeftRewarded(1:iTrial)==1 & ~isnan(BpodSystem.Data.Custom.ChoiceLeft(1:iTrial));
             ndxRightRewd = BpodSystem.Data.Custom.ChoiceCorrect(1:iTrial) == 1  & BpodSystem.Data.Custom.ChoiceLeft(1:iTrial) == 0;
             ndxRightRewDone = BpodSystem.Data.Custom.LeftRewarded(1:iTrial)==0 & ~isnan(BpodSystem.Data.Custom.ChoiceLeft(1:iTrial));
-            if sum(ndxRewd)>10 % Only start bias correction if we have at least 10 trials
+            % Do bias correction only if we have enough trials
+            if sum(ndxRewd) > Const.BIAS_CORRECT_MIN_RWD_TRIALS
                 PerfL = sum(ndxAud & ndxLeftRewd)/sum(ndxAud & ndxLeftRewDone);
                 PerfR = sum(ndxAud & ndxRightRewd)/sum(ndxAud & ndxRightRewDone);
                 TaskParameters.GUI.LeftBiasAud = (PerfL-PerfR)/2 + 0.5;
@@ -292,7 +293,7 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
     %cut off between 0.1-0.9 to prevent extreme values (only one side) and div by zero
     BetaA =  (2*AuditoryAlpha*BetaRatio) / (1+BetaRatio); %make a,b symmetric around AuditoryAlpha to make B symmetric
     BetaB = (AuditoryAlpha-BetaA) + AuditoryAlpha;
-    for a = 1:5
+    for a = 1:Const.PRE_GENERATE_TRIAL_COUNT
         if BpodSystem.Data.Custom.AuditoryTrial(lastidx+a)
             % If it's a fifty-fifty trial, then place stimulus in the middle
             if rand(1,1) < TaskParameters.GUI.Percent50Fifty && iTrial > TaskParameters.GUI.StartEasyTrials % 50Fifty trials
