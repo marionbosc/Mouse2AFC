@@ -23,6 +23,7 @@ Time = 0;
 Building = 1;
 while Building == 1
     Pos = Pos + 1;
+    % Why do we multiply by log?
     Interval = InvertedMean*log(rand)+100; % +100 ensures no duplicate timestamps at PulsePal resolution of 100us
     Time = Time + Interval;
     if Time > nSamples

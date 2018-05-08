@@ -158,6 +158,8 @@ BpodSystem.Data.Custom.ForcedLEDTrial = false;
 for a = 1:Const.NUM_EASY_TRIALS
     if BpodSystem.Data.Custom.AuditoryTrial(a)
         if TaskParameters.GUI.AuditoryTrialSelection == AuditoryTrialSelection.BetaDistribution
+            % Why divide by 4?
+            % Do we need the extra 1, 1 parameters at the end?
             % This random value is between 0 and 1, the beta distribution
             % parameters makes it very likely to very close to zero or very
             % close to 1.
@@ -190,6 +192,7 @@ for a = 1:Const.NUM_EASY_TRIALS
             % No right clicks train found. Use the first click from the left click train
             BpodSystem.Data.Custom.RightClickTrain{a}(1) = BpodSystem.Data.Custom.LeftClickTrain{a}(1);
         else
+            % Both are empty, use the rate as a first click?
             BpodSystem.Data.Custom.LeftClickTrain{a} = round(1/BpodSystem.Data.Custom.LeftClickRate*10000)/10000;
             BpodSystem.Data.Custom.RightClickTrain{a} = round(1/BpodSystem.Data.Custom.RightClickRate*10000)/10000;
         end
@@ -200,6 +203,8 @@ for a = 1:Const.NUM_EASY_TRIALS
         elseif length(BpodSystem.Data.Custom.LeftClickTrain{1}) < length(BpodSystem.Data.Custom.RightClickTrain{a})
             BpodSystem.Data.Custom.LeftRewarded(a) = double(0);
         else
+            % If both click trains match in length, then assign it by
+            % chance?
             BpodSystem.Data.Custom.LeftRewarded(a) = rand<0.5;
         end
         %  0 <= (left - right) / (left + right) <= 1

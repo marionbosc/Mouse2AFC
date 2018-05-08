@@ -99,14 +99,14 @@ elseif any(strcmp('broke_fixation',statesThisTrial))
     BpodSystem.Data.Custom.FixBroke(iTrial) = true;
 elseif any(strcmp('early_withdrawal',statesThisTrial))
     BpodSystem.Data.Custom.EarlyWithdrawal(iTrial) = true;
-elseif any(strcmp('missed_choice',statesThisTrial))
+elseif any(strcmp('missed_choice',statesThisTrial)) % should be timeOut_missed_choice?
     BpodSystem.Data.Custom.Feedback(iTrial) = false;
     BpodSystem.Data.Custom.MissedChoice(iTrial) = true;
 end
-if any(strcmp('skipped_feedback',statesThisTrial))
+if any(strcmp('skipped_feedback',statesThisTrial)) % No such state, was timeOut_SkippedFeedback meant?
     BpodSystem.Data.Custom.Feedback(iTrial) = false;
 end
-if any(strncmp('Reward',statesThisTrial,6))
+if any(strncmp('Reward',statesThisTrial,6)) % Will that include 'RewardGrace'? if yes, then should it?
     BpodSystem.Data.Custom.Rewarded(iTrial) = true;
 end
 if any(strcmp('CenterPortRewardDelivery',statesThisTrial)) && TaskParameters.GUI.RewardAfterMinSampling
@@ -142,6 +142,7 @@ if TaskParameters.GUI.MinSampleAudAutoincrement
     History = 50;
     Crit = 0.8;
     % If the sum of the Auditory trials are less than 10.
+    % Since we have only AuditoryTrials can we just check for the value of iTrial?
     if sum(BpodSystem.Data.Custom.AuditoryTrial)<10
         ConsiderTrials = iTrial;
     else
@@ -159,6 +160,7 @@ if TaskParameters.GUI.MinSampleAudAutoincrement
     % min. sampling was completed successfully) or trials that the animal
     % made an early withdrawal during min. sampling (but after sampling
     % delay).
+    % Do we exclude timeOut_missed_choice trials? if yes, then why?
     ConsiderTrials = ConsiderTrials((~isnan(BpodSystem.Data.Custom.ChoiceLeft(ConsiderTrials))...
         |BpodSystem.Data.Custom.EarlyWithdrawal(ConsiderTrials))&BpodSystem.Data.Custom.AuditoryTrial(ConsiderTrials)); %choice + early withdrawal + auditory trials
     % If the last trial was auditory and we don't have empty
@@ -169,6 +171,10 @@ if TaskParameters.GUI.MinSampleAudAutoincrement
         % the ratio of those > MinSampleAud are bigger than 'Crit' and the
         % last trial wasn't an early withdrawal, then increment the
         % MinSampleAud.
+        % If RewardAfterMinSampling is enabled, and since ST max possible
+        % value when RewardAfterMinSampling is MinSampleAud, wouldn't
+        % increasing the MinSampleAud be very difficult as ratio of
+        % consider-trials will always be less than MinSampleAud?
         if mean(BpodSystem.Data.Custom.ST(ConsiderTrials)>TaskParameters.GUI.MinSampleAud) > Crit
             if ~BpodSystem.Data.Custom.EarlyWithdrawal(iTrial)
                 TaskParameters.GUI.MinSampleAud = min(TaskParameters.GUI.MinSampleAudMax,...
@@ -202,6 +208,8 @@ switch TaskParameters.GUI.FeedbackDelaySelection
     case FeedbackDelaySelection.AutoIncr
         % if no feedback was not completed then use the last value unless
         % then decrement the feedback.
+        % Do we consider the case where 'broke_fixation' or
+        % 'early_withdrawal' terminated early the trial?
         if ~BpodSystem.Data.Custom.Feedback(iTrial)
             TaskParameters.GUI.FeedbackDelay = max(TaskParameters.GUI.FeedbackDelayMin,...
                 min(TaskParameters.GUI.FeedbackDelayMax,BpodSystem.Data.Custom.FeedbackDelay(iTrial)-TaskParameters.GUI.FeedbackDelayDecr));
@@ -209,6 +217,8 @@ switch TaskParameters.GUI.FeedbackDelaySelection
             % Increase the feedback if the feedback was successfully
             % completed in the last trial, or use the the GUI value that
             % the user updated if needed.
+            % Do we also here consider the case where 'broke_fixation' or
+            % 'early_withdrawal' terminated early the trial?
             TaskParameters.GUI.FeedbackDelay = min(TaskParameters.GUI.FeedbackDelayMax,...
                 max(TaskParameters.GUI.FeedbackDelayMin,BpodSystem.Data.Custom.FeedbackDelay(iTrial)+TaskParameters.GUI.FeedbackDelayIncr));
         end
@@ -247,6 +257,7 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - Const.PRE_GENERATE_TRIAL_CHECK
 
     lastidx = numel(BpodSystem.Data.Custom.DV);
     % Randomly choose which of the future trials will be auditory ones
+    % Should it be here <= instead of < ?
     newAuditoryTrial = rand(1,Const.PRE_GENERATE_TRIAL_COUNT) < TaskParameters.GUI.PercentAuditory;
     % Append new bool array to the current AuditoryTrial array
     BpodSystem.Data.Custom.AuditoryTrial = [BpodSystem.Data.Custom.AuditoryTrial,newAuditoryTrial];
@@ -295,6 +306,7 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - Const.PRE_GENERATE_TRIAL_CHECK
     if iTrial > TaskParameters.GUI.StartEasyTrials
         AuditoryAlpha = TaskParameters.GUI.AuditoryAlpha;
     else
+        % Why divide by 4? to make it easier?
         AuditoryAlpha = TaskParameters.GUI.AuditoryAlpha/4;
     end
     % L/R Bias trial selection for Beta distribution
