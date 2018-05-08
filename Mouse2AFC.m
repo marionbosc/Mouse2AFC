@@ -166,6 +166,8 @@ for a = 1:Const.NUM_EASY_TRIALS
             % Choose randomly either the top or the bottom value in the
             % Omega table (e.g 0 or 100) and divide it by 100.
             BpodSystem.Data.Custom.AuditoryOmega(a) = randsample([min(TaskParameters.GUI.OmegaTable.Omega) max(TaskParameters.GUI.OmegaTable.Omega)],1)/100;
+        else
+            assert(false, 'This part of the code shouldn''t be reached');
         end
         % If a SumRates is 100, then click rate will a value between 0 and
         % 100. THe click rate is mean click rate in Hz to be used to

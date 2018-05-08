@@ -79,6 +79,11 @@ if any(strcmp('WaitForRewardStart',statesThisTrial))  % CorrectChoice
         else
             BpodSystem.Data.Custom.ChoiceLeft(iTrial) = 0;
         end
+    else
+        orig_warn = warning;
+        warning('on'); % Temporarily force displaying of warnings
+        warning('''WaitForReward'' state should always appear if ''WaitForRewardStart'' was initiated');
+        warning(orig_warn); % Restore the original warning values
     end
 elseif any(strcmp('WaitForPunishStart',statesThisTrial))  % WrongChoice
     BpodSystem.Data.Custom.ChoiceCorrect(iTrial) = 0;
@@ -216,6 +221,8 @@ switch TaskParameters.GUI.FeedbackDelaySelection
         %         TaskParameters.GUIMeta.FeedbackDelay.Style = 'edit';
         %     end
         TaskParameters.GUI.FeedbackDelay = TaskParameters.GUI.FeedbackDelayMax;
+    otherwise
+        assert(false, 'Unexpected FeedbackDelaySelection value');
 end
 
 %% Drawing future trials
@@ -273,6 +280,8 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - Const.PRE_GENERATE_TRIAL_CHECK
 
         case TrialSelection.Manual % Don't modify the LeftBias and leave the GUI values of P(Omega)
             TaskParameters.GUI.LeftBiasAud = 0.5;
+        otherwise
+            assert(false, 'Unexpected TrialSelection value');
     end
 
     % Adjustment of P(Omega) to make sure that sum(P(Omega))=1
@@ -313,6 +322,8 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - Const.PRE_GENERATE_TRIAL_CHECK
                     else % regular trials
                         BpodSystem.Data.Custom.AuditoryOmega(lastidx+a) = randsample(TaskParameters.GUI.OmegaTable.Omega,1,1,TaskParameters.GUI.OmegaTable.OmegaProb)/100;
                     end
+                else
+                    assert(false, 'Unexpected AuditoryTrialSelection value');
                 end
             end
             BpodSystem.Data.Custom.LeftClickRate(lastidx+a) = round(BpodSystem.Data.Custom.AuditoryOmega(lastidx+a).*TaskParameters.GUI.SumRates);

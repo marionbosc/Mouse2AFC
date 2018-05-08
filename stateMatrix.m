@@ -67,6 +67,8 @@ elseif TaskParameters.GUI.IncorrectChoiceSignalType == IncorrectChoiceSignalType
 elseif TaskParameters.GUI.IncorrectChoiceSignalType == IncorrectChoiceSignalType.None
     PunishmentDuration = 0.01;
     IncorrectChoice_Signal = {};
+else
+    assert(false, 'Unexpected IncorrectChoiceSignalType value');
 end
 
 % ITI signal
@@ -79,6 +81,8 @@ elseif TaskParameters.GUI.ITISignalType == ITISignalType.PortLED
 elseif TaskParameters.GUI.ITISignalType == ITISignalType.None
     ITI_Signal_Duration = 0.01;
     ITI_Signal = {};
+else
+    assert(false, 'Unexpected ITISignalType value');
 end
 
 %Wire1 settings
