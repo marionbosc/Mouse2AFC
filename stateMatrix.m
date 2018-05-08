@@ -58,24 +58,25 @@ FeedbackDelayError = iff(TaskParameters.GUI.CatchError, 20, TaskParameters.GUI.F
 SkippedFeedbackSignal = iff(TaskParameters.GUI.CatchError, {}, ErrorFeedback);
 
 % Incorrect Choice signal
-if TaskParameters.GUI.IncorrectChoiceSignalType == 2 % Noise
+if TaskParameters.GUI.IncorrectChoiceSignalType == IncorrectChoiceSignalType.Noise
     PunishmentDuration = 0.01;
     IncorrectChoice_Signal = {'SoftCode', 11};
-elseif TaskParameters.GUI.IncorrectChoiceSignalType == 3 % LED Flash
+elseif TaskParameters.GUI.IncorrectChoiceSignalType == IncorrectChoiceSignalType.PortLED
     PunishmentDuration = 0.1;
     IncorrectChoice_Signal = {strcat('PWM',num2str(LeftPort)),255,strcat('PWM',num2str(CenterPort)),255,strcat('PWM',num2str(RightPort)),255};
-else % no signal
+elseif TaskParameters.GUI.IncorrectChoiceSignalType == IncorrectChoiceSignalType.None
     PunishmentDuration = 0.01;
     IncorrectChoice_Signal = {};
 end
 
 % ITI signal
-if TaskParameters.GUI.ITISignalType == 2 % Beep
+if TaskParameters.GUI.ITISignalType == ITISignalType.Beep
     ITI_Signal_Duration = 0.01;
     ITI_Signal = {'SoftCode', 12};
-elseif TaskParameters.GUI.ITISignalType == 3 % LED Flash
+elseif TaskParameters.GUI.ITISignalType == ITISignalType.PortLED
     ITI_Signal_Duration = 0.1;
     ITI_Signal = {strcat('PWM',num2str(LeftPort)),255,strcat('PWM',num2str(CenterPort)),255,strcat('PWM',num2str(RightPort)),255};
+elseif TaskParameters.GUI.ITISignalType == ITISignalType.None
     ITI_Signal_Duration = 0.01;
     ITI_Signal = {};
 end

@@ -193,8 +193,8 @@ else % Use non-incremental fixed value
 end
 
 %feedback delay
-switch TaskParameters.GUIMeta.FeedbackDelaySelection.String{TaskParameters.GUI.FeedbackDelaySelection}
-    case 'AutoIncr'
+switch TaskParameters.GUI.FeedbackDelaySelection
+    case FeedbackDelaySelection.AutoIncr
         % if no feedback was not completed then use the last value unless
         % then decrement the feedback.
         if ~BpodSystem.Data.Custom.Feedback(iTrial)
@@ -207,10 +207,10 @@ switch TaskParameters.GUIMeta.FeedbackDelaySelection.String{TaskParameters.GUI.F
             TaskParameters.GUI.FeedbackDelay = min(TaskParameters.GUI.FeedbackDelayMax,...
                 max(TaskParameters.GUI.FeedbackDelayMin,BpodSystem.Data.Custom.FeedbackDelay(iTrial)+TaskParameters.GUI.FeedbackDelayIncr));
         end
-    case 'TruncExp'
+    case FeedbackDelaySelection.TruncExp
         TaskParameters.GUI.FeedbackDelay = TruncatedExponential(TaskParameters.GUI.FeedbackDelayMin,...
             TaskParameters.GUI.FeedbackDelayMax,TaskParameters.GUI.FeedbackDelayTau);
-    case 'Fix'
+    case FeedbackDelaySelection.Fix
         %     ATTEMPT TO GRAY OUT FIELDS
         %     if ~strcmp('edit',TaskParameters.GUIMeta.FeedbackDelay.Style)
         %         TaskParameters.GUIMeta.FeedbackDelay.Style = 'edit';
@@ -244,13 +244,13 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
     % Append new bool array to the current AuditoryTrial array
     BpodSystem.Data.Custom.AuditoryTrial = [BpodSystem.Data.Custom.AuditoryTrial,newAuditoryTrial];
 
-    switch TaskParameters.GUIMeta.TrialSelection.String{TaskParameters.GUI.TrialSelection}
-        case 'Flat' % Restore equals P(Omega) for all the Omega values of the GUI
+    switch TaskParameters.GUI.TrialSelection
+        case TrialSelection.Flat % Restore equals P(Omega) for all the Omega values of the GUI
             TaskParameters.GUI.LeftBiasAud = 0.5;
             % Temporarily set all values to one. We will later divide them
             % into equal probability ratios whose  sum is 1.
             TaskParameters.GUI.OmegaTable.OmegaProb = ones(size(TaskParameters.GUI.OmegaTable.OmegaProb));
-        case 'BiasCorrecting' % Favors side with fewer rewards. Contrast drawn flat & independently.
+        case TrialSelection.BiasCorrecting % Favors side with fewer rewards. Contrast drawn flat & independently.
             % Considers all trials, not just the last x trials
             ndxAud = BpodSystem.Data.Custom.AuditoryTrial(1:iTrial);
             ndxRewd = BpodSystem.Data.Custom.Rewarded(1:iTrial) & ndxAud;
@@ -270,7 +270,7 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
             TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega<50) = TaskParameters.GUI.LeftBiasAud; % P(Right side trials)
             TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega>50) = 1-TaskParameters.GUI.LeftBiasAud; % P(Left side trials)
 
-        case 'Manual' % Don't modify the LeftBias and leave the GUI values of P(Omega)
+        case TrialSelection.Manual % Don't modify the LeftBias and leave the GUI values of P(Omega)
             TaskParameters.GUI.LeftBiasAud = 0.5;
     end
 
@@ -298,9 +298,9 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
             if rand(1,1) < TaskParameters.GUI.Percent50Fifty && iTrial > TaskParameters.GUI.StartEasyTrials % 50Fifty trials
                 BpodSystem.Data.Custom.AuditoryOmega(lastidx+a) = 0.5;
             else
-                if TaskParameters.GUI.AuditoryTrialSelection == 1 % Beta distribution trial selection
+                if TaskParameters.GUI.AuditoryTrialSelection == AuditoryTrialSelection.BetaDistribution
                     BpodSystem.Data.Custom.AuditoryOmega(lastidx+a) = betarnd(max(0,BetaA),max(0,BetaB),1,1); %prevent negative parameters
-                else % Discrete value trial selection
+                elseif TaskParameters.GUI.AuditoryTrialSelection == AuditoryTrialSelection.DiscretePairs
                     % If it's the an easy trial then choose the pair which
                     % are the table's biggest and the smallest values.
                     if iTrial < TaskParameters.GUI.StartEasyTrials % easy trial

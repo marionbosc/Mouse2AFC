@@ -3,6 +3,7 @@ function Mouse2AFC
 % This project is available on https://github.com/KepecsLab/BpodProtocols_Olf2AFC/
 
 global BpodSystem
+addpath('Definitions');
 
 %% Task parameters
 global TaskParameters
@@ -30,9 +31,9 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUIMeta.Wire1VideoTrigger.Style = 'checkbox';
     TaskParameters.GUIPanels.General = {'ITI','RewardAmount','ChoiceDeadLine','TimeOutIncorrectChoice','TimeOutBrokeFixation','TimeOutEarlyWithdrawal','TimeOutMissedChoice','TimeOutSkippedFeedback','PlayNoiseforError','PercentAuditory','StartEasyTrials','Percent50Fifty','PercentCatch','CatchError','Ports_LMR','Wire1VideoTrigger'};
     %% BiasControl
-    TaskParameters.GUI.TrialSelection = 2;
+    TaskParameters.GUI.TrialSelection = TrialSelection.BiasCorrecting;
     TaskParameters.GUIMeta.TrialSelection.Style = 'popupmenu';
-    TaskParameters.GUIMeta.TrialSelection.String = {'Flat','BiasCorrecting','Manual'};
+    TaskParameters.GUIMeta.TrialSelection.String = TrialSelection.String;
     TaskParameters.GUIPanels.BiasControl = {'TrialSelection'};
     %% StimDelay
     TaskParameters.GUI.StimDelayAutoincrement = 0;
@@ -46,21 +47,21 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUIMeta.StimDelay.Style = 'text';
     TaskParameters.GUIPanels.StimDelay = {'StimDelayAutoincrement','StimDelayMin','StimDelayMax','StimDelayIncr','StimDelayDecr','StimDelay'};
     %% FeedbackDelay
-    TaskParameters.GUI.FeedbackDelaySelection = 1;
+    TaskParameters.GUI.FeedbackDelaySelection = FeedbackDelaySelection.Fix;
     TaskParameters.GUIMeta.FeedbackDelaySelection.Style = 'popupmenu';
-    TaskParameters.GUIMeta.FeedbackDelaySelection.String = {'Fix','AutoIncr','TruncExp'};
+    TaskParameters.GUIMeta.FeedbackDelaySelection.String = FeedbackDelaySelection.String;
     TaskParameters.GUI.FeedbackDelayMin = 0.1;
     TaskParameters.GUI.FeedbackDelayMax = 0.1;
     TaskParameters.GUI.FeedbackDelayIncr = 0.01;
     TaskParameters.GUI.FeedbackDelayDecr = 0.01;
     TaskParameters.GUI.FeedbackDelayTau = 0.1;
     TaskParameters.GUI.FeedbackDelayGrace = 0.4;
-    TaskParameters.GUI.IncorrectChoiceSignalType = 2;
+    TaskParameters.GUI.IncorrectChoiceSignalType = IncorrectChoiceSignalType.Noise;
     TaskParameters.GUIMeta.IncorrectChoiceSignalType.Style = 'popupmenu';
-    TaskParameters.GUIMeta.IncorrectChoiceSignalType.String = {'None','Noise','PortLED'};
-    TaskParameters.GUI.ITISignalType = 2;
+    TaskParameters.GUIMeta.IncorrectChoiceSignalType.String = IncorrectChoiceSignalType.String;
+    TaskParameters.GUI.ITISignalType = ITISignalType.Beep;
     TaskParameters.GUIMeta.ITISignalType.Style = 'popupmenu';
-    TaskParameters.GUIMeta.ITISignalType.String = {'None','Beep','PortLED'};
+    TaskParameters.GUIMeta.ITISignalType.String = ITISignalType.String;
     TaskParameters.GUI.FeedbackDelay = TaskParameters.GUI.FeedbackDelayMin;
     TaskParameters.GUIMeta.FeedbackDelay.Style = 'text';
     TaskParameters.GUIPanels.FeedbackDelay = {'FeedbackDelaySelection','FeedbackDelayMin','FeedbackDelayMax','FeedbackDelayIncr','FeedbackDelayDecr','FeedbackDelayTau','FeedbackDelayGrace','FeedbackDelay','IncorrectChoiceSignalType','ITISignalType'};
@@ -72,9 +73,9 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUI.PortLEDtoCueReward = false;
     TaskParameters.GUIMeta.PortLEDtoCueReward.Style = 'checkbox';
     TaskParameters.GUI.PercentForcedLEDTrial = 1;
-    TaskParameters.GUI.AuditoryTrialSelection = 1;
+    TaskParameters.GUI.AuditoryTrialSelection = AuditoryTrialSelection.BetaDistribution;
     TaskParameters.GUIMeta.AuditoryTrialSelection.Style = 'popupmenu';
-    TaskParameters.GUIMeta.AuditoryTrialSelection.String = {'BetaDistribution','DiscretePairs'};
+    TaskParameters.GUIMeta.AuditoryTrialSelection.String = AuditoryTrialSelection.String;
     TaskParameters.GUI.AuditoryAlpha = 0.3;
     TaskParameters.GUI.OmegaTable.Omega = [0, 5, 10, 90, 95, 100]';
     TaskParameters.GUI.OmegaTable.OmegaProb = ones(size(TaskParameters.GUI.OmegaTable.Omega))/numel(TaskParameters.GUI.OmegaTable.Omega);
@@ -155,12 +156,12 @@ BpodSystem.Data.Custom.ForcedLEDTrial = false;
 % make auditory stimuli for first trials
 for a = 1:2
     if BpodSystem.Data.Custom.AuditoryTrial(a)
-        if TaskParameters.GUI.AuditoryTrialSelection == 1
+        if TaskParameters.GUI.AuditoryTrialSelection == AuditoryTrialSelection.BetaDistribution
             % This random value is between 0 and 1, the beta distribution
             % parameters makes it very likely to very close to zero or very
             % close to 1.
             BpodSystem.Data.Custom.AuditoryOmega(a) = betarnd(TaskParameters.GUI.AuditoryAlpha/4,TaskParameters.GUI.AuditoryAlpha/4,1,1);
-        else
+        elseif TaskParameters.GUI.AuditoryTrialSelection == AuditoryTrialSelection.DiscretePairs
             % Choose randomly either the top or the bottom value in the
             % Omega table (e.g 0 or 100) and divide it by 100.
             BpodSystem.Data.Custom.AuditoryOmega(a) = randsample([min(TaskParameters.GUI.OmegaTable.Omega) max(TaskParameters.GUI.OmegaTable.Omega)],1)/100;
