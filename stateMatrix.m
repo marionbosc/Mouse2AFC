@@ -24,67 +24,38 @@ CenterValveTime  = GetValveTimes(BpodSystem.Data.Custom.CenterPortRewAmount(iTri
 RightValveTime  = GetValveTimes(BpodSystem.Data.Custom.RewardMagnitude(iTrial,2), RightPort);
 
 if BpodSystem.Data.Custom.AuditoryTrial(iTrial) %auditory trial
-    LeftRewarded = BpodSystem.Data.Custom.LeftRewarded(iTrial);
-end
-
-% Trial type (left = correct or right = correct)
-if LeftRewarded == 1
-    RewardedPort = LeftPort;
-    LeftActionState = 'WaitForRewardStart';
-    RightActionState = 'WaitForPunishStart';
-    RewardIn = LeftPortIn;
-    RewardOut = LeftPortOut;
-    PunishIn = RightPortIn;
-    PunishOut = RightPortOut;
-    ValveTime = LeftValveTime;
-    ValveCode = LeftValve;
-elseif LeftRewarded == 0
-    RewardedPort = RightPort;
-    LeftActionState = 'WaitForPunishStart';
-    RightActionState = 'WaitForRewardStart';
-    RewardIn = RightPortIn;
-    RewardOut = RightPortOut;
-    PunishIn = LeftPortIn;
-    PunishOut = LeftPortOut;
-    ValveTime = RightValveTime;
-    ValveCode = RightValve;
+    IsLeftRewarded = BpodSystem.Data.Custom.LeftRewarded(iTrial);
 else
     error('Bpod:Olf2AFC:unknownStim','Undefined stimulus');
 end
 
+% iff() function takes first parameter as first condition, if the condition
+% is true then it returns the 2nd parameter, else it returns the 3rd one
+RewardedPort = iff(IsLeftRewarded, LeftPort, RightPort);
+LeftActionState = iff(IsLeftRewarded, 'WaitForRewardStart', 'WaitForPunishStart');
+RightActionState = iff(IsLeftRewarded,'WaitForPunishStart', 'WaitForRewardStart');
+RewardIn = iff(IsLeftRewarded, LeftPortIn, RightPortIn);
+RewardOut = iff(IsLeftRewarded, LeftPortOut, RightPortOut);
+PunishIn = iff(IsLeftRewarded, RightPortIn, LeftPortIn);
+PunishOut = iff(IsLeftRewarded, RightPortOut, LeftPortOut);
+ValveTime = iff(IsLeftRewarded, LeftValveTime, RightValveTime);
+ValveCode = iff(IsLeftRewarded, LeftValve, RightValve);
+
 % GUI option RewardAfterMinSampling
 % If center-reward is enabled, then a reward is given once MinSampleAud
 % is over and no further sampling is given.
-if TaskParameters.GUI.RewardAfterMinSampling
-    RewardCenterPort = {'ValveState',CenterValve,'BNCState',0};
-    Timer_CPRD = CenterValveTime;
-else
-    RewardCenterPort = {'BNCState',1};
-    Timer_CPRD = TaskParameters.GUI.AuditoryStimulusTime - TaskParameters.GUI.MinSampleAud;
-end
+RewardCenterPort = iff(TaskParameters.GUI.RewardAfterMinSampling, {'ValveState',CenterValve,'BNCState',0}, {'BNCState',1});
+Timer_CPRD = iff(TaskParameters.GUI.RewardAfterMinSampling, CenterValveTime, TaskParameters.GUI.AuditoryStimulusTime - TaskParameters.GUI.MinSampleAud);
 
-% White Noise played as Error Feedback 
-if TaskParameters.GUI.PlayNoiseforError
-    ErrorFeedback = {'SoftCode',11};
-else
-    ErrorFeedback = {};
-end
+% White Noise played as Error Feedback
+ErrorFeedback = iff(TaskParameters.GUI.PlayNoiseforError, {'SoftCode',11}, {});
 
 % CatchTrial
-if BpodSystem.Data.Custom.CatchTrial(iTrial)
-    FeedbackDelayCorrect = 20;
-else
-    FeedbackDelayCorrect = TaskParameters.GUI.FeedbackDelay;
-end
+FeedbackDelayCorrect = iff(BpodSystem.Data.Custom.CatchTrial(iTrial), 20, TaskParameters.GUI.FeedbackDelay);
 
 % GUI option CatchError
-if TaskParameters.GUI.CatchError
-    FeedbackDelayError = 20;
-    SkippedFeedbackSignal = {};
-else
-    FeedbackDelayError = TaskParameters.GUI.FeedbackDelay;
-    SkippedFeedbackSignal = ErrorFeedback;
-end
+FeedbackDelayError = iff(TaskParameters.GUI.CatchError, 20, TaskParameters.GUI.FeedbackDelay);
+SkippedFeedbackSignal = iff(TaskParameters.GUI.CatchError, {}, ErrorFeedback);
 
 % Incorrect Choice signal
 if TaskParameters.GUI.IncorrectChoiceSignalType == 2 % Noise
@@ -110,17 +81,8 @@ elseif TaskParameters.GUI.ITISignalType == 3 % LED Flash
 end
 
 %Wire1 settings
-if TaskParameters.GUI.Wire1VideoTrigger
-    Wire1OutError =	{'WireState', 1};
-    if BpodSystem.Data.Custom.CatchTrial(iTrial)
-    	Wire1OutCorrect =	{'WireState', 1};
-    else
-        Wire1OutCorrect =	{};
-    end
-else
-    Wire1OutError = {};
-    Wire1OutCorrect =	{};
-end
+Wire1OutError = iff(TaskParameters.GUI.Wire1VideoTrigger, {'WireState', 1}, {});
+Wire1OutCorrect = iff(TaskParameters.GUI.Wire1VideoTrigger && BpodSystem.Data.Custom.CatchTrial(iTrial), {'WireState', 1}, {});
 
 % LED on the side lateral port to cue the rewarded side at the beginning of
 % the training on auditory discrimination:
