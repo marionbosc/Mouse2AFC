@@ -13,111 +13,85 @@ LeftPortIn = strcat('Port',num2str(LeftPort),'In');
 CenterPortIn = strcat('Port',num2str(CenterPort),'In');
 RightPortIn = strcat('Port',num2str(RightPort),'In');
 
+% Trigger Pulse Pal
+TrigPulsePalStim = {'BNCState',1};
+StopPulsePalStim = {'BNCState',0};
+
+% Valve opening is a bitmap. Open each valve separately by raising 2 to
+% the power of port number - 1
 LeftValve = 2^(LeftPort-1);
 CenterValve = 2^(CenterPort-1);
 RightValve = 2^(RightPort-1);
 
 LeftValveTime  = GetValveTimes(BpodSystem.Data.Custom.RewardMagnitude(iTrial,1), LeftPort);
-CenterValveTime  = GetValveTimes(BpodSystem.Data.Custom.CenterPortRewAmount(iTrial), LeftPort);
+CenterValveTime  = GetValveTimes(BpodSystem.Data.Custom.CenterPortRewAmount(iTrial), CenterPort);
 RightValveTime  = GetValveTimes(BpodSystem.Data.Custom.RewardMagnitude(iTrial,2), RightPort);
 
 if BpodSystem.Data.Custom.AuditoryTrial(iTrial) %auditory trial
-    LeftRewarded = BpodSystem.Data.Custom.LeftRewarded(iTrial);
-end
-
-% Trial type (left = correct or right = correct)
-if LeftRewarded == 1
-    RewardedPort = LeftPort;
-    LeftActionState = 'WaitForRewardStart';
-    RightActionState = 'WaitForPunishStart';
-    RewardIn = LeftPortIn;
-    RewardOut = LeftPortOut;
-    PunishIn = RightPortIn;
-    PunishOut = RightPortOut;
-    ValveTime = LeftValveTime;
-    ValveCode = LeftValve;
-elseif LeftRewarded == 0
-    RewardedPort = RightPort;
-    LeftActionState = 'WaitForPunishStart';
-    RightActionState = 'WaitForRewardStart';
-    RewardIn = RightPortIn;
-    RewardOut = RightPortOut;
-    PunishIn = LeftPortIn;
-    PunishOut = LeftPortOut;
-    ValveTime = RightValveTime;
-    ValveCode = RightValve;
+    IsLeftRewarded = BpodSystem.Data.Custom.LeftRewarded(iTrial);
 else
     error('Bpod:Olf2AFC:unknownStim','Undefined stimulus');
 end
 
-% GUI option RewardAfterMinSampling
-if TaskParameters.GUI.RewardAfterMinSampling
-    RewardCenterPort = {'ValveState',CenterValve,'BNCState',0};
-    Timer_CPRD = CenterValveTime;
-else
-    RewardCenterPort = {'BNCState',1};
-    Timer_CPRD = TaskParameters.GUI.AuditoryStimulusTime - TaskParameters.GUI.MinSampleAud;
-end
+% iff() function takes first parameter as first condition, if the condition
+% is true then it returns the 2nd parameter, else it returns the 3rd one
+RewardedPort = iff(IsLeftRewarded, LeftPort, RightPort);
+LeftActionState = iff(IsLeftRewarded, 'WaitForRewardStart', 'WaitForPunishStart');
+RightActionState = iff(IsLeftRewarded,'WaitForPunishStart', 'WaitForRewardStart');
+RewardIn = iff(IsLeftRewarded, LeftPortIn, RightPortIn);
+RewardOut = iff(IsLeftRewarded, LeftPortOut, RightPortOut);
+PunishIn = iff(IsLeftRewarded, RightPortIn, LeftPortIn);
+PunishOut = iff(IsLeftRewarded, RightPortOut, LeftPortOut);
+ValveTime = iff(IsLeftRewarded, LeftValveTime, RightValveTime);
+ValveCode = iff(IsLeftRewarded, LeftValve, RightValve);
 
-% White Noise played as Error Feedback 
-if TaskParameters.GUI.PlayNoiseforError
-    ErrorFeedback = {'SoftCode',11};
-else
-    ErrorFeedback = {};
-end
+% GUI option RewardAfterMinSampling
+% If center-reward is enabled, then a reward is given once MinSampleAud
+% is over and no further sampling is given.
+RewardCenterPort = iff(TaskParameters.GUI.RewardAfterMinSampling, [{'ValveState',CenterValve} ,StopPulsePalStim], TrigPulsePalStim);
+Timer_CPRD = iff(TaskParameters.GUI.RewardAfterMinSampling, CenterValveTime, TaskParameters.GUI.AuditoryStimulusTime - TaskParameters.GUI.MinSampleAud);
+
+% White Noise played as Error Feedback
+ErrorFeedback = iff(TaskParameters.GUI.PlayNoiseforError, {'SoftCode',11}, {});
 
 % CatchTrial
-if BpodSystem.Data.Custom.CatchTrial(iTrial)
-    FeedbackDelayCorrect = 20;
-else
-    FeedbackDelayCorrect = TaskParameters.GUI.FeedbackDelay;
-end
+FeedbackDelayCorrect = iff(BpodSystem.Data.Custom.CatchTrial(iTrial), Const.FEEDBACK_CATCH_CORRECT_SEC, TaskParameters.GUI.FeedbackDelay);
 
 % GUI option CatchError
-if TaskParameters.GUI.CatchError
-    FeedbackDelayError = 20;
-    SkippedFeedbackSignal = {};
-else
-    FeedbackDelayError = TaskParameters.GUI.FeedbackDelay;
-    SkippedFeedbackSignal = ErrorFeedback;
-end
+FeedbackDelayError = iff(TaskParameters.GUI.CatchError, Const.FEEDBACK_CATCH_INCORRECT_SEC, TaskParameters.GUI.FeedbackDelay);
+SkippedFeedbackSignal = iff(TaskParameters.GUI.CatchError, {}, ErrorFeedback);
 
-% Incorrect Choice signal 
-if TaskParameters.GUI.IncorrectChoiceSignalType == 2 % Noise
+% Incorrect Choice signal
+if TaskParameters.GUI.IncorrectChoiceSignalType == IncorrectChoiceSignalType.Noise
     PunishmentDuration = 0.01;
-    IncorrectChoice_Signal = {'SoftCode', 11}; 
-elseif TaskParameters.GUI.IncorrectChoiceSignalType == 3 % LED Flash
+    IncorrectChoice_Signal = {'SoftCode', 11};
+elseif TaskParameters.GUI.IncorrectChoiceSignalType == IncorrectChoiceSignalType.PortLED
     PunishmentDuration = 0.1;
-    IncorrectChoice_Signal = {strcat('PWM',num2str(LeftPort)),255,strcat('PWM',num2str(CenterPort)),255,strcat('PWM',num2str(RightPort)),255};   
-else % no signal
+    IncorrectChoice_Signal = {strcat('PWM',num2str(LeftPort)),255,strcat('PWM',num2str(CenterPort)),255,strcat('PWM',num2str(RightPort)),255};
+elseif TaskParameters.GUI.IncorrectChoiceSignalType == IncorrectChoiceSignalType.None
     PunishmentDuration = 0.01;
-    IncorrectChoice_Signal = {};    
+    IncorrectChoice_Signal = {};
+else
+    assert(false, 'Unexpected IncorrectChoiceSignalType value');
 end
 
-% ITI signal 
-if TaskParameters.GUI.ITISignalType == 2 % Beep
+% ITI signal
+if TaskParameters.GUI.ITISignalType == ITISignalType.Beep
     ITI_Signal_Duration = 0.01;
-    ITI_Signal = {'SoftCode', 12}; 
-elseif TaskParameters.GUI.ITISignalType == 3 % LED Flash
+    ITI_Signal = {'SoftCode', 12};
+elseif TaskParameters.GUI.ITISignalType == ITISignalType.PortLED
     ITI_Signal_Duration = 0.1;
-    ITI_Signal = {strcat('PWM',num2str(LeftPort)),255,strcat('PWM',num2str(CenterPort)),255,strcat('PWM',num2str(RightPort)),255};   
-else % no signal
+    ITI_Signal = {strcat('PWM',num2str(LeftPort)),255,strcat('PWM',num2str(CenterPort)),255,strcat('PWM',num2str(RightPort)),255};
+elseif TaskParameters.GUI.ITISignalType == ITISignalType.None
     ITI_Signal_Duration = 0.01;
-    ITI_Signal = {};    
+    ITI_Signal = {};
+else
+    assert(false, 'Unexpected ITISignalType value');
 end
 
 %Wire1 settings
-if TaskParameters.GUI.Wire1VideoTrigger
-    Wire1OutError =	{'WireState', 1};
-    if BpodSystem.Data.Custom.CatchTrial(iTrial)
-    	Wire1OutCorrect =	{'WireState', 1};
-    else
-        Wire1OutCorrect =	{};
-    end
-else
-    Wire1OutError = {};
-    Wire1OutCorrect =	{};
-end
+Wire1OutError = iff(TaskParameters.GUI.Wire1VideoTrigger, {'WireState', 1}, {});
+Wire1OutCorrect = iff(TaskParameters.GUI.Wire1VideoTrigger && BpodSystem.Data.Custom.CatchTrial(iTrial), {'WireState', 1}, {});
 
 % LED on the side lateral port to cue the rewarded side at the beginning of
 % the training on auditory discrimination:
@@ -134,7 +108,7 @@ sma = SetGlobalTimer(sma,2,FeedbackDelayError);
 sma = AddState(sma, 'Name', 'WaitForCenterPoke',...
     'Timer', 0,...
     'StateChangeConditions', {CenterPortIn, 'WaitForStimulus'},...
-    'OutputActions', {strcat('PWM',num2str(CenterPort)),255}); 
+    'OutputActions', {strcat('PWM',num2str(CenterPort)),255});
 sma = AddState(sma, 'Name', 'broke_fixation',...
     'Timer',0,...
     'StateChangeConditions',{'Tup','timeOut_BrokeFixation'},...
@@ -146,11 +120,11 @@ sma = AddState(sma, 'Name', 'WaitForStimulus',...
 sma = AddState(sma, 'Name', 'stimulus_delivery',...
     'Timer', TaskParameters.GUI.MinSampleAud,...
     'StateChangeConditions', {CenterPortOut,'early_withdrawal','Tup','CenterPortRewardDelivery'},...
-    'OutputActions', {'BNCState',1});
+    'OutputActions', TrigPulsePalStim);
 sma = AddState(sma, 'Name', 'early_withdrawal',...
     'Timer',0,...
     'StateChangeConditions',{'Tup','timeOut_EarlyWithdrawal'},...
-    'OutputActions',{'BNCState',0});
+    'OutputActions', StopPulsePalStim);
 sma = AddState(sma, 'Name', 'CenterPortRewardDelivery',...
     'Timer', Timer_CPRD,...
     'StateChangeConditions', {CenterPortOut,'WaitForChoice','Tup','WaitForChoice'},...
@@ -158,7 +132,7 @@ sma = AddState(sma, 'Name', 'CenterPortRewardDelivery',...
 sma = AddState(sma, 'Name', 'WaitForChoice',...
     'Timer',TaskParameters.GUI.ChoiceDeadLine,...
     'StateChangeConditions', {LeftPortIn,LeftActionState,RightPortIn,RightActionState,'Tup','timeOut_missed_choice'},...
-    'OutputActions',[{'BNCState',0} LEDActivation]);
+    'OutputActions',[StopPulsePalStim LEDActivation]);
 sma = AddState(sma, 'Name','WaitForRewardStart',...
     'Timer',0,...
     'StateChangeConditions', {'Tup','WaitForReward'},...
@@ -188,7 +162,7 @@ sma = AddState(sma, 'Name','PunishGrace',...
     'StateChangeConditions', {PunishIn,'WaitForPunish','Tup','timeOut_SkippedFeedback','GlobalTimer2_End' ,'timeOut_SkippedFeedback', CenterPortIn,'timeOut_SkippedFeedback', RewardIn,'timeOut_SkippedFeedback'},...
     'OutputActions',{});
 sma = AddState(sma, 'Name', 'Punishment',...
-    'Timer',PunishmentDuration,... 
+    'Timer',PunishmentDuration,...
     'StateChangeConditions',{'Tup','timeOut_IncorrectChoice'},...
     'OutputActions',IncorrectChoice_Signal);
 sma = AddState(sma, 'Name', 'timeOut_BrokeFixation',...
@@ -214,11 +188,11 @@ sma = AddState(sma, 'Name', 'timeOut_missed_choice',...
 sma = AddState(sma, 'Name', 'ITI',...
     'Timer',TaskParameters.GUI.ITI,...
     'StateChangeConditions',{'Tup','ITI_Signal'},...
-    'OutputActions',{}); 
+    'OutputActions',{});
 sma = AddState(sma, 'Name', 'ITI_Signal',...
     'Timer',ITI_Signal_Duration,...
     'StateChangeConditions',{'Tup','exit'},...
-    'OutputActions',ITI_Signal); 
+    'OutputActions',ITI_Signal);
 % sma = AddState(sma, 'Name', 'state_name',...
 %     'Timer', 0,...
 %     'StateChangeConditions', {},...

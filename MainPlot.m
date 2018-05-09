@@ -5,11 +5,11 @@ global TaskParameters
 
 switch Action
     case 'init'
-        
+
         %% Outcome
         %initialize pokes plot
         nTrialsToShow = 90; %default number of trials to display
-        
+
         if nargin >=3  %custom number of trials
             nTrialsToShow =varargin{1};
         end
@@ -127,19 +127,19 @@ switch Action
             BpodSystem.GUIHandles.OutcomePlot.HandleFeedback.Visible = 'off';
             set(get(BpodSystem.GUIHandles.OutcomePlot.HandleFeedback,'Children'),'Visible','off');
         end
-        
+
         %% Outcome
         iTrial = varargin{1};
         [mn, ~] = rescaleX(AxesHandles.HandleOutcome,iTrial,nTrialsToShow); % recompute xlim
-        
+
         set(BpodSystem.GUIHandles.OutcomePlot.CurrentTrialCircle, 'xdata', iTrial+1, 'ydata', 0);
         set(BpodSystem.GUIHandles.OutcomePlot.CurrentTrialCross, 'xdata', iTrial+1, 'ydata', 0);
-        
+
         %plot modality background
         set(BpodSystem.GUIHandles.OutcomePlot.Aud,'xdata',find(BpodSystem.Data.Custom.AuditoryTrial),'ydata',BpodSystem.Data.Custom.DV(BpodSystem.Data.Custom.AuditoryTrial));
         %plot past&future trials
         set(BpodSystem.GUIHandles.OutcomePlot.DV, 'xdata', mn:numel(BpodSystem.Data.Custom.DV), 'ydata',BpodSystem.Data.Custom.DV(mn:end));
-        
+
         %Plot past trial outcomes
         indxToPlot = mn:iTrial;
         %Cumulative Reward Amount
@@ -147,7 +147,7 @@ switch Action
         RCP = sum(BpodSystem.Data.Custom.CenterPortRewAmount(BpodSystem.Data.Custom.RewardAfterMinSampling)); %ones(1,size(BpodSystem.Data.Custom.RewardMagnitude,1))*0.5;
         ndxRwd = BpodSystem.Data.Custom.Rewarded;
         C = zeros(size(R)); C(BpodSystem.Data.Custom.ChoiceLeft==1&ndxRwd,1) = 1; C(BpodSystem.Data.Custom.ChoiceLeft==0&ndxRwd,2) = 1;
-        R = R.*C; 
+        R = R.*C;
         RewardObtained = sum([sum(R(:)) sum(RCP)]);
         set(BpodSystem.GUIHandles.OutcomePlot.CumRwd, 'position', [iTrial+1 1], 'string', ...
             [num2str(RewardObtained/1000) ' mL']);
@@ -185,20 +185,20 @@ switch Action
         ndxCatch = BpodSystem.Data.Custom.CatchTrial(indxToPlot);
         Xdata = indxToPlot(ndxCatch&~ndxMiss);
         Ydata = BpodSystem.Data.Custom.DV(indxToPlot); Ydata = Ydata(ndxCatch&~ndxMiss);
-        set(BpodSystem.GUIHandles.OutcomePlot.Catch, 'xdata', Xdata, 'ydata', Ydata);        
-        %% Psych Aud 
+        set(BpodSystem.GUIHandles.OutcomePlot.Catch, 'xdata', Xdata, 'ydata', Ydata);
+        %% Psych Aud
         if TaskParameters.GUI.ShowPsycAud
             ndxAud = BpodSystem.Data.Custom.AuditoryTrial(1:numel(BpodSystem.Data.Custom.ChoiceLeft));
-            ndxNan = isnan(BpodSystem.Data.Custom.ChoiceLeft);  
+            ndxNan = isnan(BpodSystem.Data.Custom.ChoiceLeft);
             ndxChoice = BpodSystem.Data.Custom.ForcedLEDTrial(1:numel(BpodSystem.Data.Custom.ChoiceLeft))==0;
             ndxForced = BpodSystem.Data.Custom.ForcedLEDTrial(1:numel(BpodSystem.Data.Custom.ChoiceLeft))==1;
             AudDV = BpodSystem.Data.Custom.DV(1:numel(BpodSystem.Data.Custom.ChoiceLeft));
             AudBin = 8;
             BinIdx = discretize(AudDV,linspace(min(AudDV),max(AudDV),AudBin+1));
-            
+
             % Choice trials
             PsycY = grpstats(BpodSystem.Data.Custom.ChoiceLeft(ndxAud&~ndxNan&ndxChoice),BinIdx(ndxAud&~ndxNan&ndxChoice),'mean');
-            PsycX = unique(BinIdx(ndxAud&~ndxNan&ndxChoice))/AudBin*2-1-1/AudBin;              
+            PsycX = unique(BinIdx(ndxAud&~ndxNan&ndxChoice))/AudBin*2-1-1/AudBin;
             BpodSystem.GUIHandles.OutcomePlot.PsycAud.YData = PsycY;
             BpodSystem.GUIHandles.OutcomePlot.PsycAud.XData = PsycX;
             if sum(ndxAud&~ndxNan&ndxChoice) > 1
@@ -206,10 +206,10 @@ switch Action
                 BpodSystem.GUIHandles.OutcomePlot.PsycAudFit.YData = glmval(glmfit(AudDV(ndxAud&~ndxNan&ndxChoice),...
                     BpodSystem.Data.Custom.ChoiceLeft(ndxAud&~ndxNan&ndxChoice)','binomial'),linspace(min(AudDV),max(AudDV),100),'logit');
             end
-        
+
             % Forced trials
             PsycY = grpstats(BpodSystem.Data.Custom.ChoiceLeft(ndxAud&~ndxNan&ndxForced),BinIdx(ndxAud&~ndxNan&ndxForced),'mean');
-            PsycX = unique(BinIdx(ndxAud&~ndxNan&ndxForced))/AudBin*2-1-1/AudBin;              
+            PsycX = unique(BinIdx(ndxAud&~ndxNan&ndxForced))/AudBin*2-1-1/AudBin;
             BpodSystem.GUIHandles.OutcomePlot.PsycAudForced.YData = PsycY;
             BpodSystem.GUIHandles.OutcomePlot.PsycAudForced.XData = PsycX;
             if sum(ndxAud&~ndxNan&ndxForced) > 1
