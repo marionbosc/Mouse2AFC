@@ -64,14 +64,11 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUI.FeedbackDelay = TaskParameters.GUI.FeedbackDelayMin;
     TaskParameters.GUIMeta.FeedbackDelay.Style = 'text';
     TaskParameters.GUIPanels.FeedbackDelay = {'FeedbackDelaySelection','FeedbackDelayMin','FeedbackDelayMax','FeedbackDelayIncr','FeedbackDelayDecr','FeedbackDelayTau','FeedbackDelayGrace','FeedbackDelay','IncorrectChoiceSignalType','ITISignalType'};
-    %% Auditory Params
-    %clicks
+    %% Stimulus and Sampling Params
+    % Stimulus
     TaskParameters.GUI.LeftBias = 0.5;
     TaskParameters.GUIMeta.LeftBias.Style = 'text';
-    TaskParameters.GUI.SumRates = 100;
-    TaskParameters.GUI.PortLEDtoCueReward = false;
     TaskParameters.GUIMeta.PortLEDtoCueReward.Style = 'checkbox';
-    TaskParameters.GUI.PercentForcedLEDTrial = 1;
     TaskParameters.GUI.StimulusSelectionCriteria = StimulusSelectionCriteria.BetaDistribution;
     TaskParameters.GUIMeta.StimulusSelectionCriteria.Style = 'popupmenu';
     TaskParameters.GUIMeta.StimulusSelectionCriteria.String = StimulusSelectionCriteria.String;
@@ -81,7 +78,7 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUIMeta.OmegaTable.Style = 'table';
     TaskParameters.GUIMeta.OmegaTable.String = 'Omega probabilities';
     TaskParameters.GUIMeta.OmegaTable.ColumnLabel = {'a = Omega*100','P(a)'};
-    %min auditory stimulus and general stuff
+    % Sampling
     TaskParameters.GUI.StimulusTime = 0.5;
     TaskParameters.GUI.RewardAfterMinSampling = true;
     TaskParameters.GUIMeta.RewardAfterMinSampling.Style = 'checkbox';
@@ -94,9 +91,13 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUI.MinSampleDecr = 0.02;
     TaskParameters.GUI.MinSample = TaskParameters.GUI.MinSampleMin;
     TaskParameters.GUIMeta.MinSample.Style = 'text';
-    TaskParameters.GUIPanels.AudGeneral = {'StimulusTime','PortLEDtoCueReward','PercentForcedLEDTrial'};
-    TaskParameters.GUIPanels.StimulusSelection = {'OmegaTable','BetaDistAlphaNBeta','StimulusSelectionCriteria','LeftBias','SumRates'};
-    TaskParameters.GUIPanels.MinSample = {'RewardAfterMinSampling','CenterPortRewAmount','MinSampleMin','MinSampleMax','MinSampleAutoincrement','MinSampleIncr','MinSampleDecr','MinSample'};
+    % Auditory Specific
+    TaskParameters.GUI.SumRates = 100;
+    TaskParameters.GUI.PortLEDtoCueReward = false;
+    TaskParameters.GUI.PercentForcedLEDTrial = 1;
+    TaskParameters.GUIPanels.Auditory = {'PortLEDtoCueReward','PercentForcedLEDTrial','SumRates'};
+    TaskParameters.GUIPanels.StimulusSelection = {'OmegaTable','BetaDistAlphaNBeta','StimulusSelectionCriteria','LeftBias'};
+    TaskParameters.GUIPanels.Sampling = {'RewardAfterMinSampling','CenterPortRewAmount','MinSampleMin','MinSampleMax','MinSampleAutoincrement','MinSampleIncr','MinSampleDecr','MinSample','StimulusTime'};
     %% Plots
     %Show Plots
     TaskParameters.GUI.ShowPsycStim = 1;
@@ -122,7 +123,7 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUI = orderfields(TaskParameters.GUI);
     %% Tabs
     TaskParameters.GUITabs.General = {'ExperimentType','StimDelay','BiasControl','General','FeedbackDelay'};
-    TaskParameters.GUITabs.Sampling = {'AudGeneral','MinSample','StimulusSelection'};
+    TaskParameters.GUITabs.Sampling = {'Auditory','Sampling','StimulusSelection'};
     TaskParameters.GUITabs.Plots = {'ShowPlots','Vevaiometric'};
     %%Non-GUI Parameters (but saved)
     TaskParameters.Figures.OutcomePlot.Position = [200, 200, 1000, 400];
