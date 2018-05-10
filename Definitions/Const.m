@@ -11,10 +11,10 @@ classdef Const
        % allow the animal to poke (if the animal poked into the incorrect
        % port) before signaling  a new trial
        FEEDBACK_CATCH_INCORRECT_SEC = 20;
-       % When min. sampling auditory time increment is enabled, the
-       % variable defines how many last trials should be considered when
-       % calculating the new auditory sampling time.
-       AUDITORY_INC_HISTORY = 50;
+       % When min. sampling time increment is enabled, the variable
+       % defines how many last trials should be considered when calculating
+       % the new sampling time.
+       SAMPLE_LEARN_HISTORY = 50; % TODO: Use this variable
        % If bias correction is enabled, the value is the minimum numbers of
        % rewarded trials that must exist before we start making any
        % bias-correction

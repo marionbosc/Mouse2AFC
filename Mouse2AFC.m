@@ -66,41 +66,41 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUIPanels.FeedbackDelay = {'FeedbackDelaySelection','FeedbackDelayMin','FeedbackDelayMax','FeedbackDelayIncr','FeedbackDelayDecr','FeedbackDelayTau','FeedbackDelayGrace','FeedbackDelay','IncorrectChoiceSignalType','ITISignalType'};
     %% Auditory Params
     %clicks
-    TaskParameters.GUI.LeftBiasAud = 0.5;
-    TaskParameters.GUIMeta.LeftBiasAud.Style = 'text';
+    TaskParameters.GUI.LeftBias = 0.5;
+    TaskParameters.GUIMeta.LeftBias.Style = 'text';
     TaskParameters.GUI.SumRates = 100;
     TaskParameters.GUI.PortLEDtoCueReward = false;
     TaskParameters.GUIMeta.PortLEDtoCueReward.Style = 'checkbox';
     TaskParameters.GUI.PercentForcedLEDTrial = 1;
-    TaskParameters.GUI.AuditoryTrialSelection = AuditoryTrialSelection.BetaDistribution;
-    TaskParameters.GUIMeta.AuditoryTrialSelection.Style = 'popupmenu';
-    TaskParameters.GUIMeta.AuditoryTrialSelection.String = AuditoryTrialSelection.String;
-    TaskParameters.GUI.AuditoryAlpha = 0.3;
+    TaskParameters.GUI.StimulusSelectionCriteria = StimulusSelectionCriteria.BetaDistribution;
+    TaskParameters.GUIMeta.StimulusSelectionCriteria.Style = 'popupmenu';
+    TaskParameters.GUIMeta.StimulusSelectionCriteria.String = StimulusSelectionCriteria.String;
+    TaskParameters.GUI.BetaDistAlphaNBeta = 0.3;
     TaskParameters.GUI.OmegaTable.Omega = [0, 5, 10, 90, 95, 100]';
     TaskParameters.GUI.OmegaTable.OmegaProb = ones(size(TaskParameters.GUI.OmegaTable.Omega))/numel(TaskParameters.GUI.OmegaTable.Omega);
     TaskParameters.GUIMeta.OmegaTable.Style = 'table';
     TaskParameters.GUIMeta.OmegaTable.String = 'Omega probabilities';
     TaskParameters.GUIMeta.OmegaTable.ColumnLabel = {'a = Omega*100','P(a)'};
     %min auditory stimulus and general stuff
-    TaskParameters.GUI.AuditoryStimulusTime = 0.5;
+    TaskParameters.GUI.StimulusTime = 0.5;
     TaskParameters.GUI.RewardAfterMinSampling = true;
     TaskParameters.GUIMeta.RewardAfterMinSampling.Style = 'checkbox';
     TaskParameters.GUI.CenterPortRewAmount = 0.5;
-    TaskParameters.GUI.MinSampleAudMin = 0.5;
-    TaskParameters.GUI.MinSampleAudMax = 0.5;
-    TaskParameters.GUI.MinSampleAudAutoincrement = false;
-    TaskParameters.GUIMeta.MinSampleAudAutoincrement.Style = 'checkbox';
-    TaskParameters.GUI.MinSampleAudIncr = 0.05;
-    TaskParameters.GUI.MinSampleAudDecr = 0.02;
-    TaskParameters.GUI.MinSampleAud = TaskParameters.GUI.MinSampleAudMin;
-    TaskParameters.GUIMeta.MinSampleAud.Style = 'text';
-    TaskParameters.GUIPanels.AudGeneral = {'AuditoryStimulusTime','PortLEDtoCueReward','PercentForcedLEDTrial'};
-    TaskParameters.GUIPanels.AudClicks = {'OmegaTable','AuditoryAlpha','AuditoryTrialSelection','LeftBiasAud','SumRates'};
-    TaskParameters.GUIPanels.AudMinSample= {'RewardAfterMinSampling','CenterPortRewAmount','MinSampleAudMin','MinSampleAudMax','MinSampleAudAutoincrement','MinSampleAudIncr','MinSampleAudDecr','MinSampleAud'};
+    TaskParameters.GUI.MinSampleMin = 0.5;
+    TaskParameters.GUI.MinSampleMax = 0.5;
+    TaskParameters.GUI.MinSampleAutoincrement = false;
+    TaskParameters.GUIMeta.MinSampleAutoincrement.Style = 'checkbox';
+    TaskParameters.GUI.MinSampleIncr = 0.05;
+    TaskParameters.GUI.MinSampleDecr = 0.02;
+    TaskParameters.GUI.MinSample = TaskParameters.GUI.MinSampleMin;
+    TaskParameters.GUIMeta.MinSample.Style = 'text';
+    TaskParameters.GUIPanels.AudGeneral = {'StimulusTime','PortLEDtoCueReward','PercentForcedLEDTrial'};
+    TaskParameters.GUIPanels.StimulusSelection = {'OmegaTable','BetaDistAlphaNBeta','StimulusSelectionCriteria','LeftBias','SumRates'};
+    TaskParameters.GUIPanels.MinSample = {'RewardAfterMinSampling','CenterPortRewAmount','MinSampleMin','MinSampleMax','MinSampleAutoincrement','MinSampleIncr','MinSampleDecr','MinSample'};
     %% Plots
     %Show Plots
-    TaskParameters.GUI.ShowPsycAud = 1;
-    TaskParameters.GUIMeta.ShowPsycAud.Style = 'checkbox';
+    TaskParameters.GUI.ShowPsycStim = 1;
+    TaskParameters.GUIMeta.ShowPsycStim.Style = 'checkbox';
     TaskParameters.GUI.ShowVevaiometric = 1;
     TaskParameters.GUIMeta.ShowVevaiometric.Style = 'checkbox';
     TaskParameters.GUI.ShowTrialRate = 1;
@@ -111,7 +111,7 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUIMeta.ShowST.Style = 'checkbox';
     TaskParameters.GUI.ShowFeedback = 1;
     TaskParameters.GUIMeta.ShowFeedback.Style = 'checkbox';
-    TaskParameters.GUIPanels.ShowPlots = {'ShowPsycAud','ShowVevaiometric','ShowTrialRate','ShowFix','ShowST','ShowFeedback'};
+    TaskParameters.GUIPanels.ShowPlots = {'ShowPsycStim','ShowVevaiometric','ShowTrialRate','ShowFix','ShowST','ShowFeedback'};
     %Vevaiometric
     TaskParameters.GUI.VevaiometricMinWT = 2;
     TaskParameters.GUI.VevaiometricNBin = 8;
@@ -121,8 +121,8 @@ if isempty(fieldnames(TaskParameters))
     %%
     TaskParameters.GUI = orderfields(TaskParameters.GUI);
     %% Tabs
-    TaskParameters.GUITabs.General = {'StimDelay','BiasControl','General','FeedbackDelay'};
-    TaskParameters.GUITabs.Auditory = {'AudGeneral','AudMinSample','AudClicks'};
+    TaskParameters.GUITabs.General = {'ExperimentType','StimDelay','BiasControl','General','FeedbackDelay'};
+    TaskParameters.GUITabs.Sampling = {'AudGeneral','MinSample','StimulusSelection'};
     TaskParameters.GUITabs.Plots = {'ShowPlots','Vevaiometric'};
     %%Non-GUI Parameters (but saved)
     TaskParameters.Figures.OutcomePlot.Position = [200, 200, 1000, 400];
@@ -154,17 +154,17 @@ BpodSystem.Data.Custom.TrialNumber = [];
 BpodSystem.Data.Custom.ForcedLEDTrial = false;
 % make auditory stimuli for first trials
 for a = 1:Const.NUM_EASY_TRIALS
-    if TaskParameters.GUI.AuditoryTrialSelection == AuditoryTrialSelection.BetaDistribution
+    if TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.BetaDistribution
         % Why divide by 4?
         % Do we need the extra 1, 1 parameters at the end?
         % This random value is between 0 and 1, the beta distribution
         % parameters makes it very likely to very close to zero or very
         % close to 1.
-        BpodSystem.Data.Custom.AuditoryOmega(a) = betarnd(TaskParameters.GUI.AuditoryAlpha/4,TaskParameters.GUI.AuditoryAlpha/4,1,1);
-    elseif TaskParameters.GUI.AuditoryTrialSelection == AuditoryTrialSelection.DiscretePairs
+        BpodSystem.Data.Custom.StimulusOmega(a) = betarnd(TaskParameters.GUI.BetaDistAlphaNBeta/4,TaskParameters.GUI.BetaDistAlphaNBeta/4,1,1);
+    elseif TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.DiscretePairs
         % Choose randomly either the top or the bottom value in the
         % Omega table (e.g 0 or 100) and divide it by 100.
-        BpodSystem.Data.Custom.AuditoryOmega(a) = randsample([min(TaskParameters.GUI.OmegaTable.Omega) max(TaskParameters.GUI.OmegaTable.Omega)],1)/100;
+        BpodSystem.Data.Custom.StimulusOmega(a) = randsample([min(TaskParameters.GUI.OmegaTable.Omega) max(TaskParameters.GUI.OmegaTable.Omega)],1)/100;
     else
         assert(false, 'This part of the code shouldn''t be reached');
     end
@@ -172,12 +172,12 @@ for a = 1:Const.NUM_EASY_TRIALS
     % 100. THe click rate is mean click rate in Hz to be used to
     % generate Poisson click train.
     % The sume of LeftClickRate + RightClickRate should be = SumRates
-    BpodSystem.Data.Custom.LeftClickRate(a) = round(BpodSystem.Data.Custom.AuditoryOmega(a)*TaskParameters.GUI.SumRates);
-    BpodSystem.Data.Custom.RightClickRate(a) = round((1-BpodSystem.Data.Custom.AuditoryOmega(a))*TaskParameters.GUI.SumRates);
+    BpodSystem.Data.Custom.LeftClickRate(a) = round(BpodSystem.Data.Custom.StimulusOmega(a)*TaskParameters.GUI.SumRates);
+    BpodSystem.Data.Custom.RightClickRate(a) = round((1-BpodSystem.Data.Custom.StimulusOmega(a))*TaskParameters.GUI.SumRates);
     % Generate an array of time points at which pulse pal will generate
     % a tone.
-    BpodSystem.Data.Custom.LeftClickTrain{a} = GeneratePoissonClickTrain(BpodSystem.Data.Custom.LeftClickRate(a), TaskParameters.GUI.AuditoryStimulusTime);
-    BpodSystem.Data.Custom.RightClickTrain{a} = GeneratePoissonClickTrain(BpodSystem.Data.Custom.RightClickRate(a), TaskParameters.GUI.AuditoryStimulusTime);
+    BpodSystem.Data.Custom.LeftClickTrain{a} = GeneratePoissonClickTrain(BpodSystem.Data.Custom.LeftClickRate(a), TaskParameters.GUI.StimulusTime);
+    BpodSystem.Data.Custom.RightClickTrain{a} = GeneratePoissonClickTrain(BpodSystem.Data.Custom.RightClickRate(a), TaskParameters.GUI.StimulusTime);
     %correct left/right click train. Make both first left and right clicks start together?
     if ~isempty(BpodSystem.Data.Custom.LeftClickTrain{a}) && ~isempty(BpodSystem.Data.Custom.RightClickTrain{a})
         BpodSystem.Data.Custom.LeftClickTrain{a}(1) = min(BpodSystem.Data.Custom.LeftClickTrain{a}(1),BpodSystem.Data.Custom.RightClickTrain{a}(1));
@@ -231,7 +231,7 @@ end
 %% Initialize plots
 BpodSystem.ProtocolFigures.SideOutcomePlotFig = figure('Position', TaskParameters.Figures.OutcomePlot.Position,'name','Outcome plot','numbertitle','off', 'MenuBar', 'none', 'Resize', 'off');
 BpodSystem.GUIHandles.OutcomePlot.HandleOutcome = axes('Position',    [  .055          .15 .91 .3]);
-BpodSystem.GUIHandles.OutcomePlot.HandlePsycAud = axes('Position',    [2*.05 + 1*.08   .6  .1  .3], 'Visible', 'off');
+BpodSystem.GUIHandles.OutcomePlot.HandlePsycStim = axes('Position',    [2*.05 + 1*.08   .6  .1  .3], 'Visible', 'off');
 BpodSystem.GUIHandles.OutcomePlot.HandleTrialRate = axes('Position',  [3*.05 + 2*.08   .6  .1  .3], 'Visible', 'off');
 BpodSystem.GUIHandles.OutcomePlot.HandleFix = axes('Position',        [4*.05 + 3*.08   .6  .1  .3], 'Visible', 'off');
 BpodSystem.GUIHandles.OutcomePlot.HandleST = axes('Position',         [5*.05 + 4*.08   .6  .1  .3], 'Visible', 'off');

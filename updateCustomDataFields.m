@@ -31,10 +31,9 @@ BpodSystem.Data.Custom.FixDur(iTrial) = NaN;
 % are excluded)
 BpodSystem.Data.Custom.MT(iTrial) = NaN;
 % How long the animal sampled. If RewardAfterMinSampling is enabled and
-% animal completed min sampling, then it's equal to MinSampleAud time,
+% animal completed min sampling, then it's equal to MinSample time,
 % otherwise it's how long the animal remained fixated in center-port until
-% it either poked-out or the max allowed auditory sampling time was
-% reached.
+% it either poked-out or the max allowed sampling time was reached.
 BpodSystem.Data.Custom.ST(iTrial) = NaN;
 % Signals whether a reward was given to the animal (it also includes if the
 % animal poked into the correct reward port but poked out afterwards and
@@ -57,7 +56,7 @@ if any(strcmp('stimulus_delivery',statesThisTrial))
         % 'CenterPortRewardDelivery' state would exist even if no
         % 'RewardAfterMinSampling' is active, in such case it means that
         % min sampling is done and we are in the optional sampling stage.
-        if any(strcmp('CenterPortRewardDelivery',statesThisTrial)) && TaskParameters.GUI.AuditoryStimulusTime > TaskParameters.GUI.MinSampleAud
+        if any(strcmp('CenterPortRewardDelivery',statesThisTrial)) && TaskParameters.GUI.StimulusTime > TaskParameters.GUI.MinSample
             BpodSystem.Data.Custom.ST(iTrial) = BpodSystem.Data.RawEvents.Trial{end}.States.CenterPortRewardDelivery(1,2) - BpodSystem.Data.RawEvents.Trial{end}.States.stimulus_delivery(1,1);
         else
             % This covers early_withdrawal.
@@ -115,7 +114,7 @@ end
 %% State-independent fields
 BpodSystem.Data.Custom.StimDelay(iTrial) = TaskParameters.GUI.StimDelay;
 BpodSystem.Data.Custom.FeedbackDelay(iTrial) = TaskParameters.GUI.FeedbackDelay;
-BpodSystem.Data.Custom.MinSampleAud(iTrial) = TaskParameters.GUI.MinSampleAud;
+BpodSystem.Data.Custom.MinSample(iTrial) = TaskParameters.GUI.MinSample;
 BpodSystem.Data.Custom.RewardMagnitude(iTrial+1,:) = TaskParameters.GUI.RewardAmount*[1,1];
 BpodSystem.Data.Custom.CenterPortRewAmount(iTrial+1) =TaskParameters.GUI.CenterPortRewAmount;
 
@@ -137,15 +136,14 @@ else
     end
 end
 
-%min sampling time auditory
-if TaskParameters.GUI.MinSampleAudAutoincrement
+%min sampling time
+if TaskParameters.GUI.MinSampleAutoincrement
     History = 50;
     Crit = 0.8;
-    % If the sum of the Auditory trials are less than 10.
+    % If the sum of the trials are less than 10.
     if iTrial<10
         ConsiderTrials = iTrial;
     else
-        % Find the first auditory trial after 50.
         if iTrial > History
             ConsiderTrials = iTrial-History:iTrial;
         else
@@ -153,51 +151,49 @@ if TaskParameters.GUI.MinSampleAudAutoincrement
         end
     end
     % Keep only trials that are relevant, include only trials that are
-    % auditory and trials that either a lateral port decision was made (i,e
-    % min. sampling was completed successfully) or trials that the animal
-    % made an early withdrawal during min. sampling (but after sampling
-    % delay).
+    % either a lateral port decision was made (i,e min. sampling was
+    % completed successfully) or trials that the animal made an early
+    % withdrawal during min. sampling (but after sampling delay).
     % Do we exclude timeOut_missed_choice trials? if yes, then why?
     ConsiderTrials = ConsiderTrials((~isnan(BpodSystem.Data.Custom.ChoiceLeft(ConsiderTrials))...
         |BpodSystem.Data.Custom.EarlyWithdrawal(ConsiderTrials))); %choice + early withdrawal
-    % If the last trial was auditory and we don't have empty
-    % consider-trials array after filtering.
+    % If we don't have empty consider-trials array after filtering.
     if ~isempty(ConsiderTrials)
         % Divide the considered trials to 2 sets, those whose sampling time
-        % are more than the current MinSampleAud and those that aren't, if
-        % the ratio of those > MinSampleAud are bigger than 'Crit' and the
+        % are more than the current MinSample and those that aren't, if
+        % the ratio of those > MinSample are bigger than 'Crit' and the
         % last trial wasn't an early withdrawal, then increment the
-        % MinSampleAud.
+        % MinSample.
         % If RewardAfterMinSampling is enabled, and since ST max possible
-        % value when RewardAfterMinSampling is MinSampleAud, wouldn't
-        % increasing the MinSampleAud be very difficult as ratio of
-        % consider-trials will always be less than MinSampleAud?
-        if mean(BpodSystem.Data.Custom.ST(ConsiderTrials)>TaskParameters.GUI.MinSampleAud) > Crit
+        % value when RewardAfterMinSampling is MinSample, wouldn't
+        % increasing the MinSample be very difficult as ratio of
+        % consider-trials will always be less than MinSample?
+        if mean(BpodSystem.Data.Custom.ST(ConsiderTrials)>TaskParameters.GUI.MinSample) > Crit
             if ~BpodSystem.Data.Custom.EarlyWithdrawal(iTrial)
-                TaskParameters.GUI.MinSampleAud = min(TaskParameters.GUI.MinSampleAudMax,...
-                    max(TaskParameters.GUI.MinSampleAudMin,BpodSystem.Data.Custom.MinSampleAud(iTrial) + TaskParameters.GUI.MinSampleAudIncr));
+                TaskParameters.GUI.MinSample = min(TaskParameters.GUI.MinSampleMax,...
+                    max(TaskParameters.GUI.MinSampleMin,BpodSystem.Data.Custom.MinSample(iTrial) + TaskParameters.GUI.MinSampleIncr));
             end
         % If the ratio of the trials that are less than current min
         % sampling are less than 'Crit'/2 and the last trial wasn't an early
-        % withdrawal during min sampling then decrement MinSampleAud.
-        elseif mean(BpodSystem.Data.Custom.ST(ConsiderTrials)>TaskParameters.GUI.MinSampleAud) < Crit/2
+        % withdrawal during min sampling then decrement MinSample.
+        elseif mean(BpodSystem.Data.Custom.ST(ConsiderTrials)>TaskParameters.GUI.MinSample) < Crit/2
             if BpodSystem.Data.Custom.EarlyWithdrawal(iTrial)
-                TaskParameters.GUI.MinSampleAud = max(TaskParameters.GUI.MinSampleAudMin,...
-                    min(TaskParameters.GUI.MinSampleAudMax,BpodSystem.Data.Custom.MinSampleAud(iTrial) - TaskParameters.GUI.MinSampleAudDecr));
+                TaskParameters.GUI.MinSample = max(TaskParameters.GUI.MinSampleMin,...
+                    min(TaskParameters.GUI.MinSampleMax,BpodSystem.Data.Custom.MinSample(iTrial) - TaskParameters.GUI.MinSampleDecr));
             end
         % Otherwise keep the value as it is unless the user has updated the
         % GUI values.
         else
-            TaskParameters.GUI.MinSampleAud = max(TaskParameters.GUI.MinSampleAudMin,...
-                min(TaskParameters.GUI.MinSampleAudMax,BpodSystem.Data.Custom.MinSampleAud(iTrial)));
+            TaskParameters.GUI.MinSample = max(TaskParameters.GUI.MinSampleMin,...
+                min(TaskParameters.GUI.MinSampleMax,BpodSystem.Data.Custom.MinSample(iTrial)));
         end
     % Keep the value as it is unless the user updated the GUI values.
     else
-        TaskParameters.GUI.MinSampleAud = max(TaskParameters.GUI.MinSampleAudMin,...
-            min(TaskParameters.GUI.MinSampleAudMax,BpodSystem.Data.Custom.MinSampleAud(iTrial)));
+        TaskParameters.GUI.MinSample = max(TaskParameters.GUI.MinSampleMin,...
+            min(TaskParameters.GUI.MinSampleMax,BpodSystem.Data.Custom.MinSample(iTrial)));
     end
 else % Use non-incremental fixed value
-    TaskParameters.GUI.MinSampleAud = TaskParameters.GUI.MinSampleAudMin;
+    TaskParameters.GUI.MinSample = TaskParameters.GUI.MinSampleMin;
 end
 
 %feedback delay
@@ -256,7 +252,7 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - Const.PRE_GENERATE_TRIAL_CHECK
 
     switch TaskParameters.GUI.TrialSelection
         case TrialSelection.Flat % Restore equals P(Omega) for all the Omega values of the GUI
-            TaskParameters.GUI.LeftBiasAud = 0.5;
+            TaskParameters.GUI.LeftBias = 0.5;
             % Temporarily set all values to one. We will later divide them
             % into equal probability ratios whose  sum is 1.
             TaskParameters.GUI.OmegaTable.OmegaProb = ones(size(TaskParameters.GUI.OmegaTable.OmegaProb));
@@ -271,18 +267,18 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - Const.PRE_GENERATE_TRIAL_CHECK
             if sum(ndxRewd) > Const.BIAS_CORRECT_MIN_RWD_TRIALS
                 PerfL = sum(ndxLeftRewd)/sum(ndxLeftRewDone);
                 PerfR = sum(ndxRightRewd)/sum(ndxRightRewDone);
-                TaskParameters.GUI.LeftBiasAud = (PerfL-PerfR)/2 + 0.5;
+                TaskParameters.GUI.LeftBias = (PerfL-PerfR)/2 + 0.5;
             else
-                TaskParameters.GUI.LeftBiasAud = 0.5;
+                TaskParameters.GUI.LeftBias = 0.5;
             end
-            % auditory discrete omega values:
+            % Stimulus selection discrete omega values:
             % Adjust the GUI values of P(Omega) depending on the LeftBias
             % TODO: Add an option to lean more to easier trials according to how strong the bias is
-            TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega<50) = TaskParameters.GUI.LeftBiasAud; % P(Right side trials)
-            TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega>50) = 1-TaskParameters.GUI.LeftBiasAud; % P(Left side trials)
+            TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega<50) = TaskParameters.GUI.LeftBias; % P(Right side trials)
+            TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega>50) = 1-TaskParameters.GUI.LeftBias; % P(Left side trials)
 
         case TrialSelection.Manual % Don't modify the LeftBias and leave the GUI values of P(Omega)
-            TaskParameters.GUI.LeftBiasAud = 0.5;
+            TaskParameters.GUI.LeftBias = 0.5;
         otherwise
             assert(false, 'Unexpected TrialSelection value');
     end
@@ -293,27 +289,27 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - Const.PRE_GENERATE_TRIAL_CHECK
     end
     TaskParameters.GUI.OmegaTable.OmegaProb = TaskParameters.GUI.OmegaTable.OmegaProb/sum(TaskParameters.GUI.OmegaTable.OmegaProb);
 
-    % make future auditory trials
+    % make future trials
     % easy trial selection for Beta distribution
     if iTrial > TaskParameters.GUI.StartEasyTrials
-        AuditoryAlpha = TaskParameters.GUI.AuditoryAlpha;
+        BetaDistAlphaNBeta = TaskParameters.GUI.BetaDistAlphaNBeta;
     else
         % Why divide by 4? to make it easier?
-        AuditoryAlpha = TaskParameters.GUI.AuditoryAlpha/4;
+        BetaDistAlphaNBeta = TaskParameters.GUI.BetaDistAlphaNBeta/4;
     end
     % L/R Bias trial selection for Beta distribution
-    BetaRatio = (1 - min(0.9,max(0.1,TaskParameters.GUI.LeftBiasAud))) / min(0.9,max(0.1,TaskParameters.GUI.LeftBiasAud)); %use a = ratio*b to yield E[X] = LeftBiasAud using Beta(a,b) pdf
+    BetaRatio = (1 - min(0.9,max(0.1,TaskParameters.GUI.LeftBias))) / min(0.9,max(0.1,TaskParameters.GUI.LeftBias)); %use a = ratio*b to yield E[X] = LeftBias using Beta(a,b) pdf
     %cut off between 0.1-0.9 to prevent extreme values (only one side) and div by zero
-    BetaA =  (2*AuditoryAlpha*BetaRatio) / (1+BetaRatio); %make a,b symmetric around AuditoryAlpha to make B symmetric
-    BetaB = (AuditoryAlpha-BetaA) + AuditoryAlpha;
+    BetaA =  (2*BetaDistAlphaNBeta*BetaRatio) / (1+BetaRatio); %make a,b symmetric around BetaDistAlphaNBeta to make B symmetric
+    BetaB = (BetaDistAlphaNBeta-BetaA) + BetaDistAlphaNBeta;
     for a = 1:Const.PRE_GENERATE_TRIAL_COUNT
         % If it's a fifty-fifty trial, then place stimulus in the middle
         if rand(1,1) < TaskParameters.GUI.Percent50Fifty && iTrial > TaskParameters.GUI.StartEasyTrials % 50Fifty trials
-            BpodSystem.Data.Custom.AuditoryOmega(lastidx+a) = 0.5;
+            BpodSystem.Data.Custom.StimulusOmega(lastidx+a) = 0.5;
         else
-            if TaskParameters.GUI.AuditoryTrialSelection == AuditoryTrialSelection.BetaDistribution
-                BpodSystem.Data.Custom.AuditoryOmega(lastidx+a) = betarnd(max(0,BetaA),max(0,BetaB),1,1); %prevent negative parameters
-            elseif TaskParameters.GUI.AuditoryTrialSelection == AuditoryTrialSelection.DiscretePairs
+            if TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.BetaDistribution
+                BpodSystem.Data.Custom.StimulusOmega(lastidx+a) = betarnd(max(0,BetaA),max(0,BetaB),1,1); %prevent negative parameters
+            elseif TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.DiscretePairs
                 % If it's the an easy trial then choose the pair which
                 % are the table's biggest and the smallest values.
                 if iTrial < TaskParameters.GUI.StartEasyTrials % easy trial
@@ -323,16 +319,16 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - Const.PRE_GENERATE_TRIAL_CHECK
                     TaskParameters.GUI.OmegaTable.OmegaProb = TaskParameters.GUI.OmegaTable.OmegaProb/sum(TaskParameters.GUI.OmegaTable.OmegaProb);
                 end
                 % Choose a value randomly given the each value probability
-                BpodSystem.Data.Custom.AuditoryOmega(lastidx+a) = randsample(TaskParameters.GUI.OmegaTable.Omega,1,1,TaskParameters.GUI.OmegaTable.OmegaProb)/100;
+                BpodSystem.Data.Custom.StimulusOmega(lastidx+a) = randsample(TaskParameters.GUI.OmegaTable.Omega,1,1,TaskParameters.GUI.OmegaTable.OmegaProb)/100;
 
             else
-                assert(false, 'Unexpected AuditoryTrialSelection value');
+                assert(false, 'Unexpected StimulusSelectionCriteria value');
             end
         end
-        BpodSystem.Data.Custom.LeftClickRate(lastidx+a) = round(BpodSystem.Data.Custom.AuditoryOmega(lastidx+a).*TaskParameters.GUI.SumRates);
-        BpodSystem.Data.Custom.RightClickRate(lastidx+a) = round((1-BpodSystem.Data.Custom.AuditoryOmega(lastidx+a)).*TaskParameters.GUI.SumRates);
-        BpodSystem.Data.Custom.LeftClickTrain{lastidx+a} = GeneratePoissonClickTrain(BpodSystem.Data.Custom.LeftClickRate(lastidx+a), TaskParameters.GUI.AuditoryStimulusTime);
-        BpodSystem.Data.Custom.RightClickTrain{lastidx+a} = GeneratePoissonClickTrain(BpodSystem.Data.Custom.RightClickRate(lastidx+a), TaskParameters.GUI.AuditoryStimulusTime);
+        BpodSystem.Data.Custom.LeftClickRate(lastidx+a) = round(BpodSystem.Data.Custom.StimulusOmega(lastidx+a).*TaskParameters.GUI.SumRates);
+        BpodSystem.Data.Custom.RightClickRate(lastidx+a) = round((1-BpodSystem.Data.Custom.StimulusOmega(lastidx+a)).*TaskParameters.GUI.SumRates);
+        BpodSystem.Data.Custom.LeftClickTrain{lastidx+a} = GeneratePoissonClickTrain(BpodSystem.Data.Custom.LeftClickRate(lastidx+a), TaskParameters.GUI.StimulusTime);
+        BpodSystem.Data.Custom.RightClickTrain{lastidx+a} = GeneratePoissonClickTrain(BpodSystem.Data.Custom.RightClickRate(lastidx+a), TaskParameters.GUI.StimulusTime);
         %correct left/right click train
         if ~isempty(BpodSystem.Data.Custom.LeftClickTrain{lastidx+a}) && ~isempty(BpodSystem.Data.Custom.RightClickTrain{lastidx+a})
             BpodSystem.Data.Custom.LeftClickTrain{lastidx+a}(1) = min(BpodSystem.Data.Custom.LeftClickTrain{lastidx+a}(1),BpodSystem.Data.Custom.RightClickTrain{lastidx+a}(1));
