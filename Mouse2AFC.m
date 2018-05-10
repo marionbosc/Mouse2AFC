@@ -20,7 +20,6 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUI.TimeOutSkippedFeedback = 0; % (s)
     TaskParameters.GUI.PlayNoiseforError = 0;
     TaskParameters.GUIMeta.PlayNoiseforError.Style = 'checkbox';
-    TaskParameters.GUI.PercentAuditory = 1; % Not percent, rather probability between 0 and 1
     TaskParameters.GUI.StartEasyTrials = 50;
     TaskParameters.GUI.Percent50Fifty = 0;
     TaskParameters.GUI.PercentCatch = 0;
@@ -29,7 +28,7 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUI.Ports_LMR = 123;
     TaskParameters.GUI.Wire1VideoTrigger = false;
     TaskParameters.GUIMeta.Wire1VideoTrigger.Style = 'checkbox';
-    TaskParameters.GUIPanels.General = {'ITI','RewardAmount','ChoiceDeadLine','TimeOutIncorrectChoice','TimeOutBrokeFixation','TimeOutEarlyWithdrawal','TimeOutMissedChoice','TimeOutSkippedFeedback','PlayNoiseforError','PercentAuditory','StartEasyTrials','Percent50Fifty','PercentCatch','CatchError','Ports_LMR','Wire1VideoTrigger'};
+    TaskParameters.GUIPanels.General = {'ITI','RewardAmount','ChoiceDeadLine','TimeOutIncorrectChoice','TimeOutBrokeFixation','TimeOutEarlyWithdrawal','TimeOutMissedChoice','TimeOutSkippedFeedback','PlayNoiseforError','StartEasyTrials','Percent50Fifty','PercentCatch','CatchError','Ports_LMR','Wire1VideoTrigger'};
     %% BiasControl
     TaskParameters.GUI.TrialSelection = TrialSelection.BiasCorrecting;
     TaskParameters.GUIMeta.TrialSelection.Style = 'popupmenu';
@@ -151,73 +150,62 @@ BpodSystem.Data.Custom.RewardAfterMinSampling = false(0);
 BpodSystem.Data.Custom.RewardMagnitude = TaskParameters.GUI.RewardAmount*[1,1];
 BpodSystem.Data.Custom.CenterPortRewAmount =TaskParameters.GUI.CenterPortRewAmount;
 BpodSystem.Data.Custom.TrialNumber = [];
-% Boolean array that stores which are the auditory trials
-BpodSystem.Data.Custom.AuditoryTrial = rand(1,Const.NUM_EASY_TRIALS) < TaskParameters.GUI.PercentAuditory;
 
 BpodSystem.Data.Custom.ForcedLEDTrial = false;
 % make auditory stimuli for first trials
 for a = 1:Const.NUM_EASY_TRIALS
-    if BpodSystem.Data.Custom.AuditoryTrial(a)
-        if TaskParameters.GUI.AuditoryTrialSelection == AuditoryTrialSelection.BetaDistribution
-            % Why divide by 4?
-            % Do we need the extra 1, 1 parameters at the end?
-            % This random value is between 0 and 1, the beta distribution
-            % parameters makes it very likely to very close to zero or very
-            % close to 1.
-            BpodSystem.Data.Custom.AuditoryOmega(a) = betarnd(TaskParameters.GUI.AuditoryAlpha/4,TaskParameters.GUI.AuditoryAlpha/4,1,1);
-        elseif TaskParameters.GUI.AuditoryTrialSelection == AuditoryTrialSelection.DiscretePairs
-            % Choose randomly either the top or the bottom value in the
-            % Omega table (e.g 0 or 100) and divide it by 100.
-            BpodSystem.Data.Custom.AuditoryOmega(a) = randsample([min(TaskParameters.GUI.OmegaTable.Omega) max(TaskParameters.GUI.OmegaTable.Omega)],1)/100;
-        else
-            assert(false, 'This part of the code shouldn''t be reached');
-        end
-        % If a SumRates is 100, then click rate will a value between 0 and
-        % 100. THe click rate is mean click rate in Hz to be used to
-        % generate Poisson click train.
-        % The sume of LeftClickRate + RightClickRate should be = SumRates
-        BpodSystem.Data.Custom.LeftClickRate(a) = round(BpodSystem.Data.Custom.AuditoryOmega(a)*TaskParameters.GUI.SumRates);
-        BpodSystem.Data.Custom.RightClickRate(a) = round((1-BpodSystem.Data.Custom.AuditoryOmega(a))*TaskParameters.GUI.SumRates);
-        % Generate an array of time points at which pulse pal will generate
-        % a tone.
-        BpodSystem.Data.Custom.LeftClickTrain{a} = GeneratePoissonClickTrain(BpodSystem.Data.Custom.LeftClickRate(a), TaskParameters.GUI.AuditoryStimulusTime);
-        BpodSystem.Data.Custom.RightClickTrain{a} = GeneratePoissonClickTrain(BpodSystem.Data.Custom.RightClickRate(a), TaskParameters.GUI.AuditoryStimulusTime);
-        %correct left/right click train. Make both first left and right clicks start together?
-        if ~isempty(BpodSystem.Data.Custom.LeftClickTrain{a}) && ~isempty(BpodSystem.Data.Custom.RightClickTrain{a})
-            BpodSystem.Data.Custom.LeftClickTrain{a}(1) = min(BpodSystem.Data.Custom.LeftClickTrain{a}(1),BpodSystem.Data.Custom.RightClickTrain{a}(1));
-            BpodSystem.Data.Custom.RightClickTrain{a}(1) = min(BpodSystem.Data.Custom.LeftClickTrain{a}(1),BpodSystem.Data.Custom.RightClickTrain{a}(1));
-        elseif  isempty(BpodSystem.Data.Custom.LeftClickTrain{a}) && ~isempty(BpodSystem.Data.Custom.RightClickTrain{a})
-            % No left clicks train found. Use the first click from the right click train
-            BpodSystem.Data.Custom.LeftClickTrain{a}(1) = BpodSystem.Data.Custom.RightClickTrain{a}(1);
-        elseif ~isempty(BpodSystem.Data.Custom.LeftClickTrain{a}) &&  isempty(BpodSystem.Data.Custom.RightClickTrain{a})
-            % No right clicks train found. Use the first click from the left click train
-            BpodSystem.Data.Custom.RightClickTrain{a}(1) = BpodSystem.Data.Custom.LeftClickTrain{a}(1);
-        else
-            % Both are empty, use the rate as a first click?
-            BpodSystem.Data.Custom.LeftClickTrain{a} = round(1/BpodSystem.Data.Custom.LeftClickRate*10000)/10000;
-            BpodSystem.Data.Custom.RightClickTrain{a} = round(1/BpodSystem.Data.Custom.RightClickRate*10000)/10000;
-        end
-        % Figure out whether it should be a left-rewarded or right-rewarded
-        % trial from the number of clicks produced by each direction.
-        if length(BpodSystem.Data.Custom.LeftClickTrain{a}) > length(BpodSystem.Data.Custom.RightClickTrain{a})
-            BpodSystem.Data.Custom.LeftRewarded(a) = double(1);
-        elseif length(BpodSystem.Data.Custom.LeftClickTrain{1}) < length(BpodSystem.Data.Custom.RightClickTrain{a})
-            BpodSystem.Data.Custom.LeftRewarded(a) = double(0);
-        else
-            % If both click trains match in length, then assign it by
-            % chance?
-            BpodSystem.Data.Custom.LeftRewarded(a) = rand<0.5;
-        end
-        %  0 <= (left - right) / (left + right) <= 1
-        BpodSystem.Data.Custom.DV(a) = (length(BpodSystem.Data.Custom.LeftClickTrain{a}) - length(BpodSystem.Data.Custom.RightClickTrain{a}))./(length(BpodSystem.Data.Custom.LeftClickTrain{a}) + length(BpodSystem.Data.Custom.RightClickTrain{a}));
+    if TaskParameters.GUI.AuditoryTrialSelection == AuditoryTrialSelection.BetaDistribution
+        % Why divide by 4?
+        % Do we need the extra 1, 1 parameters at the end?
+        % This random value is between 0 and 1, the beta distribution
+        % parameters makes it very likely to very close to zero or very
+        % close to 1.
+        BpodSystem.Data.Custom.AuditoryOmega(a) = betarnd(TaskParameters.GUI.AuditoryAlpha/4,TaskParameters.GUI.AuditoryAlpha/4,1,1);
+    elseif TaskParameters.GUI.AuditoryTrialSelection == AuditoryTrialSelection.DiscretePairs
+        % Choose randomly either the top or the bottom value in the
+        % Omega table (e.g 0 or 100) and divide it by 100.
+        BpodSystem.Data.Custom.AuditoryOmega(a) = randsample([min(TaskParameters.GUI.OmegaTable.Omega) max(TaskParameters.GUI.OmegaTable.Omega)],1)/100;
     else
-        % TODO: Remove non-auditory code
-        BpodSystem.Data.Custom.AuditoryOmega(a) = NaN;
-        BpodSystem.Data.Custom.LeftClickRate(a) = NaN;
-        BpodSystem.Data.Custom.RightClickRate(a) = NaN;
-        BpodSystem.Data.Custom.LeftClickTrain{a} = [];
-        BpodSystem.Data.Custom.RightClickTrain{a} = [];
+        assert(false, 'This part of the code shouldn''t be reached');
     end
+    % If a SumRates is 100, then click rate will a value between 0 and
+    % 100. THe click rate is mean click rate in Hz to be used to
+    % generate Poisson click train.
+    % The sume of LeftClickRate + RightClickRate should be = SumRates
+    BpodSystem.Data.Custom.LeftClickRate(a) = round(BpodSystem.Data.Custom.AuditoryOmega(a)*TaskParameters.GUI.SumRates);
+    BpodSystem.Data.Custom.RightClickRate(a) = round((1-BpodSystem.Data.Custom.AuditoryOmega(a))*TaskParameters.GUI.SumRates);
+    % Generate an array of time points at which pulse pal will generate
+    % a tone.
+    BpodSystem.Data.Custom.LeftClickTrain{a} = GeneratePoissonClickTrain(BpodSystem.Data.Custom.LeftClickRate(a), TaskParameters.GUI.AuditoryStimulusTime);
+    BpodSystem.Data.Custom.RightClickTrain{a} = GeneratePoissonClickTrain(BpodSystem.Data.Custom.RightClickRate(a), TaskParameters.GUI.AuditoryStimulusTime);
+    %correct left/right click train. Make both first left and right clicks start together?
+    if ~isempty(BpodSystem.Data.Custom.LeftClickTrain{a}) && ~isempty(BpodSystem.Data.Custom.RightClickTrain{a})
+        BpodSystem.Data.Custom.LeftClickTrain{a}(1) = min(BpodSystem.Data.Custom.LeftClickTrain{a}(1),BpodSystem.Data.Custom.RightClickTrain{a}(1));
+        BpodSystem.Data.Custom.RightClickTrain{a}(1) = min(BpodSystem.Data.Custom.LeftClickTrain{a}(1),BpodSystem.Data.Custom.RightClickTrain{a}(1));
+    elseif  isempty(BpodSystem.Data.Custom.LeftClickTrain{a}) && ~isempty(BpodSystem.Data.Custom.RightClickTrain{a})
+        % No left clicks train found. Use the first click from the right click train
+        BpodSystem.Data.Custom.LeftClickTrain{a}(1) = BpodSystem.Data.Custom.RightClickTrain{a}(1);
+    elseif ~isempty(BpodSystem.Data.Custom.LeftClickTrain{a}) &&  isempty(BpodSystem.Data.Custom.RightClickTrain{a})
+        % No right clicks train found. Use the first click from the left click train
+        BpodSystem.Data.Custom.RightClickTrain{a}(1) = BpodSystem.Data.Custom.LeftClickTrain{a}(1);
+    else
+        % Both are empty, use the rate as a first click?
+        BpodSystem.Data.Custom.LeftClickTrain{a} = round(1/BpodSystem.Data.Custom.LeftClickRate*10000)/10000;
+        BpodSystem.Data.Custom.RightClickTrain{a} = round(1/BpodSystem.Data.Custom.RightClickRate*10000)/10000;
+    end
+    % Figure out whether it should be a left-rewarded or right-rewarded
+    % trial from the number of clicks produced by each direction.
+    if length(BpodSystem.Data.Custom.LeftClickTrain{a}) > length(BpodSystem.Data.Custom.RightClickTrain{a})
+        BpodSystem.Data.Custom.LeftRewarded(a) = double(1);
+    elseif length(BpodSystem.Data.Custom.LeftClickTrain{1}) < length(BpodSystem.Data.Custom.RightClickTrain{a})
+        BpodSystem.Data.Custom.LeftRewarded(a) = double(0);
+    else
+        % If both click trains match in length, then assign it by
+        % chance?
+        BpodSystem.Data.Custom.LeftRewarded(a) = rand<0.5;
+    end
+    %  0 <= (left - right) / (left + right) <= 1
+    BpodSystem.Data.Custom.DV(a) = (length(BpodSystem.Data.Custom.LeftClickTrain{a}) - length(BpodSystem.Data.Custom.RightClickTrain{a}))./(length(BpodSystem.Data.Custom.LeftClickTrain{a}) + length(BpodSystem.Data.Custom.RightClickTrain{a}));
 end%for a+1:2
 % Bpod will provide feedback that we can useto trigger pulse pal
 
@@ -233,12 +221,11 @@ load PulsePalParamFeedback.mat
 BpodSystem.Data.Custom.PulsePalParamStimulus=PulsePalParamStimulus;
 BpodSystem.Data.Custom.PulsePalParamFeedback=PulsePalParamFeedback;
 clear PulsePalParamFeedback PulsePalParamStimulus
-if BpodSystem.Data.Custom.AuditoryTrial(1) % Send first trial to pulse pal
-   if ~BpodSystem.EmulatorMode
+
+if ~BpodSystem.EmulatorMode
     ProgramPulsePal(BpodSystem.Data.Custom.PulsePalParamStimulus);
     SendCustomPulseTrain(1, BpodSystem.Data.Custom.RightClickTrain{1}, ones(1,length(BpodSystem.Data.Custom.RightClickTrain{1}))*5);
     SendCustomPulseTrain(2, BpodSystem.Data.Custom.LeftClickTrain{1}, ones(1,length(BpodSystem.Data.Custom.LeftClickTrain{1}))*5);
-    end
 end
 
 %% Initialize plots
