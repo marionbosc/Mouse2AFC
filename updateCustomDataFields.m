@@ -250,13 +250,14 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - Const.PRE_GENERATE_TRIAL_CHECK
 
     lastidx = numel(BpodSystem.Data.Custom.DV);
 
-    switch TaskParameters.GUI.TrialSelection
-        case TrialSelection.Flat % Restore equals P(Omega) for all the Omega values of the GUI
+    useBeta = false;
+    switch TaskParameters.GUI.StimulusSelectionCriteria
+        case StimulusSelectionCriteria.Flat % Restore equals P(Omega) for all the Omega values of the GUI
             TaskParameters.GUI.LeftBias = 0.5;
             % Temporarily set all values to one. We will later divide them
             % into equal probability ratios whose  sum is 1.
             TaskParameters.GUI.OmegaTable.OmegaProb = ones(size(TaskParameters.GUI.OmegaTable.OmegaProb));
-        case TrialSelection.BiasCorrecting % Favors side with fewer rewards. Contrast drawn flat & independently.
+        case StimulusSelectionCriteria.BiasCorrecting % Favors side with fewer rewards. Contrast drawn flat & independently.
             % Considers all trials, not just the last x trials
             ndxRewd = BpodSystem.Data.Custom.Rewarded(1:iTrial);
             ndxLeftRewd = BpodSystem.Data.Custom.ChoiceCorrect(1:iTrial) == 1  & BpodSystem.Data.Custom.ChoiceLeft(1:iTrial) == 1;
@@ -276,54 +277,52 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - Const.PRE_GENERATE_TRIAL_CHECK
             % TODO: Add an option to lean more to easier trials according to how strong the bias is
             TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega<50) = TaskParameters.GUI.LeftBias; % P(Right side trials)
             TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega>50) = 1-TaskParameters.GUI.LeftBias; % P(Left side trials)
-
-        case TrialSelection.Manual % Don't modify the LeftBias and leave the GUI values of P(Omega)
+        case StimulusSelectionCriteria.BetaDistribution
+            useBeta = true;
+            % easy trial selection for Beta distribution
+            if iTrial > TaskParameters.GUI.StartEasyTrials
+                BetaDistAlphaNBeta = TaskParameters.GUI.BetaDistAlphaNBeta;
+            else
+                % Why divide by 4? to make it easier?
+                BetaDistAlphaNBeta = TaskParameters.GUI.BetaDistAlphaNBeta/4;
+            end
+            % L/R Bias trial selection for Beta distribution
+            BetaRatio = (1 - min(0.9,max(0.1,TaskParameters.GUI.LeftBias))) / min(0.9,max(0.1,TaskParameters.GUI.LeftBias)); %use a = ratio*b to yield E[X] = LeftBias using Beta(a,b) pdf
+            %cut off between 0.1-0.9 to prevent extreme values (only one side) and div by zero
+            BetaA =  (2*BetaDistAlphaNBeta*BetaRatio) / (1+BetaRatio); %make a,b symmetric around BetaDistAlphaNBeta to make B symmetric
+            BetaB = (BetaDistAlphaNBeta-BetaA) + BetaDistAlphaNBeta;
+        case StimulusSelectionCriteria.DiscretePairs % Use GUI values of P(Omega)
             TaskParameters.GUI.LeftBias = 0.5;
+            % If it's the an easy trial then choose the pair which
+            % are the table's biggest and the smallest values.
+            if iTrial < TaskParameters.GUI.StartEasyTrials % easy trial
+                EasyProb = zeros(numel(TaskParameters.GUI.OmegaTable.OmegaProb),1);
+                EasyProb(1) = 1; EasyProb(end)=1;
+                TaskParameters.GUI.OmegaTable.OmegaProb = EasyProb .* TaskParameters.GUI.OmegaTable.OmegaProb;
+                TaskParameters.GUI.OmegaTable.OmegaProb = TaskParameters.GUI.OmegaTable.OmegaProb/sum(TaskParameters.GUI.OmegaTable.OmegaProb);
+            end
         otherwise
             assert(false, 'Unexpected TrialSelection value');
     end
 
     % Adjustment of P(Omega) to make sure that sum(P(Omega))=1
-    if sum(TaskParameters.GUI.OmegaTable.OmegaProb) == 0 % Avoid having no probability and avoid dividing by zero
-        TaskParameters.GUI.OmegaTable.OmegaProb = ones(size(TaskParameters.GUI.OmegaTable.OmegaProb));
+    if ~useBeta
+        if sum(TaskParameters.GUI.OmegaTable.OmegaProb) == 0 % Avoid having no probability and avoid dividing by zero
+            TaskParameters.GUI.OmegaTable.OmegaProb = ones(size(TaskParameters.GUI.OmegaTable.OmegaProb));
+        end
+        TaskParameters.GUI.OmegaTable.OmegaProb = TaskParameters.GUI.OmegaTable.OmegaProb/sum(TaskParameters.GUI.OmegaTable.OmegaProb);
     end
-    TaskParameters.GUI.OmegaTable.OmegaProb = TaskParameters.GUI.OmegaTable.OmegaProb/sum(TaskParameters.GUI.OmegaTable.OmegaProb);
 
     % make future trials
-    % easy trial selection for Beta distribution
-    if iTrial > TaskParameters.GUI.StartEasyTrials
-        BetaDistAlphaNBeta = TaskParameters.GUI.BetaDistAlphaNBeta;
-    else
-        % Why divide by 4? to make it easier?
-        BetaDistAlphaNBeta = TaskParameters.GUI.BetaDistAlphaNBeta/4;
-    end
-    % L/R Bias trial selection for Beta distribution
-    BetaRatio = (1 - min(0.9,max(0.1,TaskParameters.GUI.LeftBias))) / min(0.9,max(0.1,TaskParameters.GUI.LeftBias)); %use a = ratio*b to yield E[X] = LeftBias using Beta(a,b) pdf
-    %cut off between 0.1-0.9 to prevent extreme values (only one side) and div by zero
-    BetaA =  (2*BetaDistAlphaNBeta*BetaRatio) / (1+BetaRatio); %make a,b symmetric around BetaDistAlphaNBeta to make B symmetric
-    BetaB = (BetaDistAlphaNBeta-BetaA) + BetaDistAlphaNBeta;
     for a = 1:Const.PRE_GENERATE_TRIAL_COUNT
         % If it's a fifty-fifty trial, then place stimulus in the middle
         if rand(1,1) < TaskParameters.GUI.Percent50Fifty && iTrial > TaskParameters.GUI.StartEasyTrials % 50Fifty trials
             BpodSystem.Data.Custom.StimulusOmega(lastidx+a) = 0.5;
+        elseif useBeta
+            BpodSystem.Data.Custom.StimulusOmega(lastidx+a) = betarnd(max(0,BetaA),max(0,BetaB),1,1); %prevent negative parameters
         else
-            if TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.BetaDistribution
-                BpodSystem.Data.Custom.StimulusOmega(lastidx+a) = betarnd(max(0,BetaA),max(0,BetaB),1,1); %prevent negative parameters
-            elseif TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.DiscretePairs
-                % If it's the an easy trial then choose the pair which
-                % are the table's biggest and the smallest values.
-                if iTrial < TaskParameters.GUI.StartEasyTrials % easy trial
-                    EasyProb = zeros(numel(TaskParameters.GUI.OmegaTable.OmegaProb),1);
-                    EasyProb(1) = 1; EasyProb(end)=1;
-                    TaskParameters.GUI.OmegaTable.OmegaProb = EasyProb .* TaskParameters.GUI.OmegaTable.OmegaProb;
-                    TaskParameters.GUI.OmegaTable.OmegaProb = TaskParameters.GUI.OmegaTable.OmegaProb/sum(TaskParameters.GUI.OmegaTable.OmegaProb);
-                end
-                % Choose a value randomly given the each value probability
-                BpodSystem.Data.Custom.StimulusOmega(lastidx+a) = randsample(TaskParameters.GUI.OmegaTable.Omega,1,1,TaskParameters.GUI.OmegaTable.OmegaProb)/100;
-
-            else
-                assert(false, 'Unexpected StimulusSelectionCriteria value');
-            end
+            % Choose a value randomly given the each value probability
+            BpodSystem.Data.Custom.StimulusOmega(lastidx+a) = randsample(TaskParameters.GUI.OmegaTable.Omega,1,1,TaskParameters.GUI.OmegaTable.OmegaProb)/100;
         end
         BpodSystem.Data.Custom.LeftClickRate(lastidx+a) = round(BpodSystem.Data.Custom.StimulusOmega(lastidx+a).*TaskParameters.GUI.SumRates);
         BpodSystem.Data.Custom.RightClickRate(lastidx+a) = round((1-BpodSystem.Data.Custom.StimulusOmega(lastidx+a)).*TaskParameters.GUI.SumRates);

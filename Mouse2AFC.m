@@ -29,11 +29,6 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUI.Wire1VideoTrigger = false;
     TaskParameters.GUIMeta.Wire1VideoTrigger.Style = 'checkbox';
     TaskParameters.GUIPanels.General = {'ITI','RewardAmount','ChoiceDeadLine','TimeOutIncorrectChoice','TimeOutBrokeFixation','TimeOutEarlyWithdrawal','TimeOutMissedChoice','TimeOutSkippedFeedback','PlayNoiseforError','StartEasyTrials','Percent50Fifty','PercentCatch','CatchError','Ports_LMR','Wire1VideoTrigger'};
-    %% BiasControl
-    TaskParameters.GUI.TrialSelection = TrialSelection.BiasCorrecting;
-    TaskParameters.GUIMeta.TrialSelection.Style = 'popupmenu';
-    TaskParameters.GUIMeta.TrialSelection.String = TrialSelection.String;
-    TaskParameters.GUIPanels.BiasControl = {'TrialSelection'};
     %% StimDelay
     TaskParameters.GUI.StimDelayAutoincrement = 0;
     TaskParameters.GUIMeta.StimDelayAutoincrement.Style = 'checkbox';
@@ -69,7 +64,7 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUI.LeftBias = 0.5;
     TaskParameters.GUIMeta.LeftBias.Style = 'text';
     TaskParameters.GUIMeta.PortLEDtoCueReward.Style = 'checkbox';
-    TaskParameters.GUI.StimulusSelectionCriteria = StimulusSelectionCriteria.BetaDistribution;
+    TaskParameters.GUI.StimulusSelectionCriteria = StimulusSelectionCriteria.BiasCorrecting;
     TaskParameters.GUIMeta.StimulusSelectionCriteria.Style = 'popupmenu';
     TaskParameters.GUIMeta.StimulusSelectionCriteria.String = StimulusSelectionCriteria.String;
     TaskParameters.GUI.BetaDistAlphaNBeta = 0.3;
@@ -122,7 +117,7 @@ if isempty(fieldnames(TaskParameters))
     %%
     TaskParameters.GUI = orderfields(TaskParameters.GUI);
     %% Tabs
-    TaskParameters.GUITabs.General = {'ExperimentType','StimDelay','BiasControl','General','FeedbackDelay'};
+    TaskParameters.GUITabs.General = {'ExperimentType','StimDelay','General','FeedbackDelay'};
     TaskParameters.GUITabs.Sampling = {'Auditory','Sampling','StimulusSelection'};
     TaskParameters.GUITabs.Plots = {'ShowPlots','Vevaiometric'};
     %%Non-GUI Parameters (but saved)
@@ -155,18 +150,19 @@ BpodSystem.Data.Custom.TrialNumber = [];
 BpodSystem.Data.Custom.ForcedLEDTrial = false;
 % make auditory stimuli for first trials
 for a = 1:Const.NUM_EASY_TRIALS
-    if TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.BetaDistribution
+    switch TaskParameters.GUI.StimulusSelectionCriteria
+    case {StimulusSelectionCriteria.BetaDistribution, StimulusSelectionCriteria.BiasCorrecting, StimulusSelectionCriteria.Flat}
         % Why divide by 4?
         % Do we need the extra 1, 1 parameters at the end?
         % This random value is between 0 and 1, the beta distribution
         % parameters makes it very likely to very close to zero or very
         % close to 1.
         BpodSystem.Data.Custom.StimulusOmega(a) = betarnd(TaskParameters.GUI.BetaDistAlphaNBeta/4,TaskParameters.GUI.BetaDistAlphaNBeta/4,1,1);
-    elseif TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.DiscretePairs
+    case TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.DiscretePairs
         % Choose randomly either the top or the bottom value in the
         % Omega table (e.g 0 or 100) and divide it by 100.
         BpodSystem.Data.Custom.StimulusOmega(a) = randsample([min(TaskParameters.GUI.OmegaTable.Omega) max(TaskParameters.GUI.OmegaTable.Omega)],1)/100;
-    else
+    otherwise
         assert(false, 'This part of the code shouldn''t be reached');
     end
     % If a SumRates is 100, then click rate will a value between 0 and
