@@ -70,6 +70,8 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUI.BetaDistAlphaNBeta = 0.3;
     TaskParameters.GUI.OmegaTable.Omega = [0, 5, 10, 90, 95, 100]';
     TaskParameters.GUI.OmegaTable.OmegaProb = ones(size(TaskParameters.GUI.OmegaTable.Omega))/numel(TaskParameters.GUI.OmegaTable.Omega);
+    TaskParameters.GUI.CurrentStim = 0;
+    TaskParameters.GUIMeta.CurrentStim.Style = 'text';
     TaskParameters.GUIMeta.OmegaTable.Style = 'table';
     TaskParameters.GUIMeta.OmegaTable.String = 'Omega probabilities';
     TaskParameters.GUIMeta.OmegaTable.ColumnLabel = {'a = Omega*100','P(a)'};
@@ -91,7 +93,7 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUI.PortLEDtoCueReward = false;
     TaskParameters.GUI.PercentForcedLEDTrial = 1;
     TaskParameters.GUIPanels.Auditory = {'PortLEDtoCueReward','PercentForcedLEDTrial','SumRates'};
-    TaskParameters.GUIPanels.StimulusSelection = {'OmegaTable','BetaDistAlphaNBeta','StimulusSelectionCriteria','LeftBias'};
+    TaskParameters.GUIPanels.StimulusSelection = {'OmegaTable','BetaDistAlphaNBeta','StimulusSelectionCriteria','LeftBias', 'CurrentStim'};
     TaskParameters.GUIPanels.Sampling = {'RewardAfterMinSampling','CenterPortRewAmount','MinSampleMin','MinSampleMax','MinSampleAutoincrement','MinSampleIncr','MinSampleDecr','MinSample','StimulusTime'};
     %% Plots
     %Show Plots
@@ -197,6 +199,9 @@ if ~BpodSystem.EmulatorMode
     SendCustomPulseTrain(1, BpodSystem.Data.Custom.RightClickTrain{1}, ones(1,length(BpodSystem.Data.Custom.RightClickTrain{1}))*5);
     SendCustomPulseTrain(2, BpodSystem.Data.Custom.LeftClickTrain{1}, ones(1,length(BpodSystem.Data.Custom.LeftClickTrain{1}))*5);
 end
+
+% Set current stimulus for next trial
+TaskParameters.GUI.CurrentStim = BpodSystem.Data.Custom.DV(1);
 
 %% Initialize plots
 BpodSystem.ProtocolFigures.SideOutcomePlotFig = figure('Position', TaskParameters.Figures.OutcomePlot.Position,'name','Outcome plot','numbertitle','off', 'MenuBar', 'none', 'Resize', 'off');

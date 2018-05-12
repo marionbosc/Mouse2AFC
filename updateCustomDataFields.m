@@ -344,6 +344,8 @@ if  ~BpodSystem.EmulatorMode
     SendCustomPulseTrain(2, BpodSystem.Data.Custom.LeftClickTrain{iTrial+1}, ones(1,length(BpodSystem.Data.Custom.LeftClickTrain{iTrial+1}))*5);
 end
 
+% Set current stimulus for next trial
+TaskParameters.GUI.CurrentStim = BpodSystem.Data.Custom.DV(iTrial + 1);
 
 %%update hidden TaskParameter fields
 TaskParameters.Figures.OutcomePlot.Position = BpodSystem.ProtocolFigures.SideOutcomePlotFig.Position;
