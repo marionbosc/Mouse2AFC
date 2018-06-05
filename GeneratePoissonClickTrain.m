@@ -48,16 +48,18 @@ if nClicks > 0
     if max_ClickTimes > Duration % if so, rescaling of the whole timepoints vector
         scaling = Duration / max_ClickTimes;
         ClickTimes = ClickTimes*scaling;
-        ClickTimes = round(ClickTimes,4); % to keep it as multiple of 0.0001 (PulsePal precision)
-        
+        ClickTimes = round(ClickTimes,4); % to keep it as multiple of 0.0001 (PulsePal precision)      
+    end
+    
+    % repeat last checking until all the time points are unique to make sure that there is not duplicated timepoint        
+    while size(unique(ClickTimes),2) < size(ClickTimes,2)
         for i = 1:(size(ClickTimes,2)-1)
-            if ClickTimes(i) == ClickTimes(i+1)
-                ClickTimes(i+1) = ClickTimes(i+1)+ 0.0001;
+            if (ClickTimes(i+1) - ClickTimes(i)) < 0.0001
+             ClickTimes(i+1) = ClickTimes(i+1)+ 0.0001;
             end
         end
     end
-    
-    
+        
 else % if frequency of click = 0 --> no click
     ClickTimes = [];
 end
