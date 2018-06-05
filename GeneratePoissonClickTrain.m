@@ -48,6 +48,7 @@ if nClicks > 0
     if max_ClickTimes > Duration % if so, rescaling of the whole timepoints vector
         scaling = Duration / max_ClickTimes;
         ClickTimes = ClickTimes*scaling;
+        ClickTimes = round(ClickTimes,4); % to keep it as multiple of 0.0001 (PulsePal precision)
     end
     
 else % if frequency of click = 0 --> no click
