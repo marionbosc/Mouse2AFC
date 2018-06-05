@@ -49,7 +49,14 @@ if nClicks > 0
         scaling = Duration / max_ClickTimes;
         ClickTimes = ClickTimes*scaling;
         ClickTimes = round(ClickTimes,4); % to keep it as multiple of 0.0001 (PulsePal precision)
+        
+        for i = 1:(size(ClickTimes,2)-1)
+            if ClickTimes(i) == ClickTimes(i+1)
+                ClickTimes(i+1) = ClickTimes(i+1)+ 0.0001;
+            end
+        end
     end
+    
     
 else % if frequency of click = 0 --> no click
     ClickTimes = [];
