@@ -197,8 +197,13 @@ switch Action
             BinIdx = discretize(AudDV,linspace(min(AudDV),max(AudDV),AudBin+1));
             
             % Choice trials
-            PsycY = grpstats(BpodSystem.Data.Custom.ChoiceLeft(ndxAud&~ndxNan&ndxChoice),BinIdx(ndxAud&~ndxNan&ndxChoice),'mean');
-            PsycX = unique(BinIdx(ndxAud&~ndxNan&ndxChoice))/AudBin*2-1-1/AudBin;              
+            if TaskParameters.GUI.AuditoryTrialSelection == 2 % Discrete trials Omega selection
+                PsycY = grpstats(BpodSystem.Data.Custom.ChoiceLeft(ndxAud&~ndxNan&ndxChoice),BpodSystem.Data.Custom.AuditoryOmega(ndxAud&~ndxNan&ndxChoice),'mean');
+                PsycX = grpstats(BpodSystem.Data.Custom.DV(ndxAud&~ndxNan&ndxChoice),BpodSystem.Data.Custom.AuditoryOmega(ndxAud&~ndxNan&ndxChoice),'mean');
+            else % Continuous trials Omega selection
+                PsycY = grpstats(BpodSystem.Data.Custom.ChoiceLeft(ndxAud&~ndxNan&ndxChoice),BinIdx(ndxAud&~ndxNan&ndxChoice),'mean');
+                PsycX = unique(BinIdx(ndxAud&~ndxNan&ndxChoice))/AudBin*2-1-1/AudBin; 
+            end
             BpodSystem.GUIHandles.OutcomePlot.PsycAud.YData = PsycY;
             BpodSystem.GUIHandles.OutcomePlot.PsycAud.XData = PsycX;
             if sum(ndxAud&~ndxNan&ndxChoice) > 1
@@ -206,16 +211,23 @@ switch Action
                 BpodSystem.GUIHandles.OutcomePlot.PsycAudFit.YData = glmval(glmfit(AudDV(ndxAud&~ndxNan&ndxChoice),...
                     BpodSystem.Data.Custom.ChoiceLeft(ndxAud&~ndxNan&ndxChoice)','binomial'),linspace(min(AudDV),max(AudDV),100),'logit');
             end
-        
-            % Forced trials
-            PsycY = grpstats(BpodSystem.Data.Custom.ChoiceLeft(ndxAud&~ndxNan&ndxForced),BinIdx(ndxAud&~ndxNan&ndxForced),'mean');
-            PsycX = unique(BinIdx(ndxAud&~ndxNan&ndxForced))/AudBin*2-1-1/AudBin;              
-            BpodSystem.GUIHandles.OutcomePlot.PsycAudForced.YData = PsycY;
-            BpodSystem.GUIHandles.OutcomePlot.PsycAudForced.XData = PsycX;
-            if sum(ndxAud&~ndxNan&ndxForced) > 1
-                BpodSystem.GUIHandles.OutcomePlot.PsycAudForcedFit.XData = linspace(min(AudDV),max(AudDV),100);
-                BpodSystem.GUIHandles.OutcomePlot.PsycAudForcedFit.YData = glmval(glmfit(AudDV(ndxAud&~ndxNan&ndxForced),...
-                    BpodSystem.Data.Custom.ChoiceLeft(ndxAud&~ndxNan&ndxForced)','binomial'),linspace(min(AudDV),max(AudDV),100),'logit');
+            
+            if TaskParameters.GUI.PortLEDtoCueReward
+                % Forced trials
+                if TaskParameters.GUI.AuditoryTrialSelection == 2 % Discrete trials Omega selection
+                    PsycY = grpstats(BpodSystem.Data.Custom.ChoiceLeft(ndxAud&~ndxNan&ndxForced),BpodSystem.Data.Custom.AuditoryOmega(ndxAud&~ndxNan&ndxForced),'mean');
+                    PsycX = grpstats(BpodSystem.Data.Custom.DV(ndxAud&~ndxNan&ndxForced),BpodSystem.Data.Custom.AuditoryOmega(ndxAud&~ndxNan&ndxForced),'mean');
+                else % Continuous trials Omega selection
+                    PsycY = grpstats(BpodSystem.Data.Custom.ChoiceLeft(ndxAud&~ndxNan&ndxForced),BinIdx(ndxAud&~ndxNan&ndxForced),'mean');
+                    PsycX = unique(BinIdx(ndxAud&~ndxNan&ndxForced))/AudBin*2-1-1/AudBin;     
+                end
+                BpodSystem.GUIHandles.OutcomePlot.PsycAudForced.YData = PsycY;
+                BpodSystem.GUIHandles.OutcomePlot.PsycAudForced.XData = PsycX;
+                if sum(ndxAud&~ndxNan&ndxForced) > 1
+                    BpodSystem.GUIHandles.OutcomePlot.PsycAudForcedFit.XData = linspace(min(AudDV),max(AudDV),100);
+                    BpodSystem.GUIHandles.OutcomePlot.PsycAudForcedFit.YData = glmval(glmfit(AudDV(ndxAud&~ndxNan&ndxForced),...
+                        BpodSystem.Data.Custom.ChoiceLeft(ndxAud&~ndxNan&ndxForced)','binomial'),linspace(min(AudDV),max(AudDV),100),'logit');
+                end
             end
         end
         %% Vevaiometric
