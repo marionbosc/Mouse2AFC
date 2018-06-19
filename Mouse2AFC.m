@@ -8,6 +8,14 @@ global BpodSystem
 global TaskParameters
 TaskParameters = BpodSystem.ProtocolSettings;
 if isempty(fieldnames(TaskParameters))
+    %% Automatic SessionEnd
+    TaskParameters.GUI.SessionEndCriterionType = 1;
+    TaskParameters.GUIMeta.SessionEndCriterionType.Style = 'popupmenu';
+    TaskParameters.GUIMeta.SessionEndCriterionType.String = {'None','Duration','nTrials','TotalRewardObtained','anyCriteria'};
+    TaskParameters.GUI.Durationinminutes = 90; % min
+    TaskParameters.GUI.nTrials = 1000;
+    TaskParameters.GUI.RewardAmountinmL = 15;
+    TaskParameters.GUIPanels.AutomaticSessionEnd = {'SessionEndCriterionType','Durationinminutes','nTrials','RewardAmountinmL'};
     %% General
     TaskParameters.GUI.ITI = 0.5; % (s)
     TaskParameters.GUI.RewardAmount = 2;
@@ -121,7 +129,7 @@ if isempty(fieldnames(TaskParameters))
     %%
     TaskParameters.GUI = orderfields(TaskParameters.GUI);
     %% Tabs
-    TaskParameters.GUITabs.General = {'StimDelay','BiasControl','General','FeedbackDelay'};
+    TaskParameters.GUITabs.General = {'AutomaticSessionEnd','StimDelay','BiasControl','General','FeedbackDelay'};
     TaskParameters.GUITabs.Auditory = {'AudGeneral','AudMinSample','AudClicks'}; 
     TaskParameters.GUITabs.Plots = {'ShowPlots','Vevaiometric'};
     %%Non-GUI Parameters (but saved)
@@ -230,7 +238,7 @@ BpodSystem.ProtocolFigures.ParameterGUI.Position = TaskParameters.Figures.Parame
 %% Main loop
 RunSession = true;
 iTrial = 1;
-
+begin_session = clock;
 while RunSession
     TaskParameters = BpodParameterGUI('sync', TaskParameters);
     sma = stateMatrix(iTrial);
@@ -250,5 +258,37 @@ while RunSession
     MainPlot(BpodSystem.GUIHandles.OutcomePlot,'update',iTrial);
     iTrial = iTrial + 1;
     
+    switch TaskParameters.GUIMeta.SessionEndCriterionType.String{TaskParameters.GUI.SessionEndCriterionType}
+        case 'none'
+            RunSession = true;
+        case 'Duration'
+            if etime(clock,begin_session) > (TaskParameters.GUI.Durationinminutes*60) %(now - BpodSystem.Birthdate)
+                RunSession = false;
+            end
+        case 'nTrials'
+            if iTrial > TaskParameters.GUI.nTrials
+                RunSession = false;
+            end
+        case 'TotalRewardObtained'
+            if str2double(BpodSystem.GUIHandles.OutcomePlot.CumRwd.String(1:end-3)) > TaskParameters.GUI.RewardAmountinmL
+                RunSession = false;
+            end
+        case 'anyCriteria'
+            if str2double(BpodSystem.GUIHandles.OutcomePlot.CumRwd.String(1:end-3)) > TaskParameters.GUI.RewardAmountinmL || ...
+                    iTrial > TaskParameters.GUI.nTrials ||...
+                    etime(clock,begin_session) > (TaskParameters.GUI.Durationinminutes*60)
+                RunSession = false;
+            end
+    end
+    
 end
+
+if str2double(BpodSystem.GUIHandles.OutcomePlot.CumRwd.String(1:end-3)) > TaskParameters.GUI.RewardAmountinmL
+    fprintf('Maximum amount of reward obtained --> Session ended.')
+elseif iTrial > TaskParameters.GUI.nTrials
+    fprintf('Maximum nTrials achieved --> Session ended.')
+elseif etime(clock,begin_session) > (TaskParameters.GUI.Durationinminutes*60)
+    fprintf('Total session duration over --> Session ended.')
+end
+
 end
