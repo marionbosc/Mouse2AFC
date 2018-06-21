@@ -47,7 +47,7 @@ switch Action
         BpodSystem.GUIHandles.OutcomePlot.VevaiometricErr = line(AxesHandles.HandleVevaiometric,-2,-1, 'LineStyle','-','Color','r','Visible','off','LineWidth',2);
         BpodSystem.GUIHandles.OutcomePlot.VevaiometricPointsErr = line(AxesHandles.HandleVevaiometric,-2,-1, 'LineStyle','none','Color','r','Marker','o','MarkerFaceColor','r', 'MarkerSize',2,'Visible','off','MarkerEdgeColor','r');
         BpodSystem.GUIHandles.OutcomePlot.VevaiometricPointsCatch = line(AxesHandles.HandleVevaiometric,-2,-1, 'LineStyle','none','Color','g','Marker','o','MarkerFaceColor','g', 'MarkerSize',2,'Visible','off','MarkerEdgeColor','g');
-        AxesHandles.HandleVevaiometric.YLim = [0 10];
+        AxesHandles.HandleVevaiometric.YLim = [0 20];
         AxesHandles.HandleVevaiometric.XLim = [-1.05, 1.05];
         AxesHandles.HandleVevaiometric.XLabel.String = 'DV';
         AxesHandles.HandleVevaiometric.YLabel.String = 'WT (s)';

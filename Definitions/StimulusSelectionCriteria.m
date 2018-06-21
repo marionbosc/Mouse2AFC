@@ -2,8 +2,6 @@ classdef StimulusSelectionCriteria
     properties (Constant)
         BetaDistribution = 1;
         DiscretePairs = 2;
-        Flat = 3;
-        BiasCorrecting = 4;
     end
     methods(Static)
         function string = String()

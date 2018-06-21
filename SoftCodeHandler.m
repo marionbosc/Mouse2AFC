@@ -15,7 +15,7 @@ if softCode > 10 && softCode < 21 %for auditory clicks
         elseif softCode == 12 %beep on chan 2
             ProgramPulsePal(BpodSystem.Data.Custom.PulsePalParamFeedback);
             SendCustomPulseTrain(2,0:.001:.3,(ones(1,301)*3));  % Beep on channel 1+2
-            SendCustomPulseTrain(1,0:.001:.3,(ones(1,301)*3));
+            SendCustomPulseTrain(1,0:.001:.1,(ones(1,101)));
             TriggerPulsePal(1,2);
             ProgramPulsePal(BpodSystem.Data.Custom.PulsePalParamStimulus);
         end

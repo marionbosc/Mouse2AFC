@@ -20,7 +20,9 @@ classdef Const
        % bias-correction
        BIAS_CORRECT_MIN_RWD_TRIALS = 10;
        % The number of trials that will be pre-generated ahead
-       PRE_GENERATE_TRIAL_COUNT = 5;
+       % Choose this number as even to guarantee equal distribution of
+       % trials direction to left and right
+       PRE_GENERATE_TRIAL_COUNT = 6;
        % The minimum number of trials that are left before we generate new
        % ones.
        % E.g, if iTrial = 10, PRE_GENERATE_TRIAL_CHECK = 2 and

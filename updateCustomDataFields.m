@@ -102,10 +102,10 @@ elseif any(strcmp('missed_choice',statesThisTrial)) % should be timeOut_missed_c
     BpodSystem.Data.Custom.Feedback(iTrial) = false;
     BpodSystem.Data.Custom.MissedChoice(iTrial) = true;
 end
-if any(strcmp('skipped_feedback',statesThisTrial)) % No such state, was timeOut_SkippedFeedback meant?
+if any(strcmp('timeOut_SkippedFeedback',statesThisTrial))
     BpodSystem.Data.Custom.Feedback(iTrial) = false;
 end
-if any(strncmp('Reward',statesThisTrial,6)) % Will that include 'RewardGrace'? if yes, then should it?
+if any(strcmp('Reward',statesThisTrial))
     BpodSystem.Data.Custom.Rewarded(iTrial) = true;
 end
 if any(strcmp('CenterPortRewardDelivery',statesThisTrial)) && TaskParameters.GUI.RewardAfterMinSampling
@@ -236,6 +236,8 @@ if iTrial > TaskParameters.GUI.StartEasyTrials
 else
     BpodSystem.Data.Custom.CatchTrial(iTrial+1) = false;
 end
+% Create as char vector rather than string so that GUI sync doesn't complain
+TaskParameters.GUI.IsCatch = iff(BpodSystem.Data.Custom.CatchTrial(iTrial+1), 'true', 'false');
 
 % Determine if Forced LED trial:
 if TaskParameters.GUI.PortLEDtoCueReward
@@ -244,69 +246,33 @@ else
     BpodSystem.Data.Custom.ForcedLEDTrial(iTrial+1) = false;
 end
 
+% Calculate bias
+ndxRewd = BpodSystem.Data.Custom.Rewarded(1:iTrial);
+ndxLeftRewd = BpodSystem.Data.Custom.ChoiceCorrect(1:iTrial) == 1  & BpodSystem.Data.Custom.ChoiceLeft(1:iTrial) == 1;
+ndxLeftRewDone = BpodSystem.Data.Custom.LeftRewarded(1:iTrial)==1 & ~isnan(BpodSystem.Data.Custom.ChoiceLeft(1:iTrial));
+ndxRightRewd = BpodSystem.Data.Custom.ChoiceCorrect(1:iTrial) == 1  & BpodSystem.Data.Custom.ChoiceLeft(1:iTrial) == 0;
+ndxRightRewDone = BpodSystem.Data.Custom.LeftRewarded(1:iTrial)==0 & ~isnan(BpodSystem.Data.Custom.ChoiceLeft(1:iTrial));
+PerfL = sum(ndxLeftRewd)/sum(ndxLeftRewDone);
+PerfR = sum(ndxRightRewd)/sum(ndxRightRewDone);
+TaskParameters.GUI.CalcLeftBias = (PerfL-PerfR)/2 + 0.5;
+
+
 %create future trials
 % Check if its time to generate more future trials
 if iTrial > numel(BpodSystem.Data.Custom.DV) - Const.PRE_GENERATE_TRIAL_CHECK
-
-    lastidx = numel(BpodSystem.Data.Custom.DV);
-
-    useBeta = false;
-    switch TaskParameters.GUI.StimulusSelectionCriteria
-        case StimulusSelectionCriteria.Flat % Restore equals P(Omega) for all the Omega values of the GUI
-            TaskParameters.GUI.LeftBias = 0.5;
-            % Temporarily set all values to one. We will later divide them
-            % into equal probability ratios whose  sum is 1.
-            TaskParameters.GUI.OmegaTable.OmegaProb = ones(size(TaskParameters.GUI.OmegaTable.OmegaProb));
-        case StimulusSelectionCriteria.BiasCorrecting % Favors side with fewer rewards. Contrast drawn flat & independently.
-            % Considers all trials, not just the last x trials
-            ndxRewd = BpodSystem.Data.Custom.Rewarded(1:iTrial);
-            ndxLeftRewd = BpodSystem.Data.Custom.ChoiceCorrect(1:iTrial) == 1  & BpodSystem.Data.Custom.ChoiceLeft(1:iTrial) == 1;
-            ndxLeftRewDone = BpodSystem.Data.Custom.LeftRewarded(1:iTrial)==1 & ~isnan(BpodSystem.Data.Custom.ChoiceLeft(1:iTrial));
-            ndxRightRewd = BpodSystem.Data.Custom.ChoiceCorrect(1:iTrial) == 1  & BpodSystem.Data.Custom.ChoiceLeft(1:iTrial) == 0;
-            ndxRightRewDone = BpodSystem.Data.Custom.LeftRewarded(1:iTrial)==0 & ~isnan(BpodSystem.Data.Custom.ChoiceLeft(1:iTrial));
-            % Do bias correction only if we have enough trials
-            if sum(ndxRewd) > Const.BIAS_CORRECT_MIN_RWD_TRIALS
-                PerfL = sum(ndxLeftRewd)/sum(ndxLeftRewDone);
-                PerfR = sum(ndxRightRewd)/sum(ndxRightRewDone);
-                TaskParameters.GUI.LeftBias = (PerfL-PerfR)/2 + 0.5;
-            else
-                TaskParameters.GUI.LeftBias = 0.5;
-            end
-            % Stimulus selection discrete omega values:
-            % Adjust the GUI values of P(Omega) depending on the LeftBias
-            % TODO: Add an option to lean more to easier trials according to how strong the bias is
-            TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega<50) = TaskParameters.GUI.LeftBias; % P(Right side trials)
-            TaskParameters.GUI.OmegaTable.OmegaProb(TaskParameters.GUI.OmegaTable.Omega>50) = 1-TaskParameters.GUI.LeftBias; % P(Left side trials)
-        case StimulusSelectionCriteria.BetaDistribution
-            useBeta = true;
-            % easy trial selection for Beta distribution
-            if iTrial > TaskParameters.GUI.StartEasyTrials
-                BetaDistAlphaNBeta = TaskParameters.GUI.BetaDistAlphaNBeta;
-            else
-                % Why divide by 4? to make it easier?
-                BetaDistAlphaNBeta = TaskParameters.GUI.BetaDistAlphaNBeta/4;
-            end
-            % L/R Bias trial selection for Beta distribution
-            BetaRatio = (1 - min(0.9,max(0.1,TaskParameters.GUI.LeftBias))) / min(0.9,max(0.1,TaskParameters.GUI.LeftBias)); %use a = ratio*b to yield E[X] = LeftBias using Beta(a,b) pdf
-            %cut off between 0.1-0.9 to prevent extreme values (only one side) and div by zero
-            BetaA =  (2*BetaDistAlphaNBeta*BetaRatio) / (1+BetaRatio); %make a,b symmetric around BetaDistAlphaNBeta to make B symmetric
-            BetaB = (BetaDistAlphaNBeta-BetaA) + BetaDistAlphaNBeta;
-        case StimulusSelectionCriteria.DiscretePairs % Use GUI values of P(Omega)
-            TaskParameters.GUI.LeftBias = 0.5;
-            % If it's the an easy trial then choose the pair which
-            % are the table's biggest and the smallest values.
-            if iTrial < TaskParameters.GUI.StartEasyTrials % easy trial
-                EasyProb = zeros(numel(TaskParameters.GUI.OmegaTable.OmegaProb),1);
-                EasyProb(1) = 1; EasyProb(end)=1;
-                TaskParameters.GUI.OmegaTable.OmegaProb = EasyProb .* TaskParameters.GUI.OmegaTable.OmegaProb;
-                TaskParameters.GUI.OmegaTable.OmegaProb = TaskParameters.GUI.OmegaTable.OmegaProb/sum(TaskParameters.GUI.OmegaTable.OmegaProb);
-            end
-        otherwise
-            assert(false, 'Unexpected TrialSelection value');
+    % Do bias correction only if we have enough trials
+    if TaskParameters.GUI.CorrectBias && sum(ndxRewd) > Const.BIAS_CORRECT_MIN_RWD_TRIALS
+        LeftBias = TaskParameters.GUI.CalcLeftBias;
+        % Leave some tolerance
+        if 0.4 < LeftBias && LeftBias < 0.6
+            LeftBias = 0.5;
+        end
+    else
+        LeftBias = TaskParameters.GUI.LeftBias;
     end
 
     % Adjustment of P(Omega) to make sure that sum(P(Omega))=1
-    if ~useBeta
+    if ~TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.BetaDistribution
         if sum(TaskParameters.GUI.OmegaTable.OmegaProb) == 0 % Avoid having no probability and avoid dividing by zero
             TaskParameters.GUI.OmegaTable.OmegaProb = ones(size(TaskParameters.GUI.OmegaTable.OmegaProb));
         end
@@ -314,17 +280,50 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - Const.PRE_GENERATE_TRIAL_CHECK
     end
 
     % make future trials
+    lastidx = numel(BpodSystem.Data.Custom.DV);
+    % Generate guaranteed equal possibility of >0.5 and <0.5
+    IsLeftRewarded = [zeros(1, round(Const.PRE_GENERATE_TRIAL_COUNT*LeftBias)) ones(1, round(Const.PRE_GENERATE_TRIAL_COUNT*(1-LeftBias)))];
+    % Shuffle array and convert it
+    IsLeftRewarded = IsLeftRewarded(randperm(numel(IsLeftRewarded))) > LeftBias;
     for a = 1:Const.PRE_GENERATE_TRIAL_COUNT
         % If it's a fifty-fifty trial, then place stimulus in the middle
-        if rand(1,1) < TaskParameters.GUI.Percent50Fifty && iTrial > TaskParameters.GUI.StartEasyTrials % 50Fifty trials
+        if rand(1,1) < TaskParameters.GUI.Percent50Fifty && (lastidx+a) > TaskParameters.GUI.StartEasyTrials % 50Fifty trials
             BpodSystem.Data.Custom.StimulusOmega(lastidx+a) = 0.5;
-        elseif useBeta
-            BpodSystem.Data.Custom.StimulusOmega(lastidx+a) = betarnd(max(0,BetaA),max(0,BetaB),1,1); %prevent negative parameters
         else
-            % Choose a value randomly given the each value probability
-            BpodSystem.Data.Custom.StimulusOmega(lastidx+a) = randsample(TaskParameters.GUI.OmegaTable.Omega,1,1,TaskParameters.GUI.OmegaTable.OmegaProb)/100;
+            if TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.BetaDistribution
+                % Divide beta by 4 if we are in an easy trial
+                BetaDiv = iff((lastidx+a) <= TaskParameters.GUI.StartEasyTrials, 4, 1);
+                Intensity = betarnd(TaskParameters.GUI.BetaDistAlphaNBeta/BetaDiv,TaskParameters.GUI.BetaDistAlphaNBeta/BetaDiv,1,1);
+                Intensity = iff(Intensity < 0.1, 0.1, Intensity); %prevent extreme values
+                Intensity = iff(Intensity > 0.9, 0.9, Intensity); %prevent extreme values
+            elseif TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.DiscretePairs
+                if (lastidx+a) <= TaskParameters.GUI.StartEasyTrials;
+                    index = find(TaskParameters.GUI.OmegaTable.OmegaProb > 0, 1);
+                    Intensity = TaskParameters.GUI.OmegaTable.Omega(index)/100;
+                else
+                    % Choose a value randomly given the each value probability
+                    Intensity = randsample(TaskParameters.GUI.OmegaTable.Omega,1,1,TaskParameters.GUI.OmegaTable.OmegaProb)/100;
+                end
+            else
+                assert(false, 'Unexpected StimulusSelectionCriteria');
+            end
+            % In case of beta distribution, our distribution is symmetric,
+            % so prob < 0.5 is == prob > 0.5, so we can just pick the value
+            % that corrects the bias
+            if (IsLeftRewarded(a) && Intensity < 0.5) || (~IsLeftRewarded(a) && Intensity >= 0.5)
+                Intensity = -Intensity + 1;
+            end
+            BpodSystem.Data.Custom.StimulusOmega(lastidx+a) = Intensity;
         end
-        DV = CalcAudClickTrain(lastidx+a);
+
+        switch TaskParameters.GUI.ExperimentType
+            case ExperimentType.Auditory
+                DV = CalcAudClickTrain(lastidx+a);
+            case ExperimentType.LightIntensity
+                DV = CalcLightIntensity(lastidx+a);
+            otherwise
+                assert(false, 'Unexpected ExperimentType');
+        end
         if DV > 0
             BpodSystem.Data.Custom.LeftRewarded(lastidx+a) = 1;
         elseif DV < 0
@@ -339,13 +338,13 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - Const.PRE_GENERATE_TRIAL_CHECK
 end%if trial > - 5
 
 % send auditory stimuli to PulsePal for next trial
-if  ~BpodSystem.EmulatorMode
+if TaskParameters.GUI.ExperimentType == ExperimentType.Auditory && ~BpodSystem.EmulatorMode
     SendCustomPulseTrain(1, BpodSystem.Data.Custom.RightClickTrain{iTrial+1}, ones(1,length(BpodSystem.Data.Custom.RightClickTrain{iTrial+1}))*5);
     SendCustomPulseTrain(2, BpodSystem.Data.Custom.LeftClickTrain{iTrial+1}, ones(1,length(BpodSystem.Data.Custom.LeftClickTrain{iTrial+1}))*5);
 end
 
-% Set current stimulus for next trial
-TaskParameters.GUI.CurrentStim = BpodSystem.Data.Custom.DV(iTrial + 1);
+% Set current stimulus for next trial - set between -100 to +100
+TaskParameters.GUI.CurrentStim = iff(BpodSystem.Data.Custom.DV(iTrial+1) > 0, (BpodSystem.Data.Custom.DV(iTrial+1) + 1)/0.02,(BpodSystem.Data.Custom.DV(iTrial+1) - 1)/0.02);
 
 %%update hidden TaskParameter fields
 TaskParameters.Figures.OutcomePlot.Position = BpodSystem.ProtocolFigures.SideOutcomePlotFig.Position;
