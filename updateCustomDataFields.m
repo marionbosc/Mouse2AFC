@@ -62,11 +62,11 @@ elseif any(strcmp('broke_fixation',statesThisTrial))
     BpodSystem.Data.Custom.FixBroke(iTrial) = true;
 elseif any(strcmp('early_withdrawal',statesThisTrial))
     BpodSystem.Data.Custom.EarlyWithdrawal(iTrial) = true;
-elseif any(strcmp('missed_choice',statesThisTrial))
+elseif any(strcmp('timeOut_missed_choice',statesThisTrial))
     BpodSystem.Data.Custom.Feedback(iTrial) = false;
     BpodSystem.Data.Custom.MissedChoice(iTrial) = true;
 end
-if any(strcmp('skipped_feedback',statesThisTrial))
+if any(strcmp('timeOut_SkippedFeedback',statesThisTrial))
     BpodSystem.Data.Custom.Feedback(iTrial) = false;
 end
 if any(strncmp('Reward',statesThisTrial,6))
