@@ -36,7 +36,7 @@ switch Action
         BpodSystem.GUIHandles.OutcomePlot.PsycAudFit = line(AxesHandles.HandlePsycAud,[-1. 1.],[.5 .5],'color','k','Visible','off');
         BpodSystem.GUIHandles.OutcomePlot.PsycAudForced = line(AxesHandles.HandlePsycAud,[-1 1],[.5 .5], 'LineStyle','none','Marker','o','MarkerEdge','g','MarkerFace','g', 'MarkerSize',6,'Visible','off');
         BpodSystem.GUIHandles.OutcomePlot.PsycAudForcedFit = line(AxesHandles.HandlePsycAud,[-1. 1.],[.5 .5],'color','g','Visible','off');
-        AxesHandles.HandlePsycAud.YLim = [-.05 1.05];
+        AxesHandles.HandlePsycAud.YLim = [0 1];
         AxesHandles.HandlePsycAud.XLim = [-1.05, 1.05];
         AxesHandles.HandlePsycAud.XLabel.String = 'DV'; % FIGURE OUT UNIT
         AxesHandles.HandlePsycAud.YLabel.String = '% left';
