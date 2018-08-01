@@ -12,10 +12,12 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUI.SessionEndCriterionType = 1;
     TaskParameters.GUIMeta.SessionEndCriterionType.Style = 'popupmenu';
     TaskParameters.GUIMeta.SessionEndCriterionType.String = {'None','Duration','nTrials','TotalRewardObtained','anyCriteria'};
+    TaskParameters.GUI.SendSMSWarning = 0;
+    TaskParameters.GUIMeta.SendSMSWarning.Style = 'checkbox';
     TaskParameters.GUI.Durationinminutes = 90; % min
     TaskParameters.GUI.nTrials = 1000;
     TaskParameters.GUI.RewardAmountinmL = 15;
-    TaskParameters.GUIPanels.AutomaticSessionEnd = {'SessionEndCriterionType','Durationinminutes','nTrials','RewardAmountinmL'};
+    TaskParameters.GUIPanels.AutomaticSessionEnd = {'SessionEndCriterionType','SendSMSWarning','Durationinminutes','nTrials','RewardAmountinmL'};
     %% General
     TaskParameters.GUI.ITI = 0.5; % (s)
     TaskParameters.GUI.RewardAmount = 2;
@@ -236,7 +238,7 @@ BpodSystem.ProtocolFigures.ParameterGUI.Position = TaskParameters.Figures.Parame
 %BpodNotebook('init');
 
 %% Main loop
-RunSession = true;
+RunSession = true; smssent = false;
 iTrial = 1;
 begin_session = clock;
 while RunSession
@@ -281,14 +283,52 @@ while RunSession
             end
     end
     
+    if TaskParameters.GUI.SendSMSWarning == 1 && smssent == false
+        if str2double(BpodSystem.GUIHandles.OutcomePlot.CumRwd.String(1:end-3)) > TaskParameters.GUI.RewardAmountinmL || ...
+                iTrial > TaskParameters.GUI.nTrials ||...
+                etime(clock,begin_session) > (TaskParameters.GUI.Durationinminutes*60)
+            % Evernote and mail settings
+            %load('MailSettings.mat'); % loads MailSettings struct
+            MailSettings.SMSMail = '9292286163@tmomail.net';
+            MailSettings.MailFrom = 'marionmbosc@gmail.com';
+            MailSettings.MailFromPassword = 'T@rzan33';
+            MailAddress = MailSettings.SMSMail;
+
+            % Retrieve animal's name
+            [~,subject] = fileparts(fileparts(fileparts(fileparts(BpodSystem.DataPath))));
+            
+            if str2double(BpodSystem.GUIHandles.OutcomePlot.CumRwd.String(1:end-3)) > TaskParameters.GUI.RewardAmountinmL
+                sms = strcat([subject ' session should be ended: Max amount of reward obtained']);
+            elseif iTrial > TaskParameters.GUI.nTrials
+                sms = strcat([subject ' session should be ended: Max nTrials achieved']);
+            elseif etime(clock,begin_session) > (TaskParameters.GUI.Durationinminutes*60)
+                sms = strcat([subject ' session should be ended: Max session duration over']);
+            end
+            % send text message to warn that the session is advanced
+            smssent = SendMyMail(MailSettings,MailAddress,'Rig info',sms);
+        end
+    end   
 end
+
 
 if str2double(BpodSystem.GUIHandles.OutcomePlot.CumRwd.String(1:end-3)) > TaskParameters.GUI.RewardAmountinmL
     fprintf('Maximum amount of reward obtained --> Session ended.')
+    sms = strcat([subject ' session ended: Max amount of reward obtained']);
+    if TaskParameters.GUI.SendSMSWarning == 1
+        sent = SendMyMail(MailSettings,MailAddress,'Session over',sms);
+    end
 elseif iTrial > TaskParameters.GUI.nTrials
     fprintf('Maximum nTrials achieved --> Session ended.')
+    sms = strcat([subject ' session ended: Max nTrials achieved']);
+    if TaskParameters.GUI.SendSMSWarning == 1
+        sent = SendMyMail(MailSettings,MailAddress,'Session over',sms);
+    end
 elseif etime(clock,begin_session) > (TaskParameters.GUI.Durationinminutes*60)
     fprintf('Total session duration over --> Session ended.')
+    sms = strcat([subject ' session ended: Total session duration over']);
+    if TaskParameters.GUI.SendSMSWarning == 1
+        sent = SendMyMail(MailSettings,MailAddress,'Session over',sms);
+    end
 end
 
 end
