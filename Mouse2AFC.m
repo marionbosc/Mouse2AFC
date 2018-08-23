@@ -241,23 +241,29 @@ BpodSystem.ProtocolFigures.ParameterGUI.Position = TaskParameters.Figures.Parame
 RunSession = true; smssent = false;
 iTrial = 1;
 begin_session = clock;
+tic
 while RunSession
     TaskParameters = BpodParameterGUI('sync', TaskParameters);
     sma = stateMatrix(iTrial);
     SendStateMatrix(sma);
+    BpodSystem.Data.Timer.AfterSendStateMatrix(iTrial)=toc;
     RawEvents = RunStateMatrix;
+    BpodSystem.Data.Timer.AfterRawEvts(iTrial)=toc;
     if ~isempty(fieldnames(RawEvents))
         BpodSystem.Data = AddTrialEvents(BpodSystem.Data,RawEvents);
         BpodSystem.Data.TrialSettings(iTrial) = TaskParameters;
         SaveBpodSessionData;
     end
+    BpodSystem.Data.Timer.AfterSaveBpodData(iTrial)=toc;
     HandlePauseCondition; % Checks to see if the protocol is paused. If so, waits until user resumes.
     if BpodSystem.BeingUsed == 0
         return
     end
     
     updateCustomDataFields(iTrial);
+    BpodSystem.Data.Timer.AfterupdateCDF(iTrial)=toc;
     MainPlot(BpodSystem.GUIHandles.OutcomePlot,'update',iTrial);
+    BpodSystem.Data.Timer.AfterMainPlot(iTrial)=toc;
     iTrial = iTrial + 1;
     
     switch TaskParameters.GUIMeta.SessionEndCriterionType.String{TaskParameters.GUI.SessionEndCriterionType}
@@ -307,7 +313,8 @@ while RunSession
             % send text message to warn that the session is advanced
             smssent = SendMyMail(MailSettings,MailAddress,'Rig info',sms);
         end
-    end   
+    end 
+    BpodSystem.Data.Timer.AfterSMS(iTrial-1)=toc;
 end
 
 
