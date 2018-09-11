@@ -94,7 +94,8 @@ if TaskParameters.GUI.StimDelayAutoincrement
     end
 else
     if ~BpodSystem.Data.Custom.FixBroke(iTrial)
-        TaskParameters.GUI.StimDelay = random('unif',TaskParameters.GUI.StimDelayMin,TaskParameters.GUI.StimDelayMax);
+        TaskParameters.GUI.StimDelay = TruncatedExponential(TaskParameters.GUI.StimDelayMin,...
+            TaskParameters.GUI.StimDelayMax,TaskParameters.GUI.StimDelayTau);
     else
         TaskParameters.GUI.StimDelay = BpodSystem.Data.Custom.StimDelay(iTrial);
     end

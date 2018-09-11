@@ -49,12 +49,13 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUIMeta.StimDelayAutoincrement.Style = 'checkbox';
     TaskParameters.GUIMeta.StimDelayAutoincrement.String = 'Auto';
     TaskParameters.GUI.StimDelayMin = 0.01;
+    TaskParameters.GUI.StimDelayTau = 0.01;
     TaskParameters.GUI.StimDelayMax = 0.01;
     TaskParameters.GUI.StimDelayIncr = 0.01;
     TaskParameters.GUI.StimDelayDecr = 0.01;
     TaskParameters.GUI.StimDelay = TaskParameters.GUI.StimDelayMin;
     TaskParameters.GUIMeta.StimDelay.Style = 'text';
-    TaskParameters.GUIPanels.StimDelay = {'StimDelayAutoincrement','StimDelayMin','StimDelayMax','StimDelayIncr','StimDelayDecr','StimDelay'};
+    TaskParameters.GUIPanels.StimDelay = {'StimDelayAutoincrement','StimDelayMin','StimDelayTau','StimDelayMax','StimDelayIncr','StimDelayDecr','StimDelay'};
     %% FeedbackDelay
     TaskParameters.GUI.FeedbackDelaySelection = 1;
     TaskParameters.GUIMeta.FeedbackDelaySelection.Style = 'popupmenu';
