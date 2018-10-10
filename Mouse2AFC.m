@@ -286,9 +286,23 @@ while true
     if ~isempty(fieldnames(RawEvents))
         BpodSystem.Data = AddTrialEvents(BpodSystem.Data,RawEvents);
         BpodSystem.Data.TrialSettings(iTrial) = TaskParameters;
-        SaveBpodSessionData;
+		try
+			SaveBpodSessionData;
+		catch ME
+			warning(datestr(datetime('now')) + ": Failed to save file: " + ME.message);
+		end
     end
     if BpodSystem.BeingUsed == 0
+		while true
+			try
+				SaveBpodSessionData;
+				break;
+			catch ME
+				warning(strcat("Error during last save: " + getReport(ME)));
+				warning(datestr(datetime('now')) + ": trying again in few secs...");
+				pause(.5);
+			end
+		end
         return
     end
     HandlePauseCondition; % Checks to see if the protocol is paused. If so, waits until user resumes.
