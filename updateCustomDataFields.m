@@ -347,7 +347,6 @@ end
 TaskParameters.GUI.CurrentStim = iff(BpodSystem.Data.Custom.DV(iTrial+1) > 0, (BpodSystem.Data.Custom.DV(iTrial+1) + 1)/0.02,(BpodSystem.Data.Custom.DV(iTrial+1) - 1)/0.02);
 
 %%update hidden TaskParameter fields
-TaskParameters.Figures.OutcomePlot.Position = BpodSystem.ProtocolFigures.SideOutcomePlotFig.Position;
 TaskParameters.Figures.ParameterGUI.Position = BpodSystem.ProtocolFigures.ParameterGUI.Position;
 
 %send bpod status to server

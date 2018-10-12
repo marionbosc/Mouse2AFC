@@ -193,6 +193,10 @@ BpodSystem.Data.Custom.CenterPortRewAmount =TaskParameters.GUI.CenterPortRewAmou
 BpodSystem.Data.Custom.TrialNumber = [];
 
 BpodSystem.Data.Custom.ForcedLEDTrial = false;
+
+file_size = 40*1024*1024; % 40 MB mem-mapped file
+mapped_file = createMMFile(tempdir, 'mmap_matlab_plot.dat', file_size);
+
 % make auditory stimuli for first trials
 for a = 1:Const.NUM_EASY_TRIALS
     if TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.BetaDistribution
@@ -258,23 +262,13 @@ end
 % Set current stimulus for next trial - set between -100 to +100
 TaskParameters.GUI.CurrentStim = iff(BpodSystem.Data.Custom.DV(1) > 0, (BpodSystem.Data.Custom.DV(1) + 1)/0.02,(BpodSystem.Data.Custom.DV(1) - 1)/0.02);
 
-%% Initialize plots
-BpodSystem.ProtocolFigures.SideOutcomePlotFig = figure('Position', TaskParameters.Figures.OutcomePlot.Position,'name','Outcome plot','numbertitle','off', 'MenuBar', 'none', 'Resize', 'off');
-BpodSystem.GUIHandles.OutcomePlot.HandleOutcome = axes('Position',    [  .055          .15 .91 .3]);
-BpodSystem.GUIHandles.OutcomePlot.HandlePsycStim = axes('Position',    [2*.05 + 1*.08   .6  .1  .3], 'Visible', 'off');
-BpodSystem.GUIHandles.OutcomePlot.HandleTrialRate = axes('Position',  [3*.05 + 2*.08   .6  .1  .3], 'Visible', 'off');
-BpodSystem.GUIHandles.OutcomePlot.HandleFix = axes('Position',        [4*.05 + 3*.08   .6  .1  .3], 'Visible', 'off');
-BpodSystem.GUIHandles.OutcomePlot.HandleST = axes('Position',         [5*.05 + 4*.08   .6  .1  .3], 'Visible', 'off');
-BpodSystem.GUIHandles.OutcomePlot.HandleFeedback = axes('Position',   [6*.05 + 5*.08   .6  .1  .3], 'Visible', 'off');
-BpodSystem.GUIHandles.OutcomePlot.HandleVevaiometric = axes('Position',   [7*.05 + 6*.08   .6  .1  .3], 'Visible', 'off');
-MainPlot(BpodSystem.GUIHandles.OutcomePlot,'init');
-BpodSystem.ProtocolFigures.ParameterGUI.Position = TaskParameters.Figures.ParameterGUI.Position;
 %BpodNotebook('init');
+iTrial=0;
+sendPlotData(mapped_file,iTrial,BpodSystem.Data.Custom,TaskParameters.GUI, [0]);
 
 %% Main loop
 RunSession = true;
 iTrial = 1;
-
 % The state-matrix is generated only once in each iteration, however some
 % of the trials parameters are pre-generated and updated in the plots few
 % iterations before.
@@ -307,8 +301,7 @@ while true
     end
     HandlePauseCondition; % Checks to see if the protocol is paused. If so, waits until user resumes.
     updateCustomDataFields(iTrial);
-    MainPlot(BpodSystem.GUIHandles.OutcomePlot,'update',iTrial);
+    sendPlotData(mapped_file,iTrial,BpodSystem.Data.Custom,TaskParameters.GUI, BpodSystem.Data.TrialStartTimestamp);
     iTrial = iTrial + 1;
-
 end
 end
