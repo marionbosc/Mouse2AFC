@@ -137,61 +137,20 @@ else
 end
 
 %min sampling time
-if TaskParameters.GUI.MinSampleAutoincrement
-    History = 50;
-    Crit = 0.8;
-    % If the sum of the trials are less than 10.
-    if iTrial<10
-        ConsiderTrials = iTrial;
-    else
-        if iTrial > History
-            ConsiderTrials = iTrial-History:iTrial;
-        else
-            ConsiderTrials = 1:iTrial;
-        end
-    end
-    % Keep only trials that are relevant, include only trials that are
-    % either a lateral port decision was made (i,e min. sampling was
-    % completed successfully) or trials that the animal made an early
-    % withdrawal during min. sampling (but after sampling delay).
-    % Do we exclude timeOut_missed_choice trials? if yes, then why?
-    ConsiderTrials = ConsiderTrials((~isnan(BpodSystem.Data.Custom.ChoiceLeft(ConsiderTrials))...
-        |BpodSystem.Data.Custom.EarlyWithdrawal(ConsiderTrials))); %choice + early withdrawal
-    % If we don't have empty consider-trials array after filtering.
-    if ~isempty(ConsiderTrials)
-        % Divide the considered trials to 2 sets, those whose sampling time
-        % are more than the current MinSample and those that aren't, if
-        % the ratio of those > MinSample are bigger than 'Crit' and the
-        % last trial wasn't an early withdrawal, then increment the
-        % MinSample.
-        % If RewardAfterMinSampling is enabled, and since ST max possible
-        % value when RewardAfterMinSampling is MinSample, wouldn't
-        % increasing the MinSample be very difficult as ratio of
-        % consider-trials will always be less than MinSample?
-        if mean(BpodSystem.Data.Custom.ST(ConsiderTrials)>TaskParameters.GUI.MinSample) > Crit
-            if ~BpodSystem.Data.Custom.EarlyWithdrawal(iTrial)
-                TaskParameters.GUI.MinSample = min(TaskParameters.GUI.MinSampleMax,...
-                    max(TaskParameters.GUI.MinSampleMin,BpodSystem.Data.Custom.MinSample(iTrial) + TaskParameters.GUI.MinSampleIncr));
-            end
-        % If the ratio of the trials that are less than current min
-        % sampling are less than 'Crit'/2 and the last trial wasn't an early
-        % withdrawal during min sampling then decrement MinSample.
-        elseif mean(BpodSystem.Data.Custom.ST(ConsiderTrials)>TaskParameters.GUI.MinSample) < Crit/2
-            if BpodSystem.Data.Custom.EarlyWithdrawal(iTrial)
-                TaskParameters.GUI.MinSample = max(TaskParameters.GUI.MinSampleMin,...
-                    min(TaskParameters.GUI.MinSampleMax,BpodSystem.Data.Custom.MinSample(iTrial) - TaskParameters.GUI.MinSampleDecr));
-            end
-        % Otherwise keep the value as it is unless the user has updated the
-        % GUI values.
-        else
-            TaskParameters.GUI.MinSample = max(TaskParameters.GUI.MinSampleMin,...
-                min(TaskParameters.GUI.MinSampleMax,BpodSystem.Data.Custom.MinSample(iTrial)));
-        end
-    % Keep the value as it is unless the user updated the GUI values.
-    else
-        TaskParameters.GUI.MinSample = max(TaskParameters.GUI.MinSampleMin,...
-            min(TaskParameters.GUI.MinSampleMax,BpodSystem.Data.Custom.MinSample(iTrial)));
-    end
+if TaskParameters.GUI.MinSampleAutoincrement && iTrial > TaskParameters.GUI.StartEasyTrials
+	% Check if animal completed pre-stimulus delay successfully
+	if ~BpodSystem.Data.Custom.FixBroke(iTrial) && BpodSystem.Data.Custom.Rewarded(iTrial)
+		if ~BpodSystem.Data.Custom.EarlyWithdrawal(iTrial)
+			TaskParameters.GUI.MinSample = min(TaskParameters.GUI.MinSampleMax,...
+				max(TaskParameters.GUI.MinSampleMin,BpodSystem.Data.Custom.MinSample(iTrial) + TaskParameters.GUI.MinSampleIncr));
+		else
+			TaskParameters.GUI.MinSample = max(TaskParameters.GUI.MinSampleMin,...
+				min(TaskParameters.GUI.MinSampleMax,BpodSystem.Data.Custom.MinSample(iTrial) - TaskParameters.GUI.MinSampleDecr));
+		end
+	else % Read new updated GUI values
+		TaskParameters.GUI.MinSample = max(TaskParameters.GUI.MinSampleMin,...
+			min(TaskParameters.GUI.MinSampleMax,BpodSystem.Data.Custom.MinSample(iTrial)));
+	end
 else % Use non-incremental fixed value
     TaskParameters.GUI.MinSample = TaskParameters.GUI.MinSampleMin;
 end
