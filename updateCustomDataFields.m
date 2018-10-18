@@ -229,9 +229,10 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - Const.PRE_GENERATE_TRIAL_CHECK
     % Do bias correction only if we have enough trials
     if TaskParameters.GUI.CorrectBias && sum(ndxRewd) > Const.BIAS_CORRECT_MIN_RWD_TRIALS
         LeftBias = TaskParameters.GUI.CalcLeftBias;
-        % Leave some tolerance
-        if 0.4 < LeftBias && LeftBias < 0.6
-            LeftBias = 0.5;
+        if LeftBias < 0.3 || LeftBias > 0.7 % Bias is too much, swing it all the way to the other side
+           LeftBias = round(LeftBias);
+        elseif 0.45 <= LeftBias && LeftBias <= 0.55
+           LeftBias = 0.5;
         end
     else
         LeftBias = TaskParameters.GUI.LeftBias;
