@@ -206,11 +206,18 @@ else
 end
 
 % Calculate bias
-ndxRewd = BpodSystem.Data.Custom.Rewarded(1:iTrial);
-ndxLeftRewd = BpodSystem.Data.Custom.ChoiceCorrect(1:iTrial) == 1  & BpodSystem.Data.Custom.ChoiceLeft(1:iTrial) == 1;
-ndxLeftRewDone = BpodSystem.Data.Custom.LeftRewarded(1:iTrial)==1 & ~isnan(BpodSystem.Data.Custom.ChoiceLeft(1:iTrial));
-ndxRightRewd = BpodSystem.Data.Custom.ChoiceCorrect(1:iTrial) == 1  & BpodSystem.Data.Custom.ChoiceLeft(1:iTrial) == 0;
-ndxRightRewDone = BpodSystem.Data.Custom.LeftRewarded(1:iTrial)==0 & ~isnan(BpodSystem.Data.Custom.ChoiceLeft(1:iTrial));
+% Consider bias only on the last 50 trials/
+indicesRwdLi = find(BpodSystem.Data.Custom.Rewarded,50,'last');
+if length(indicesRwdLi) ~= 0
+	indicesRwd = indicesRwdLi(1);
+else
+	indicesRwd = 1;
+end
+ndxRewd = BpodSystem.Data.Custom.Rewarded(indicesRwd:iTrial);
+ndxLeftRewd = BpodSystem.Data.Custom.ChoiceCorrect(indicesRwd:iTrial) == 1  & BpodSystem.Data.Custom.ChoiceLeft(indicesRwd:iTrial) == 1;
+ndxLeftRewDone = BpodSystem.Data.Custom.LeftRewarded(indicesRwd:iTrial)==1 & ~isnan(BpodSystem.Data.Custom.ChoiceLeft(indicesRwd:iTrial));
+ndxRightRewd = BpodSystem.Data.Custom.ChoiceCorrect(indicesRwd:iTrial) == 1  & BpodSystem.Data.Custom.ChoiceLeft(indicesRwd:iTrial) == 0;
+ndxRightRewDone = BpodSystem.Data.Custom.LeftRewarded(indicesRwd:iTrial)==0 & ~isnan(BpodSystem.Data.Custom.ChoiceLeft(indicesRwd:iTrial));
 PerfL = sum(ndxLeftRewd)/sum(ndxLeftRewDone);
 PerfR = sum(ndxRightRewd)/sum(ndxRightRewDone);
 TaskParameters.GUI.CalcLeftBias = (PerfL-PerfR)/2 + 0.5;
