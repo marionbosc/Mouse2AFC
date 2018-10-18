@@ -222,6 +222,19 @@ PerfL = sum(ndxLeftRewd)/sum(ndxLeftRewDone);
 PerfR = sum(ndxRightRewd)/sum(ndxRightRewDone);
 TaskParameters.GUI.CalcLeftBias = (PerfL-PerfR)/2 + 0.5;
 
+choiceMadeTrials = BpodSystem.Data.Custom.ChoiceCorrect(~isnan(BpodSystem.Data.Custom.ChoiceCorrect));
+lengthChoiceMadeTrials = length(choiceMadeTrials);
+if lengthChoiceMadeTrials >= 1
+    performance = sum(choiceMadeTrials == true)/lengthChoiceMadeTrials;
+    fprintf("Performance overall = " + string(performance*100) + "%% (" + string(lengthChoiceMadeTrials) + " trials)");
+    NUM_LAST_TRIALS=20;
+    if lengthChoiceMadeTrials > NUM_LAST_TRIALS
+        choiceMadeTrials = choiceMadeTrials(lengthChoiceMadeTrials-NUM_LAST_TRIALS + 1:lengthChoiceMadeTrials);
+        performance = sum(choiceMadeTrials == true)/NUM_LAST_TRIALS;
+        fprintf(" - for the last " + string(NUM_LAST_TRIALS) + " trials = " + string(performance*100) + "%%");
+    end
+    fprintf("\n");
+end
 
 %create future trials
 % Check if its time to generate more future trials
