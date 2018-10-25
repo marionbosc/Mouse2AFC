@@ -69,7 +69,7 @@ end
 if any(strcmp('timeOut_SkippedFeedback',statesThisTrial))
     BpodSystem.Data.Custom.Feedback(iTrial) = false;
 end
-if any(strncmp('Reward',statesThisTrial,6))
+if any(strcmp('Reward',statesThisTrial))
     BpodSystem.Data.Custom.Rewarded(iTrial) = true;
 end
 if any(strcmp('CenterPortRewardDelivery',statesThisTrial)) && TaskParameters.GUI.RewardAfterMinSampling
