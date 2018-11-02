@@ -139,11 +139,11 @@ end
 %min sampling time
 if TaskParameters.GUI.MinSampleAutoincrement && iTrial > TaskParameters.GUI.StartEasyTrials
 	% Check if animal completed pre-stimulus delay successfully
-	if ~BpodSystem.Data.Custom.FixBroke(iTrial) && BpodSystem.Data.Custom.Rewarded(iTrial)
-		if ~BpodSystem.Data.Custom.EarlyWithdrawal(iTrial)
+	if ~BpodSystem.Data.Custom.FixBroke(iTrial)
+		if BpodSystem.Data.Custom.Rewarded(iTrial)
 			TaskParameters.GUI.MinSample = min(TaskParameters.GUI.MinSampleMax,...
 				max(TaskParameters.GUI.MinSampleMin,BpodSystem.Data.Custom.MinSample(iTrial) + TaskParameters.GUI.MinSampleIncr));
-		else
+		elseif BpodSystem.Data.Custom.EarlyWithdrawal(iTrial)
 			TaskParameters.GUI.MinSample = max(TaskParameters.GUI.MinSampleMin,...
 				min(TaskParameters.GUI.MinSampleMax,BpodSystem.Data.Custom.MinSample(iTrial) - TaskParameters.GUI.MinSampleDecr));
 		end
