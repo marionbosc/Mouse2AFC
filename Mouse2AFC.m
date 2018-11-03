@@ -13,6 +13,18 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters = CreateTaskParameters(GUICurVer);
 end
 TaskParameters.GUI.GUIVer = 10;
+if TaskParameters.GUI.GUIVer ~= GUICurVer
+    Overwrite = true;
+    WriteOnlyNew = ~Overwrite;
+    DefaultTaskParameter = CreateTaskParameters(GUICurVer);
+    TaskParameters.GUI = UpdateStructVer(TaskParameters.GUI,...
+                                         DefaultTaskParameter.GUI,WriteOnlyNew);
+    TaskParameters.GUIMeta = UpdateStructVer(TaskParameters.GUIMeta,...
+                                         DefaultTaskParameter.GUIMeta,Overwrite);
+    TaskParameters.GUIPanels = UpdateStructVer(TaskParameters.GUIPanels,...
+                                         DefaultTaskParameter.GUIPanels,Overwrite);
+    TaskParameters.GUI.GUIVer = GUICurVer;
+end
 BpodParameterGUI('init', TaskParameters);
 
 %% Initializing data (trial type) vectors
