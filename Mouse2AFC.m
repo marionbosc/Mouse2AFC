@@ -12,6 +12,7 @@ GUICurVer = 10;
 if isempty(fieldnames(TaskParameters))
     TaskParameters = CreateTaskParameters(GUICurVer);
 end
+TaskParameters.GUI.GUIVer = 10;
 BpodParameterGUI('init', TaskParameters);
 
 %% Initializing data (trial type) vectors
