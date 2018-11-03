@@ -8,8 +8,9 @@ addpath('Definitions');
 %% Task parameters
 global TaskParameters
 TaskParameters = BpodSystem.ProtocolSettings;
+GUICurVer = 10;
 if isempty(fieldnames(TaskParameters))
-    TaskParameters = CreateTaskParameters();
+    TaskParameters = CreateTaskParameters(GUICurVer);
 end
 BpodParameterGUI('init', TaskParameters);
 

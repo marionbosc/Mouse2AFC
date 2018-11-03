@@ -1,4 +1,4 @@
-function TaskParameters = CreateTaskParameters()
+function TaskParameters = CreateTaskParameters(GUICurVer)
 TaskParameters = struct;
 %% General
 TaskParameters.GUI.ExperimentType = ExperimentType.LightIntensity;
@@ -157,4 +157,5 @@ TaskParameters.GUITabs.Plots = {'ShowPlots','Vevaiometric'};
 %%Non-GUI Parameters (but saved)
 TaskParameters.Figures.OutcomePlot.Position = [200, 200, 1000, 400];
 TaskParameters.Figures.ParameterGUI.Position =  [9, 454, 1474, 562];
+TaskParameters.GUI.GUIVer = GUICurVer;
 end
