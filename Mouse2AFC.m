@@ -191,7 +191,7 @@ BpodSystem.Data.Custom.LightIntensityRight = [];
 BpodSystem.Data.Custom.RewardMagnitude = TaskParameters.GUI.RewardAmount*[1,1];
 BpodSystem.Data.Custom.CenterPortRewAmount =TaskParameters.GUI.CenterPortRewAmount;
 BpodSystem.Data.Custom.TrialNumber = [];
-
+BpodSystem.Data.Custom.PCTimeout=true; % TODO: Read from GUI
 BpodSystem.Data.Custom.ForcedLEDTrial = false;
 
 file_size = 40*1024*1024; % 40 MB mem-mapped file
@@ -269,6 +269,8 @@ sendPlotData(mapped_file,iTrial,BpodSystem.Data.Custom,TaskParameters.GUI, [0]);
 %% Main loop
 RunSession = true;
 iTrial = 1;
+sleepDur = 0;
+trialEndTime = clock;
 % The state-matrix is generated only once in each iteration, however some
 % of the trials parameters are pre-generated and updated in the plots few
 % iterations before.
@@ -276,7 +278,12 @@ while true
     TaskParameters = BpodParameterGUI('sync', TaskParameters);
     sma = stateMatrix(iTrial);
     SendStateMatrix(sma);
+    pauseTime = (trialEndTime + sleepDur) - clock();
+    if pauseTime > 0
+        pause(pauseTime);
+    end
     RawEvents = RunStateMatrix;
+    trialEndTime = clock;
     if ~isempty(fieldnames(RawEvents))
         BpodSystem.Data = AddTrialEvents(BpodSystem.Data,RawEvents);
         BpodSystem.Data.TrialSettings(iTrial) = TaskParameters;
@@ -303,5 +310,22 @@ while true
     updateCustomDataFields(iTrial);
     sendPlotData(mapped_file,iTrial,BpodSystem.Data.Custom,TaskParameters.GUI, BpodSystem.Data.TrialStartTimestamp);
     iTrial = iTrial + 1;
+    if ~BpodSystem.Data.Custom.PCTimeout
+        continue
+    end;
+    sleepDur = 0;
+    statesThisTrial = BpodSystem.Data.RawData.OriginalStateNamesByNumber{iTrial-1}(BpodSystem.Data.RawData.OriginalStateData{iTrial-1});
+    if any(strcmp('timeOut_IncorrectChoice',statesThisTrial))
+        sleepDur = sleepDur + TaskParameters.GUI.TimeOutIncorrectChoice;
+    end
+    if any(strcmp('timeOut_SkippedFeedback',statesThisTrial))
+        sleepDur = sleepDur + TaskParameters.GUI.TimeOutSkippedFeedback;
+    end
+    if any(strcmp('timeOut_missed_choice',statesThisTrial))
+        sleepDur = sleepDur + TaskParameters.GUI.TimeOutMissedChoice;
+    end
+    if any(strcmp('ITI',statesThisTrial))
+        sleepDur = sleepDur + TaskParameters.GUI.ITI;
+    end
 end
 end
