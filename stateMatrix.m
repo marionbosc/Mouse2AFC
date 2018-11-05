@@ -29,6 +29,18 @@ elseif TaskParameters.GUI.ExperimentType == ExperimentType.LightIntensity
     RightPWM = round(BpodSystem.Data.Custom.LightIntensityRight(iTrial)*RightPWM/100);
     DeliverStimulus = {strcat('PWM',num2str(LeftPort)),LeftPWM,strcat('PWM',num2str(RightPort)),RightPWM};
     StopStimulus = {};
+elseif TaskParameters.GUI.ExperimentType == ExperimentType.GratingOrientation
+    % Clear first any previously drawn buffer by drawing a rect
+    Screen(BpodSystem.Data.Custom.Grating.window,'FillRect',...
+           TaskParameters.GUI.grey);
+    Screen('Flip', BpodSystem.Data.Custom.Grating.window);
+    % Prepare the new texture for drawing
+    orientation = BpodSystem.Data.Custom.GratingOrientation(iTrial);
+    [gabortex, propertiesMat] = GetGaborData(BpodSystem.Data.Custom.Grating, TaskParameters.GUI);
+    Screen('DrawTextures', BpodSystem.Data.Custom.Grating.window,gabortex,...
+        [], [], orientation,[], [], [], [], kPsychDontDoRotation, propertiesMat');
+    DeliverStimulus = {'SoftCode',3};
+    StopStimulus = {'SoftCode',4};
 else
     assert(false, 'Unexpected ExperimentType');
 end
