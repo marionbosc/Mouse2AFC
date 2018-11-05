@@ -159,7 +159,8 @@ TaskParameters.GUI.backgroundOffsetAlpha = 0.5;
 TaskParameters.GUI.disableNorm = 1;
 TaskParameters.GUI.preContrastMultiplier = 0.5;
 TaskParameters.GUIPanels.GratingGeneral = {'gaborSizeFactor','phase','numCycles','sigmaDivFactor','contrast',...
-    'screenNumber','grey','runSyncTests','aspectRatio','backgroundOffsetR','backgroundOffsetG',...
+    'screenNumber','grey','runSyncTests','aspectRatio'};
+TaskParameters.GUIPanels.GratingGeneral2 = {'backgroundOffsetR','backgroundOffsetG',...
     'backgroundOffsetB','backgroundOffsetAlpha','disableNorm','preContrastMultiplier'};
 %% Plots
 %Show Plots/
@@ -187,7 +188,7 @@ TaskParameters.GUI = orderfields(TaskParameters.GUI);
 %% Tabs
 TaskParameters.GUITabs.General = {'CurrentTrial','StimDelay','General','FeedbackDelay'};
 TaskParameters.GUITabs.Sampling = {'CurrentTrial','LightIntensity','Auditory','Sampling','StimulusSelection'};
-TaskParameters.GUITabs.Gratings = {'GratingGeneral'};
+TaskParameters.GUITabs.Gratings = {'GratingGeneral','GratingGeneral2'};
 TaskParameters.GUITabs.Plots = {'ShowPlots','Vevaiometric'};
 %%Non-GUI Parameters (but saved)
 TaskParameters.Figures.OutcomePlot.Position = [200, 200, 1000, 400];
