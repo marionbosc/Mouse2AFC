@@ -169,7 +169,7 @@ while true
     iTrial = iTrial + 1;
     if ~BpodSystem.Data.Custom.PCTimeout
         continue
-    end;
+    end
     sleepDur = 0;
     statesThisTrial = BpodSystem.Data.RawData.OriginalStateNamesByNumber{iTrial-1}(BpodSystem.Data.RawData.OriginalStateData{iTrial-1});
     if any(strcmp('timeOut_IncorrectChoice',statesThisTrial))
