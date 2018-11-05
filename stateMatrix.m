@@ -165,7 +165,7 @@ else
     LEDActivation = {};
 end
 
-PCTimeout=BpodSystem.Data.Custom.PCTimeout;
+PCTimeout=TaskParameters.GUI.PCTimeout;
 %% Build state matrix
 sma = NewStateMatrix();
 sma = SetGlobalTimer(sma,1,FeedbackDelayCorrect);

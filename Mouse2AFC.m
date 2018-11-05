@@ -8,7 +8,7 @@ addpath('Definitions');
 %% Task parameters
 global TaskParameters
 TaskParameters = BpodSystem.ProtocolSettings;
-GUICurVer = 12;
+GUICurVer = 13;
 if isempty(fieldnames(TaskParameters))
     TaskParameters = CreateTaskParameters(GUICurVer);
 end
@@ -54,7 +54,6 @@ BpodSystem.Data.Custom.GratingOrientation = [];
 BpodSystem.Data.Custom.RewardMagnitude = TaskParameters.GUI.RewardAmount*[1,1];
 BpodSystem.Data.Custom.CenterPortRewAmount =TaskParameters.GUI.CenterPortRewAmount;
 BpodSystem.Data.Custom.TrialNumber = [];
-BpodSystem.Data.Custom.PCTimeout=true; % TODO: Read from GUI
 BpodSystem.Data.Custom.ForcedLEDTrial = false;
 
 file_size = 40*1024*1024; % 40 MB mem-mapped file
@@ -190,7 +189,7 @@ while true
     updateCustomDataFields(iTrial);
     sendPlotData(mapped_file,iTrial,BpodSystem.Data.Custom,TaskParameters.GUI, BpodSystem.Data.TrialStartTimestamp);
     iTrial = iTrial + 1;
-    if ~BpodSystem.Data.Custom.PCTimeout
+    if ~TaskParameters.GUI.PCTimeout
         continue
     end
     sleepDur = 0;

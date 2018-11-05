@@ -16,6 +16,8 @@ TaskParameters.GUI.TimeOutMissedChoice = 0; % (s)
 TaskParameters.GUI.TimeOutSkippedFeedback = 0; % (s)
 TaskParameters.GUI.PlayNoiseforError = 0;
 TaskParameters.GUIMeta.PlayNoiseforError.Style = 'checkbox';
+TaskParameters.GUI.PCTimeout = true;
+TaskParameters.GUIMeta.PCTimeout.Style = 'checkbox';
 TaskParameters.GUI.StartEasyTrials = 10;
 TaskParameters.GUI.Percent50Fifty = 0;
 TaskParameters.GUI.PercentCatch = 0;
@@ -24,7 +26,10 @@ TaskParameters.GUIMeta.CatchError.Style = 'checkbox';
 TaskParameters.GUI.Ports_LMRAir = 1238;
 TaskParameters.GUI.Wire1VideoTrigger = false;
 TaskParameters.GUIMeta.Wire1VideoTrigger.Style = 'checkbox';
-TaskParameters.GUIPanels.General = {'ExperimentType','ITI','RewardAmount','CutAirReward','ChoiceDeadLine','TimeOutIncorrectChoice','TimeOutBrokeFixation','TimeOutEarlyWithdrawal','TimeOutMissedChoice','TimeOutSkippedFeedback','PlayNoiseforError','StartEasyTrials','Percent50Fifty','PercentCatch','CatchError','Ports_LMRAir','Wire1VideoTrigger'};
+TaskParameters.GUIPanels.General = {'ExperimentType','ITI','RewardAmount','CutAirReward','ChoiceDeadLine',...
+    'TimeOutIncorrectChoice','TimeOutBrokeFixation','TimeOutEarlyWithdrawal','TimeOutMissedChoice',...
+    'TimeOutSkippedFeedback','PlayNoiseforError','PCTimeout',...
+    'StartEasyTrials','Percent50Fifty','PercentCatch','CatchError','Ports_LMRAir','Wire1VideoTrigger'};
 %% StimDelay
 TaskParameters.GUI.StimDelayAutoincrement = 0;
 TaskParameters.GUIMeta.StimDelayAutoincrement.Style = 'checkbox';
