@@ -195,6 +195,18 @@ while true
     end
     sleepDur = 0;
     statesThisTrial = BpodSystem.Data.RawData.OriginalStateNamesByNumber{iTrial-1}(BpodSystem.Data.RawData.OriginalStateData{iTrial-1});
+    if any(strcmp('broke_fixation',statesThisTrial))
+        if TaskParameters.GUI.PlayNoiseforError
+            if BpodSystem.EmulatorMode == 0
+                OverrideMessage = ['VS' uint8(11)];
+                BpodSerialWrite(OverrideMessage, 'uint8');
+            else
+                BpodSystem.VirtualManualOverrideBytes = OverrideMessage;
+                BpodSystem.ManualOverrideFlag = 1;
+            end
+        end
+        sleepDur = sleepDur + TaskParameters.GUI.TimeOutBrokeFixation;
+    end
     if any(strcmp('timeOut_IncorrectChoice',statesThisTrial))
         sleepDur = sleepDur + TaskParameters.GUI.TimeOutIncorrectChoice;
     end
