@@ -23,6 +23,11 @@ if TaskParameters.GUI.GUIVer ~= GUICurVer
                                          DefaultTaskParameter.GUIMeta,Overwrite);
     TaskParameters.GUIPanels = UpdateStructVer(TaskParameters.GUIPanels,...
                                          DefaultTaskParameter.GUIPanels,Overwrite);
+    TaskParameters.Figures = UpdateStructVer(TaskParameters.Figures,...
+                                         DefaultTaskParameter.Figures,Overwrite);
+    % GUITabs are read only, user can't change nothing about them, so just
+    % assign them
+    TaskParameters.GUITabs = DefaultTaskParameter.GUITabs;
     TaskParameters.GUI.GUIVer = GUICurVer;
 end
 BpodParameterGUI('init', TaskParameters);
