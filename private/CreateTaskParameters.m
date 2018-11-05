@@ -124,9 +124,11 @@ TaskParameters.GUIPanels.StimulusSelection = {'OmegaTable','BetaDistAlphaNBeta',
 TaskParameters.GUIPanels.Sampling = {'RewardAfterMinSampling','CenterPortRewAmount','MinSampleMin',...
                                      'MinSampleMax','MinSampleAutoincrement','MinSampleIncr','MinSampleDecr',...
                                      'CutAirSampling','StimulusTime','PortLEDtoCueReward','PercentForcedLEDTrial'};
+TaskParameters.GUI.Performance = '(Calc. after 1st trial)';
+TaskParameters.GUIMeta.Performance.Style = 'text';
 TaskParameters.GUI.IsCatch = 'false';
 TaskParameters.GUIMeta.IsCatch.Style = 'text';
-TaskParameters.GUIPanels.CurrentTrial = {'StimDelay','MinSample','CurrentStim','CalcLeftBias','FeedbackDelay', 'IsCatch'};
+TaskParameters.GUIPanels.CurrentTrial = {'StimDelay','MinSample','CurrentStim','CalcLeftBias','FeedbackDelay', 'IsCatch', 'Performance'};
 %% Plots
 %Show Plots/
 TaskParameters.GUI.ShowPsycStim = 1;

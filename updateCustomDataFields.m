@@ -226,14 +226,14 @@ choiceMadeTrials = BpodSystem.Data.Custom.ChoiceCorrect(~isnan(BpodSystem.Data.C
 lengthChoiceMadeTrials = length(choiceMadeTrials);
 if lengthChoiceMadeTrials >= 1
     performance = sum(choiceMadeTrials == true)/lengthChoiceMadeTrials;
-    fprintf("Performance overall = " + string(performance*100) + "%% (" + string(lengthChoiceMadeTrials) + " trials)");
+    TaskParameters.GUI.Performance = [num2str(performance*100,'%.2f'), '%/', num2str(lengthChoiceMadeTrials), 'T'];
     NUM_LAST_TRIALS=20;
     if lengthChoiceMadeTrials > NUM_LAST_TRIALS
         choiceMadeTrials = choiceMadeTrials(lengthChoiceMadeTrials-NUM_LAST_TRIALS + 1:lengthChoiceMadeTrials);
         performance = sum(choiceMadeTrials == true)/NUM_LAST_TRIALS;
-        fprintf(" - for the last " + string(NUM_LAST_TRIALS) + " trials = " + string(performance*100) + "%%");
+        TaskParameters.GUI.Performance = [TaskParameters.GUI.Performance, ...
+            ' - ', num2str(performance*100,'%.2f'), '%/', num2str(NUM_LAST_TRIALS) ,'T'];
     end
-    fprintf("\n");
 end
 
 %create future trials
