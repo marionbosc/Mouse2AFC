@@ -48,9 +48,9 @@ if isempty(fieldnames(TaskParameters))
     TaskParameters.GUI.StimDelayAutoincrement = 0;
     TaskParameters.GUIMeta.StimDelayAutoincrement.Style = 'checkbox';
     TaskParameters.GUIMeta.StimDelayAutoincrement.String = 'Auto';
-    TaskParameters.GUI.StimDelayMin = 0.01;
-    TaskParameters.GUI.StimDelayTau = 0.01;
-    TaskParameters.GUI.StimDelayMax = 0.01;
+    TaskParameters.GUI.StimDelayMin = 0.1;
+    TaskParameters.GUI.StimDelayTau = 0.2;
+    TaskParameters.GUI.StimDelayMax = 0.4;
     TaskParameters.GUI.StimDelayIncr = 0.01;
     TaskParameters.GUI.StimDelayDecr = 0.01;
     TaskParameters.GUI.StimDelay = TaskParameters.GUI.StimDelayMin;
@@ -132,9 +132,10 @@ if isempty(fieldnames(TaskParameters))
     %%
     TaskParameters.GUI = orderfields(TaskParameters.GUI);
     %% Tabs
-    TaskParameters.GUITabs.General = {'AutomaticSessionEnd','StimDelay','BiasControl','General','FeedbackDelay'};
+    TaskParameters.GUITabs.General = {'StimDelay','BiasControl','General','FeedbackDelay'};
     TaskParameters.GUITabs.Auditory = {'AudGeneral','AudMinSample','AudClicks'}; 
     TaskParameters.GUITabs.Plots = {'ShowPlots','Vevaiometric'};
+    TaskParameters.GUITabs.AutomaticSessionEnd = {'AutomaticSessionEnd'};        
     %%Non-GUI Parameters (but saved)
     TaskParameters.Figures.OutcomePlot.Position = [200, 200, 1000, 400];
     TaskParameters.Figures.ParameterGUI.Position =  [9, 454, 1474, 562];

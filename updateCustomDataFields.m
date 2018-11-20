@@ -93,9 +93,13 @@ if TaskParameters.GUI.StimDelayAutoincrement
             max(TaskParameters.GUI.StimDelayMin,BpodSystem.Data.Custom.StimDelay(iTrial)+TaskParameters.GUI.StimDelayIncr));
     end
 else
-    if ~BpodSystem.Data.Custom.FixBroke(iTrial)
-        TaskParameters.GUI.StimDelay = TruncatedExponential(TaskParameters.GUI.StimDelayMin,...
-            TaskParameters.GUI.StimDelayMax,TaskParameters.GUI.StimDelayTau);
+    if ~BpodSystem.Data.Custom.FixBroke(iTrial) 
+        if TaskParameters.GUI.StimDelayMin < TaskParameters.GUI.StimDelayMax
+            TaskParameters.GUI.StimDelay = TruncatedExponential(TaskParameters.GUI.StimDelayMin,...
+                TaskParameters.GUI.StimDelayMax,TaskParameters.GUI.StimDelayTau);
+        else
+            TaskParameters.GUI.StimDelay = TaskParameters.GUI.StimDelayMin;
+        end
     else
         TaskParameters.GUI.StimDelay = BpodSystem.Data.Custom.StimDelay(iTrial);
     end
