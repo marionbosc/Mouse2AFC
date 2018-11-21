@@ -3,6 +3,7 @@ function updateCustomDataFields(iTrial)
 global BpodSystem
 global TaskParameters
 
+tic;
 %% Standard values
 % Stores which lateral port the animal poked into (if any)
 BpodSystem.Data.Custom.ChoiceLeft(iTrial) = NaN;
@@ -42,6 +43,8 @@ BpodSystem.Data.Custom.Rewarded(iTrial) = false;
 % Signals whether a center-port reward was given after min-sampling ends.
 BpodSystem.Data.Custom.RewardAfterMinSampling(iTrial) = false;
 BpodSystem.Data.Custom.TrialNumber(iTrial) = iTrial;
+
+BpodSystem.Data.Timer.customInitialize(iTrial) = toc; tic;
 
 %% Checking states and rewriting standard
 % Extract the states that were used in the last trial
@@ -118,6 +121,8 @@ BpodSystem.Data.Custom.MinSample(iTrial) = TaskParameters.GUI.MinSample;
 BpodSystem.Data.Custom.RewardMagnitude(iTrial+1,:) = TaskParameters.GUI.RewardAmount*[1,1];
 BpodSystem.Data.Custom.CenterPortRewAmount(iTrial+1) =TaskParameters.GUI.CenterPortRewAmount;
 
+BpodSystem.Data.Timer.customExtractData(iTrial) = toc; tic;
+
 %% Updating Delays
 %stimulus delay
 if TaskParameters.GUI.StimDelayAutoincrement
@@ -135,6 +140,7 @@ else
         TaskParameters.GUI.StimDelay = BpodSystem.Data.Custom.StimDelay(iTrial);
     end
 end
+BpodSystem.Data.Timer.customStimDelay(iTrial) = toc; tic;
 
 %min sampling time
 if TaskParameters.GUI.MinSampleAutoincrement && iTrial > TaskParameters.GUI.StartEasyTrials
@@ -154,6 +160,7 @@ if TaskParameters.GUI.MinSampleAutoincrement && iTrial > TaskParameters.GUI.Star
 else % Use non-incremental fixed value
     TaskParameters.GUI.MinSample = TaskParameters.GUI.MinSampleMin;
 end
+BpodSystem.Data.Timer.customMinSampling(iTrial) = toc; tic;
 
 %feedback delay
 switch TaskParameters.GUI.FeedbackDelaySelection
@@ -186,6 +193,7 @@ switch TaskParameters.GUI.FeedbackDelaySelection
     otherwise
         assert(false, 'Unexpected FeedbackDelaySelection value');
 end
+BpodSystem.Data.Timer.customFeedbackDelay(iTrial) = toc; tic;
 
 %% Drawing future trials
 
@@ -204,6 +212,7 @@ if TaskParameters.GUI.PortLEDtoCueReward
 else
     BpodSystem.Data.Custom.ForcedLEDTrial(iTrial+1) = false;
 end
+BpodSystem.Data.Timer.customCatchNForceLed(iTrial) = toc; tic;
 
 % Calculate bias
 % Consider bias only on the last 50 trials/
@@ -235,6 +244,7 @@ if lengthChoiceMadeTrials >= 1
             ' - ', num2str(performance*100,'%.2f'), '%/', num2str(NUM_LAST_TRIALS) ,'T'];
     end
 end
+BpodSystem.Data.Timer.customCalcBias(iTrial) = toc; tic;
 
 %create future trials
 % Check if its time to generate more future trials
@@ -250,6 +260,7 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - Const.PRE_GENERATE_TRIAL_CHECK
     else
         LeftBias = TaskParameters.GUI.LeftBias;
     end
+    BpodSystem.Data.Timer.customAdjustBias(iTrial) = toc; tic;
 
     % Adjustment of P(Omega) to make sure that sum(P(Omega))=1
     if ~TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.BetaDistribution
@@ -258,6 +269,7 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - Const.PRE_GENERATE_TRIAL_CHECK
         end
         TaskParameters.GUI.OmegaTable.OmegaProb = TaskParameters.GUI.OmegaTable.OmegaProb/sum(TaskParameters.GUI.OmegaTable.OmegaProb);
     end
+    BpodSystem.Data.Timer.customCalcOmega(iTrial) = toc; tic;
 
     % make future trials
     lastidx = numel(BpodSystem.Data.Custom.DV);
@@ -265,6 +277,7 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - Const.PRE_GENERATE_TRIAL_CHECK
     IsLeftRewarded = [zeros(1, round(Const.PRE_GENERATE_TRIAL_COUNT*LeftBias)) ones(1, round(Const.PRE_GENERATE_TRIAL_COUNT*(1-LeftBias)))];
     % Shuffle array and convert it
     IsLeftRewarded = IsLeftRewarded(randperm(numel(IsLeftRewarded))) > LeftBias;
+    BpodSystem.Data.Timer.customPrepNewTrials(iTrial) = toc; tic;
     for a = 1:Const.PRE_GENERATE_TRIAL_COUNT
         % If it's a fifty-fifty trial, then place stimulus in the middle
         if rand(1,1) < TaskParameters.GUI.Percent50Fifty && (lastidx+a) > TaskParameters.GUI.StartEasyTrials % 50Fifty trials
@@ -317,7 +330,14 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - Const.PRE_GENERATE_TRIAL_CHECK
         %  0 <= (left - right) / (left + right) <= 1
         BpodSystem.Data.Custom.DV(lastidx+a) = DV;
     end%for a=1:5
+    BpodSystem.Data.Timer.customGenNewTrials(iTrial) = toc;
+else
+    BpodSystem.Data.Timer.customAdjustBias(iTrial) = 0;
+    BpodSystem.Data.Timer.customCalcOmega(iTrial) = 0;
+    BpodSystem.Data.Timer.customPrepNewTrials(iTrial) = 0;
+    BpodSystem.Data.Timer.customGenNewTrials(iTrial) = 0;
 end%if trial > - 5
+tic;
 
 % send auditory stimuli to PulsePal for next trial
 if TaskParameters.GUI.ExperimentType == ExperimentType.Auditory && ~BpodSystem.EmulatorMode
@@ -330,6 +350,7 @@ TaskParameters.GUI.CurrentStim = iff(BpodSystem.Data.Custom.DV(iTrial+1) > 0, (B
 
 %%update hidden TaskParameter fields
 TaskParameters.Figures.ParameterGUI.Position = BpodSystem.ProtocolFigures.ParameterGUI.Position;
+BpodSystem.Data.Timer.customFinializeUpdate(iTrial) = toc; tic;
 
 %send bpod status to server
 try
@@ -341,5 +362,6 @@ try
     SendTrialStatusToServer(script,BpodSystem.Data.Custom.Rig,outcome,BpodSystem.Data.Custom.Subject,BpodSystem.CurrentProtocolName);
 catch
 end
+BpodSystem.Data.Timer.customSendPhp(iTrial) = toc;
 
 end

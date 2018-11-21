@@ -152,10 +152,15 @@ trialEndTime = clock;
 % The state-matrix is generated only once in each iteration, however some
 % of the trials parameters are pre-generated and updated in the plots few
 % iterations before.
+tic;
 while true
+    BpodSystem.Data.Timer.startNewIter(iTrial) = toc; tic;
     TaskParameters = BpodParameterGUI('sync', TaskParameters);
+    BpodSystem.Data.Timer.SyncGUI(iTrial) = toc; tic;
     sma = stateMatrix(iTrial);
+    BpodSystem.Data.Timer.BuildStateMatrix(iTrial) = toc; tic;
     SendStateMatrix(sma);
+    BpodSystem.Data.Timer.SendStateMatrix(iTrial) = toc;
     pauseTime = (trialEndTime + sleepDur) - clock();
     if pauseTime > 0
         pause(pauseTime);
@@ -163,13 +168,16 @@ while true
     RawEvents = RunStateMatrix;
     trialEndTime = clock;
     if ~isempty(fieldnames(RawEvents))
+        tic;
         BpodSystem.Data = AddTrialEvents(BpodSystem.Data,RawEvents);
         BpodSystem.Data.TrialSettings(iTrial) = TaskParameters;
+        BpodSystem.Data.Timer.AppendData(iTrial) = toc; tic;
 		try
 			SaveBpodSessionData;
 		catch ME
 			warning(datestr(datetime('now')) + ": Failed to save file: " + ME.message);
 		end
+        BpodSystem.Data.Timer.SaveData(iTrial) = toc; tic;
     end
     if BpodSystem.BeingUsed == 0
 		while true
@@ -185,10 +193,15 @@ while true
         return
     end
     HandlePauseCondition; % Checks to see if the protocol is paused. If so, waits until user resumes.
+    BpodSystem.Data.Timer.HandlePause(iTrial) = toc;
+    startTimer = tic;
     updateCustomDataFields(iTrial);
+    BpodSystem.Data.Timer.updateCustomDataFields(iTrial) = toc(startTimer); tic;
     sendPlotData(mapped_file,iTrial,BpodSystem.Data.Custom,TaskParameters.GUI, BpodSystem.Data.TrialStartTimestamp);
+    BpodSystem.Data.Timer.sendPlotData(iTrial) = toc; tic;
     iTrial = iTrial + 1;
     if ~TaskParameters.GUI.PCTimeout
+        BpodSystem.Data.Timer.calculateTimeout(iTrial-1) = toc;
         continue
     end
     sleepDur = 0;
@@ -217,6 +230,7 @@ while true
     if any(strcmp('ITI',statesThisTrial))
         sleepDur = sleepDur + TaskParameters.GUI.ITI;
     end
+    BpodSystem.Data.Timer.calculateTimeout(iTrial-1) = toc;
 end
 sca;
 end
