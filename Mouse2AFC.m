@@ -12,7 +12,6 @@ GUICurVer = 14;
 if isempty(fieldnames(TaskParameters))
     TaskParameters = CreateTaskParameters(GUICurVer);
 end
-TaskParameters.GUI.GUIVer = 10;
 if TaskParameters.GUI.GUIVer ~= GUICurVer
     Overwrite = true;
     WriteOnlyNew = ~Overwrite;
