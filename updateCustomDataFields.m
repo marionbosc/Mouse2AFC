@@ -316,6 +316,8 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - Const.PRE_GENERATE_TRIAL_CHECK
                 DV = CalcLightIntensity(lastidx+a);
             case ExperimentType.GratingOrientation
                 DV = CalcGratingOrientation(lastidx+a);
+            case ExperimentType.RandomDots
+                DV = CalcDotsCoherence(lastidx+a);
             otherwise
                 assert(false, 'Unexpected ExperimentType');
         end

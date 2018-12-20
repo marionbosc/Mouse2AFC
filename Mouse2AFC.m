@@ -8,7 +8,7 @@ addpath('Definitions');
 %% Task parameters
 global TaskParameters
 TaskParameters = BpodSystem.ProtocolSettings;
-GUICurVer = 14;
+GUICurVer = 15;
 if isempty(fieldnames(TaskParameters))
     TaskParameters = CreateTaskParameters(GUICurVer);
 end
@@ -88,6 +88,8 @@ for a = 1:Const.NUM_EASY_TRIALS
             DV = CalcLightIntensity(a);
         case ExperimentType.GratingOrientation
             DV = CalcGratingOrientation(a);
+        case ExperimentType.RandomDots
+            DV = CalcDotsCoherence(a);
         otherwise
             assert(false, 'Unexpected ExperimentType');
     end
@@ -120,7 +122,8 @@ if TaskParameters.GUI.ExperimentType == ExperimentType.Auditory && ~BpodSystem.E
     ProgramPulsePal(BpodSystem.Data.Custom.PulsePalParamStimulus);
     SendCustomPulseTrain(1, BpodSystem.Data.Custom.RightClickTrain{1}, ones(1,length(BpodSystem.Data.Custom.RightClickTrain{1}))*5);
     SendCustomPulseTrain(2, BpodSystem.Data.Custom.LeftClickTrain{1}, ones(1,length(BpodSystem.Data.Custom.LeftClickTrain{1}))*5);
-elseif TaskParameters.GUI.ExperimentType == ExperimentType.GratingOrientation
+elseif TaskParameters.GUI.ExperimentType == ExperimentType.GratingOrientation || ...
+    TaskParameters.GUI.ExperimentType == ExperimentType.RandomDots
     % Setup PTB with some default values
     PsychDefaultSetup(2);
     Screen('CloseAll');
@@ -128,12 +131,26 @@ elseif TaskParameters.GUI.ExperimentType == ExperimentType.GratingOrientation
         % Skip sync tests for demo purposes only
         Screen('Preference', 'SkipSyncTests', 2);
     end
+    if TaskParameters.GUI.ExperimentType == ExperimentType.GratingOrientation
+        background = TaskParameters.GUI.grey;
+    elseif TaskParameters.GUI.ExperimentType == ExperimentType.RandomDots
+        BLACK = 0;
+        background = BLACK;
+        % Create all the directions that we have
+        BpodSystem.Data.Custom.rDots.directions = 0:45:360-45;
+    end
     % Open the screen
     [window, windowRect] = PsychImaging('OpenWindow',...
-        TaskParameters.GUI.screenNumber, TaskParameters.GUI.grey, [],...
-            32, 2, [], [],  kPsychNeed32BPCFloat);
-    BpodSystem.Data.Custom.Grating.window = window;
-    BpodSystem.Data.Custom.Grating.windowRect = windowRect;
+        TaskParameters.GUI.screenNumber, background, [], 32, 2, [], [], ...
+        kPsychNeed32BPCFloat);
+    BpodSystem.Data.Custom.visual.window = window;
+    BpodSystem.Data.Custom.visual.windowRect = windowRect;
+    if TaskParameters.GUI.ExperimentType == ExperimentType.RandomDots
+        ifi = Screen('GetFlipInterval', window);
+        ifi = ifi*3; % Give the slow computers sometime to catch up
+        BpodSystem.Data.Custom.rDots.ifi = ifi;
+        BpodSystem.Data.Custom.rDots.frameRate = 1/ifi;
+    end
 end
 
 
@@ -167,6 +184,8 @@ while true
     end
     RawEvents = RunStateMatrix;
     trialEndTime = clock;
+    % delete timers that might have been created by the visual task
+    delete(timerfind);
     if ~isempty(fieldnames(RawEvents))
         tic;
         BpodSystem.Data = AddTrialEvents(BpodSystem.Data,RawEvents);

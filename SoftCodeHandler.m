@@ -23,12 +23,22 @@ if softCode > 10 && softCode < 21 %for auditory clicks
 elseif softCode == 3
     % Grating is already prepared before, no need to do nothing, just flip
     % the screen
-    Screen('Flip', BpodSystem.Data.Custom.Grating.window);
+    Screen('Flip', BpodSystem.Data.Custom.visual.window);
 elseif softCode == 4
     % We want to show empty gray screen, so no need to do anything, just
     % flip the screen
-    Screen('Flip', BpodSystem.Data.Custom.Grating.window);
+    Screen('Flip', BpodSystem.Data.Custom.visual.window);
+elseif softCode == 5
+    disp('5 is fired');
+    BpodSystem.Data.Custom.rDots.count = 1;
+    BpodSystem.Data.Custom.rDots.keepRunning = true;
+    BpodSystem.Data.Custom.visual.nextFrameTime = GetSecs();
+    FlipFrameCB("", "");
+elseif softCode == 6
+    now = GetSecs;
+    %diff = now - BpodSystem.Data.Custom.Grating.original;
+    %expected = BpodSystem.Data.Custom.Grating.count * 10;
+    disp('I should stop now. Diff is: ');% + string(diff) + ' - expected: ' + string(expected));
+    BpodSystem.Data.Custom.rDots.keepRunning = false;
 end
-
 end
-

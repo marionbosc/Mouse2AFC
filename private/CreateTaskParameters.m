@@ -134,6 +134,30 @@ TaskParameters.GUIMeta.Performance.Style = 'text';
 TaskParameters.GUI.IsCatch = 'false';
 TaskParameters.GUIMeta.IsCatch.Style = 'text';
 TaskParameters.GUIPanels.CurrentTrial = {'StimDelay','MinSample','CurrentStim','CalcLeftBias','FeedbackDelay', 'IsCatch', 'Performance'};
+% General Visual options
+TaskParameters.GUI.screenNumber = 2;
+TaskParameters.GUI.runSyncTests = false;
+TaskParameters.GUI.centerX = 0; % center of the field of dots (x,y)
+TaskParameters.GUI.centerY = 0;
+TaskParameters.GUIPanels.VisualGeneral = {'screenNumber','runSyncTests',...
+    'centerX','centerY'};
+% Random dots options
+TaskParameters.GUI.screenDistCm = 30;
+TaskParameters.GUI.screenWidthCm = 20;
+TaskParameters.GUI.apertureSizeWidth = 36; % size of rectangular aperture [w,h] in degrees
+TaskParameters.GUI.apertureSizeHeight = 36;
+% Use 20% of the screen size
+TaskParameters.GUI.circleArea = (pi*((TaskParameters.GUI.apertureSizeWidth/2).^2)); % assume apertureSize is the diameter
+TaskParameters.GUIMeta.circleArea.Style = 'text';
+TaskParameters.GUI.nDots = round(TaskParameters.GUI.circleArea * 0.05);
+TaskParameters.GUIMeta.nDots.Style = 'text';
+%dotsParams.nDots = 300;     % total number of dots
+TaskParameters.GUI.dotSizeInDegs = 2; % size of dots in degrees
+TaskParameters.GUI.dotSpeedDegsPerSec = 25; %degrees/second
+TaskParameters.GUI.dotLifetimeSecs = 1;  %lifetime of each dot sec
+TaskParameters.GUIPanels.RandomDots = {'screenDistCm','screenWidthCm',...
+    'apertureSizeWidth','apertureSizeHeight','circleArea','nDots',...
+    'dotSizeInDegs','dotSpeedDegsPerSec','dotLifetimeSecs'};
 % Grating orientation specific
 TaskParameters.GUI.gaborSizeFactor = 1.0;
 TaskParameters.GUI.phase = 0.5; % Phase of the wave, goes between 0 to 360
@@ -142,9 +166,7 @@ TaskParameters.GUI.phase = 0.5; % Phase of the wave, goes between 0 to 360
 TaskParameters.GUI.numCycles = 5;
 TaskParameters.GUI.sigmaDivFactor = 7; % Gamma and circle blurness around grating
 TaskParameters.GUI.contrast = 0.8; % How blur is it between the lines, I've tried up to 100
-TaskParameters.GUI.screenNumber = 2;
 TaskParameters.GUI.grey = 0.5;
-TaskParameters.GUI.runSyncTests = false;
 TaskParameters.GUIMeta.runSyncTests.Style = 'checkbox';
 TaskParameters.GUI.aspectRatio = 1.0;
 % Build a procedural gabor texture (Note: to get a "standard" Gabor patch
@@ -158,10 +180,10 @@ TaskParameters.GUI.backgroundOffsetB = 0.5;
 TaskParameters.GUI.backgroundOffsetAlpha = 0.5;
 TaskParameters.GUI.disableNorm = 1;
 TaskParameters.GUI.preContrastMultiplier = 0.5;
-TaskParameters.GUIPanels.GratingGeneral = {'gaborSizeFactor','phase','numCycles','sigmaDivFactor','contrast',...
-    'screenNumber','grey','runSyncTests','aspectRatio'};
-TaskParameters.GUIPanels.GratingGeneral2 = {'backgroundOffsetR','backgroundOffsetG',...
-    'backgroundOffsetB','backgroundOffsetAlpha','disableNorm','preContrastMultiplier'};
+TaskParameters.GUIPanels.Grating = {'gaborSizeFactor','phase','numCycles','sigmaDivFactor','contrast',...
+    'grey','aspectRatio','backgroundOffsetR','backgroundOffsetG',...
+    'backgroundOffsetB','backgroundOffsetAlpha','disableNorm',...
+    'preContrastMultiplier'};
 %% Plots
 %Show Plots/
 TaskParameters.GUI.ShowPsycStim = 1;
@@ -188,7 +210,7 @@ TaskParameters.GUI = orderfields(TaskParameters.GUI);
 %% Tabs
 TaskParameters.GUITabs.General = {'CurrentTrial','StimDelay','General','FeedbackDelay'};
 TaskParameters.GUITabs.Sampling = {'CurrentTrial','LightIntensity','Auditory','Sampling','StimulusSelection'};
-TaskParameters.GUITabs.Gratings = {'GratingGeneral','GratingGeneral2'};
+TaskParameters.GUITabs.Visual = {'CurrentTrial','VisualGeneral','RandomDots','Grating'};
 TaskParameters.GUITabs.Plots = {'ShowPlots','Vevaiometric'};
 %%Non-GUI Parameters (but saved)
 TaskParameters.Figures.OutcomePlot.Position = [200, 200, 1000, 400];

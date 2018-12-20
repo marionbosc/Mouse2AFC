@@ -20,27 +20,115 @@ CenterPWM = round((100-TaskParameters.GUI.CenterPokeAttenPrcnt) * 2.55);
 RightPWM = round((100-TaskParameters.GUI.RightPokeAttenPrcnt) * 2.55);
 LEDErrorRate = 0.1;
 
+IsLeftRewarded = BpodSystem.Data.Custom.LeftRewarded(iTrial);
+
 if TaskParameters.GUI.ExperimentType == ExperimentType.Auditory
     DeliverStimulus =  {'BNCState',1};
+    ContDeliverStimulus = DeliverStimulus;
     StopStimulus = {'BNCState',0};
 elseif TaskParameters.GUI.ExperimentType == ExperimentType.LightIntensity
     % Divide Intensity by 100 to get fraction value
     LeftPWM = round(BpodSystem.Data.Custom.LightIntensityLeft(iTrial)*LeftPWM/100);
     RightPWM = round(BpodSystem.Data.Custom.LightIntensityRight(iTrial)*RightPWM/100);
     DeliverStimulus = {strcat('PWM',num2str(LeftPort)),LeftPWM,strcat('PWM',num2str(RightPort)),RightPWM};
+    ContDeliverStimulus = DeliverStimulus;
     StopStimulus = {};
 elseif TaskParameters.GUI.ExperimentType == ExperimentType.GratingOrientation
     % Clear first any previously drawn buffer by drawing a rect
-    Screen(BpodSystem.Data.Custom.Grating.window,'FillRect',...
+    Screen(BpodSystem.Data.Custom.visual.window,'FillRect',...
            TaskParameters.GUI.grey);
-    Screen('Flip', BpodSystem.Data.Custom.Grating.window);
+    Screen('Flip', BpodSystem.Data.Custom.visual.window);
     % Prepare the new texture for drawing
     orientation = BpodSystem.Data.Custom.GratingOrientation(iTrial);
-    [gabortex, propertiesMat] = GetGaborData(BpodSystem.Data.Custom.Grating, TaskParameters.GUI);
-    Screen('DrawTextures', BpodSystem.Data.Custom.Grating.window,gabortex,...
+    [gabortex, propertiesMat] = GetGaborData(BpodSystem.Data.Custom.visual, TaskParameters.GUI);
+    Screen('DrawTextures', BpodSystem.Data.Custom.visual.window,gabortex,...
         [], [], orientation,[], [], [], [], kPsychDontDoRotation, propertiesMat');
     DeliverStimulus = {'SoftCode',3};
+    ContDeliverStimulus = {};
     StopStimulus = {'SoftCode',4};
+elseif TaskParameters.GUI.ExperimentType == ExperimentType.RandomDots
+    % Clear first any previously drawn buffer by drawing a rect
+    Screen(BpodSystem.Data.Custom.visual.window,'FillRect', 0);
+    % The screen might have something pre-drawn on it with 'DrawFInished'
+    % passed. Flip twice, once to draw back buffer and second time to clear
+    % it.
+    %Screen('Flip', BpodSystem.Data.Custom.visual.window);
+    Screen('Flip', BpodSystem.Data.Custom.visual.window);
+    % Setup the parameters
+    % TODO: Remove kbcheck from the DrawDots() function
+    % Use 20% of the screen size. Assume apertureSize is the diameter
+    TaskParameters.GUI.circleArea = ...
+        (pi*((TaskParameters.GUI.apertureSizeWidth/2).^2));
+    TaskParameters.GUI.nDots = round(TaskParameters.GUI.circleArea * 0.05);
+    % First we'll calculate the left, right top and bottom of the aperture (in
+    % degrees)
+    BpodSystem.Data.Custom.rDots.l = ...
+        TaskParameters.GUI.centerX-TaskParameters.GUI.apertureSizeWidth/2;
+    BpodSystem.Data.Custom.rDots.r = ...
+        TaskParameters.GUI.centerX+TaskParameters.GUI.apertureSizeWidth/2;
+    BpodSystem.Data.Custom.rDots.b = ...
+        TaskParameters.GUI.centerY-TaskParameters.GUI.apertureSizeHeight/2;
+    BpodSystem.Data.Custom.rDots.t = ...
+        TaskParameters.GUI.centerY+TaskParameters.GUI.apertureSizeHeight/2;
+
+    % Direction in degrees (clockwise from straight up) for the main stimulus
+    mainDirection = iff(IsLeftRewarded, 270, 90);
+    coherence = BpodSystem.Data.Custom.DotsCoherence(iTrial);
+    directions = BpodSystem.Data.Custom.rDots.directions;
+    frameRate = BpodSystem.Data.Custom.rDots.frameRate;
+    dotSpeed = TaskParameters.GUI.dotSpeedDegsPerSec;
+    % Calculate ratio of incoherent for each direction so can use it later
+    % to know how many dots should be per each direction. The ratio is
+    % equal to the total incoherence divide by the number of directions
+    % minus one. A coherence of zero has equal oppurtunity in all
+    % directions, and thus the main direction ratio is the normal coherence
+    % plus the its share of random incoherence.
+    directionIncoherence = (1 - coherence)/length(directions);
+    directionsRatios(1:length(directions)) = directionIncoherence;
+    directionsRatios(directions == mainDirection) = ...
+                 directionsRatios(directions == mainDirection) + coherence;
+    % Round the number of dots that we have such that we get whole number
+    % for each direction
+    BpodSystem.Data.Custom.rDots.directionNDots = ...
+                        round(directionsRatios * TaskParameters.GUI.nDots);
+    % Re-evaluate the number of dots
+    TaskParameters.GUI.nDots = sum(...
+                              BpodSystem.Data.Custom.rDots.directionNDots);
+    % Convert lifetime to number of frames
+    BpodSystem.Data.Custom.rDots.lifetime = ceil(...
+                           TaskParameters.GUI.dotLifetimeSecs * frameRate);
+    % Each dot will have a integer value 'life' which is how many frames the
+    % dot has been going.  The starting 'life' of each dot will be a random
+    % number between 0 and dotsParams.lifetime-1 so that they don't all 'die' on the
+    % same frame:
+    BpodSystem.Data.Custom.rDots.dotsLife = ceil(...
+        rand(1,TaskParameters.GUI.nDots)*...
+        BpodSystem.Data.Custom.rDots.lifetime);
+    % The distance traveled by a dot (in degrees) is the speed (degrees/second)
+    % divided by the frame rate (frames/second). The units cancel, leaving
+    % degrees/frame which makes sense. Basic trigonometry (sines and cosines)
+    % allows us to determine how much the changes in the x and y position.
+    BpodSystem.Data.Custom.rDots.dx = ...
+                                 dotSpeed*sin(directions*pi/180)/frameRate;
+    BpodSystem.Data.Custom.rDots.dy = ...
+                                -dotSpeed*cos(directions*pi/180)/frameRate;
+    % Create all the dots in random starting positions
+    BpodSystem.Data.Custom.rDots.x = ...
+        (rand(1,TaskParameters.GUI.nDots)-.5)*...
+        TaskParameters.GUI.apertureSizeWidth + TaskParameters.GUI.centerX;
+    BpodSystem.Data.Custom.rDots.y = ...
+        (rand(1,TaskParameters.GUI.nDots)-.5)*...
+        TaskParameters.GUI.apertureSizeHeight + TaskParameters.GUI.centerY;
+    % Calculate the size of a dot in pixel
+    BpodSystem.Data.Custom.rDots.dotSizePx = Angle2Pix(...
+        TaskParameters.GUI.screenWidthCm,...
+        BpodSystem.Data.Custom.visual.windowRect(3),...
+        TaskParameters.GUI.screenDistCm, TaskParameters.GUI.dotSizeInDegs);
+    % Prepare the first frame for drawing
+    PreDrawDots();
+    DeliverStimulus = {'SoftCode',5};
+    ContDeliverStimulus = {};
+    StopStimulus = {'SoftCode',6};
 else
     assert(false, 'Unexpected ExperimentType');
 end
@@ -56,8 +144,6 @@ AirSolenoidOff = 0;
 LeftValveTime  = GetValveTimes(BpodSystem.Data.Custom.RewardMagnitude(iTrial,1), LeftPort);
 CenterValveTime  = GetValveTimes(BpodSystem.Data.Custom.CenterPortRewAmount(iTrial), CenterPort);
 RightValveTime  = GetValveTimes(BpodSystem.Data.Custom.RewardMagnitude(iTrial,2), RightPort);
-
-IsLeftRewarded = BpodSystem.Data.Custom.LeftRewarded(iTrial);
 
 % iff() function takes first parameter as first condition, if the condition
 % is true then it returns the 2nd parameter, else it returns the 3rd one
@@ -108,7 +194,7 @@ MinSampleBeepDuration = iff(TaskParameters.GUI.BeepAfterMinSampling, 0.01, 0);
 % GUI option RewardAfterMinSampling
 % If center-reward is enabled, then a reward is given once MinSample
 % is over and no further sampling is given.
-RewardCenterPort = iff(TaskParameters.GUI.RewardAfterMinSampling, [{'ValveState',CenterValve} ,StopStimulus], DeliverStimulus);
+RewardCenterPort = iff(TaskParameters.GUI.RewardAfterMinSampling, [{'ValveState',CenterValve} ,StopStimulus], ContDeliverStimulus);
 Timer_CPRD = iff(TaskParameters.GUI.RewardAfterMinSampling, CenterValveTime, TaskParameters.GUI.StimulusTime - TaskParameters.GUI.MinSample);
 
 
@@ -198,11 +284,13 @@ sma = AddState(sma, 'Name', 'early_withdrawal',...
 sma = AddState(sma, 'Name', 'BeepMinSampling',...
     'Timer', MinSampleBeepDuration,...
     'StateChangeConditions', {CenterPortOut,'WaitForChoice','Tup','CenterPortRewardDelivery'},...
-    'OutputActions', [DeliverStimulus MinSampleBeep]);
+    'OutputActions', [ContDeliverStimulus MinSampleBeep]);
 sma = AddState(sma, 'Name', 'CenterPortRewardDelivery',...
     'Timer', Timer_CPRD,...
     'StateChangeConditions', {CenterPortOut,'WaitForChoice','Tup','WaitForChoice'},...
     'OutputActions', RewardCenterPort);
+% TODO: Stop stimulus is fired twice in case of center reward and then wait
+% for choice. Fix it such that it'll be always fired once.
 sma = AddState(sma, 'Name', 'WaitForChoice',...
     'Timer',TaskParameters.GUI.ChoiceDeadLine,...
     'StateChangeConditions', {LeftPortIn,LeftActionState,RightPortIn,RightActionState,'Tup','timeOut_missed_choice'},...

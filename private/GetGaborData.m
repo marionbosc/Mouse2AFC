@@ -1,6 +1,6 @@
-function [gabortex, propertiesMat] = GetGaborData(BpodCustomDataGrating, TaskParametersGUI)
+function [gabortex, propertiesMat] = GetGaborData(BpodCustomDataVisual, TaskParametersGUI)
 % Dimension of the region where will draw the Gabor in pixels
-gaborDimPix = BpodCustomDataGrating.windowRect(4) * TaskParametersGUI.gaborSizeFactor;
+gaborDimPix = BpodCustomDataVisual.windowRect(4) * TaskParametersGUI.gaborSizeFactor;
 % Sigma of Gaussian
 sigma = gaborDimPix / TaskParametersGUI.sigmaDivFactor; % Gamma and circle blurness around grating
 % Obvious Parameters
@@ -14,7 +14,7 @@ backgroundOffset = [TaskParametersGUI.backgroundOffsetR
                     TaskParametersGUI.backgroundOffsetG
                     TaskParametersGUI.backgroundOffsetB
                     TaskParametersGUI.backgroundOffsetAlpha];
-gabortex = CreateProceduralGabor(BpodCustomDataGrating.window,...
+gabortex = CreateProceduralGabor(BpodCustomDataVisual.window,...
     gaborDimPix, gaborDimPix, [],backgroundOffset,...
     TaskParametersGUI.disableNorm, TaskParametersGUI.preContrastMultiplier);
 % Randomise the phase of the Gabors and make a properties matrix.

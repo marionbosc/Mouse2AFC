@@ -3,6 +3,7 @@ classdef ExperimentType
         Auditory = 1;
         LightIntensity = 2;
         GratingOrientation = 3;
+        RandomDots = 4;
     end
     methods(Static)
         function string = String()
