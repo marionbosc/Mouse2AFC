@@ -209,7 +209,7 @@ FeedbackDelayError = iff(TaskParameters.GUI.CatchError, Const.FEEDBACK_CATCH_INC
 SkippedFeedbackSignal = iff(TaskParameters.GUI.CatchError, {}, ErrorFeedback);
 
 % Incorrect Choice signal
-if TaskParameters.GUI.IncorrectChoiceSignalType == IncorrectChoiceSignalType.Noise
+if TaskParameters.GUI.IncorrectChoiceSignalType == IncorrectChoiceSignalType.NoisePulsePal
     PunishmentDuration = 0.01;
     IncorrectChoice_Signal = {'SoftCode', 11};
 elseif TaskParameters.GUI.IncorrectChoiceSignalType == IncorrectChoiceSignalType.PortLED
