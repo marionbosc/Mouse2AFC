@@ -147,6 +147,7 @@ TaskParameters.GUI.screenWidthCm = 20;
 TaskParameters.GUI.apertureSizeWidth = 36; % size of rectangular aperture [w,h] in degrees
 TaskParameters.GUI.apertureSizeHeight = 36;
 % Use 20% of the screen size
+TaskParameters.GUI.drawRatio = 0.2; 
 TaskParameters.GUI.circleArea = (pi*((TaskParameters.GUI.apertureSizeWidth/2).^2)); % assume apertureSize is the diameter
 TaskParameters.GUIMeta.circleArea.Style = 'text';
 TaskParameters.GUI.nDots = round(TaskParameters.GUI.circleArea * 0.05);
@@ -156,8 +157,8 @@ TaskParameters.GUI.dotSizeInDegs = 2; % size of dots in degrees
 TaskParameters.GUI.dotSpeedDegsPerSec = 25; %degrees/second
 TaskParameters.GUI.dotLifetimeSecs = 1;  %lifetime of each dot sec
 TaskParameters.GUIPanels.RandomDots = {'screenDistCm','screenWidthCm',...
-    'apertureSizeWidth','apertureSizeHeight','circleArea','nDots',...
-    'dotSizeInDegs','dotSpeedDegsPerSec','dotLifetimeSecs'};
+    'apertureSizeWidth','apertureSizeHeight','drawRatio','circleArea',...
+    'nDots','dotSizeInDegs','dotSpeedDegsPerSec','dotLifetimeSecs'};
 % Grating orientation specific
 TaskParameters.GUI.gaborSizeFactor = 1.0;
 TaskParameters.GUI.phase = 0.5; % Phase of the wave, goes between 0 to 360
@@ -216,4 +217,5 @@ TaskParameters.GUITabs.Plots = {'ShowPlots','Vevaiometric'};
 TaskParameters.Figures.OutcomePlot.Position = [200, 200, 1000, 400];
 TaskParameters.Figures.ParameterGUI.Position =  [9, 454, 1474, 562];
 TaskParameters.GUI.GUIVer = GUICurVer;
+TaskParameters.GUI.ComputerName = 'Unassigned';
 end

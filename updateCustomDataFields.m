@@ -215,20 +215,34 @@ end
 BpodSystem.Data.Timer.customCatchNForceLed(iTrial) = toc; tic;
 
 % Calculate bias
-% Consider bias only on the last 50 trials/
-indicesRwdLi = find(BpodSystem.Data.Custom.Rewarded,50,'last');
-if length(indicesRwdLi) ~= 0
-	indicesRwd = indicesRwdLi(1);
-else
-	indicesRwd = 1;
-end
-ndxRewd = BpodSystem.Data.Custom.Rewarded(indicesRwd:iTrial);
+% Consider bias only on the last 8 trials/
+% indicesRwdLi = find(BpodSystem.Data.Custom.Rewarded,8,'last');
+%if length(indicesRwdLi) ~= 0
+%	indicesRwd = indicesRwdLi(1);
+%else
+%	indicesRwd = 1;
+%end
+LAST_TRIALS=8;
+indicesRwd = iff(iTrial > LAST_TRIALS, iTrial - LAST_TRIALS, 1);
+%ndxRewd = BpodSystem.Data.Custom.Rewarded(indicesRwd:iTrial);
 ndxLeftRewd = BpodSystem.Data.Custom.ChoiceCorrect(indicesRwd:iTrial) == 1  & BpodSystem.Data.Custom.ChoiceLeft(indicesRwd:iTrial) == 1;
 ndxLeftRewDone = BpodSystem.Data.Custom.LeftRewarded(indicesRwd:iTrial)==1 & ~isnan(BpodSystem.Data.Custom.ChoiceLeft(indicesRwd:iTrial));
 ndxRightRewd = BpodSystem.Data.Custom.ChoiceCorrect(indicesRwd:iTrial) == 1  & BpodSystem.Data.Custom.ChoiceLeft(indicesRwd:iTrial) == 0;
 ndxRightRewDone = BpodSystem.Data.Custom.LeftRewarded(indicesRwd:iTrial)==0 & ~isnan(BpodSystem.Data.Custom.ChoiceLeft(indicesRwd:iTrial));
-PerfL = sum(ndxLeftRewd)/sum(ndxLeftRewDone);
-PerfR = sum(ndxRightRewd)/sum(ndxRightRewDone);
+if sum(ndxLeftRewDone) == 0    
+    % SInce we don't have trials on this side, then measuer by how good
+    % the animals was performing on the other side. If it did bad on the
+    % side then then consider this side performance to be good so it'd
+    % still get more trials on the other side.
+    PerfL = 1 - (sum(ndxRightRewd)/(LAST_TRIALS*2));
+else
+    PerfL = sum(ndxLeftRewd)/sum(ndxLeftRewDone);
+end
+if sum(ndxRightRewDone) == 0
+    PerfR = 1 - (sum(ndxLeftRewd)/(LAST_TRIALS*2));
+else
+    PerfR = sum(ndxRightRewd)/sum(ndxRightRewDone);
+end
 TaskParameters.GUI.CalcLeftBias = (PerfL-PerfR)/2 + 0.5;
 
 choiceMadeTrials = BpodSystem.Data.Custom.ChoiceCorrect(~isnan(BpodSystem.Data.Custom.ChoiceCorrect));
@@ -250,13 +264,18 @@ BpodSystem.Data.Timer.customCalcBias(iTrial) = toc; tic;
 % Check if its time to generate more future trials
 if iTrial > numel(BpodSystem.Data.Custom.DV) - Const.PRE_GENERATE_TRIAL_CHECK
     % Do bias correction only if we have enough trials
-    if TaskParameters.GUI.CorrectBias && sum(ndxRewd) > Const.BIAS_CORRECT_MIN_RWD_TRIALS
+    if TaskParameters.GUI.CorrectBias && iTrial > 7  %sum(ndxRewd) > Const.BIAS_CORRECT_MIN_RWD_TRIALS
         LeftBias = TaskParameters.GUI.CalcLeftBias;
-        if LeftBias < 0.3 || LeftBias > 0.7 % Bias is too much, swing it all the way to the other side
-           LeftBias = round(LeftBias);
-        elseif 0.45 <= LeftBias && LeftBias <= 0.55
+        %if LeftBias < 0.2 || LeftBias > 0.8 % Bias is too much, swing it all the way to the other side
+        %LeftBias = round(LeftBias);
+        %else
+        if 0.45 <= LeftBias && LeftBias <= 0.55
            LeftBias = 0.5;
         end
+		if isnan(LeftBias) || isinf(LeftBias)
+			disp('Left bias is inf or nan: ' + string(LeftBias));
+			LeftBias = 0.5;
+		end
     else
         LeftBias = TaskParameters.GUI.LeftBias;
     end
@@ -352,18 +371,21 @@ TaskParameters.GUI.CurrentStim = iff(BpodSystem.Data.Custom.DV(iTrial+1) > 0, (B
 
 %%update hidden TaskParameter fields
 TaskParameters.Figures.ParameterGUI.Position = BpodSystem.ProtocolFigures.ParameterGUI.Position;
-BpodSystem.Data.Timer.customFinializeUpdate(iTrial) = toc; tic;
+BpodSystem.Data.Timer.customFinializeUpdate(iTrial) = toc; % tic;
 
-%send bpod status to server
-try
-    script = 'receivebpodstatus.php';
-    %create a common "outcome" vector
-    outcome = BpodSystem.Data.Custom.ChoiceCorrect(1:iTrial); %1=correct, 0=wrong
-    outcome(BpodSystem.Data.Custom.EarlyWithdrawal(1:iTrial))=2; %early withdrawal=2
-    outcome(BpodSystem.Data.Custom.FixBroke(1:iTrial))=3;%jackpot=3
-    SendTrialStatusToServer(script,BpodSystem.Data.Custom.Rig,outcome,BpodSystem.Data.Custom.Subject,BpodSystem.CurrentProtocolName);
-catch
+if iTrial == 3
+       disp('Disabled attempt to save data to PHP server'); 
 end
-BpodSystem.Data.Timer.customSendPhp(iTrial) = toc;
+%send bpod status to server
+%try
+    %script = 'receivebpodstatus.php';
+    %create a common "outcome" vector
+    %outcome = BpodSystem.Data.Custom.ChoiceCorrect(1:iTrial); %1=correct, 0=wrong
+    %outcome(BpodSystem.Data.Custom.EarlyWithdrawal(1:iTrial))=2; %early withdrawal=2
+    %outcome(BpodSystem.Data.Custom.FixBroke(1:iTrial))=3;%jackpot=3
+    %SendTrialStatusToServer(script,BpodSystem.Data.Custom.Rig,outcome,BpodSystem.Data.Custom.Subject,BpodSystem.CurrentProtocolName);
+%catch
+%end
+%BpodSystem.Data.Timer.customSendPhp(iTrial) = toc;
 
 end

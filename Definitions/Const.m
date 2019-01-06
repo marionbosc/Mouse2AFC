@@ -31,6 +31,6 @@ classdef Const
        % if not (as in this case), then no pre-generated will be created.
        % When iTrial is = 13, then more pre-generated will be pre-generated
        % to reach (iTrial(13) + PRE_GENERATE_TRIAL_COUNT(6)) = 18,
-       PRE_GENERATE_TRIAL_CHECK = 5;
+       PRE_GENERATE_TRIAL_CHECK = 1;
    end
 end

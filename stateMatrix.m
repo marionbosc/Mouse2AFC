@@ -26,6 +26,8 @@ if TaskParameters.GUI.ExperimentType == ExperimentType.Auditory
     DeliverStimulus =  {'BNCState',1};
     ContDeliverStimulus = DeliverStimulus;
     StopStimulus = {'BNCState',0};
+    ChoiceStopStimulus = {};
+    EarlyStopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut,ChoiceStopStimulus, StopStimulus);
 elseif TaskParameters.GUI.ExperimentType == ExperimentType.LightIntensity
     % Divide Intensity by 100 to get fraction value
     LeftPWM = round(BpodSystem.Data.Custom.LightIntensityLeft(iTrial)*LeftPWM/100);
@@ -33,6 +35,8 @@ elseif TaskParameters.GUI.ExperimentType == ExperimentType.LightIntensity
     DeliverStimulus = {strcat('PWM',num2str(LeftPort)),LeftPWM,strcat('PWM',num2str(RightPort)),RightPWM};
     ContDeliverStimulus = DeliverStimulus;
     StopStimulus = {};
+    ChoiceStopStimulus = {};
+    EarlyStopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut,ChoiceStopStimulus, StopStimulus);
 elseif TaskParameters.GUI.ExperimentType == ExperimentType.GratingOrientation
     % Clear first any previously drawn buffer by drawing a rect
     Screen(BpodSystem.Data.Custom.visual.window,'FillRect',...
@@ -45,90 +49,40 @@ elseif TaskParameters.GUI.ExperimentType == ExperimentType.GratingOrientation
         [], [], orientation,[], [], [], [], kPsychDontDoRotation, propertiesMat');
     DeliverStimulus = {'SoftCode',3};
     ContDeliverStimulus = {};
-    StopStimulus = {'SoftCode',4};
+    StopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut, {}, {'SoftCode',4});
+    ChoiceStopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut, {'SoftCode',4}, {});
+    EarlyStopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut,ChoiceStopStimulus, StopStimulus);
 elseif TaskParameters.GUI.ExperimentType == ExperimentType.RandomDots
-    % Clear first any previously drawn buffer by drawing a rect
-    Screen(BpodSystem.Data.Custom.visual.window,'FillRect', 0);
-    % The screen might have something pre-drawn on it with 'DrawFInished'
-    % passed. Flip twice, once to draw back buffer and second time to clear
-    % it.
-    %Screen('Flip', BpodSystem.Data.Custom.visual.window);
-    Screen('Flip', BpodSystem.Data.Custom.visual.window);
     % Setup the parameters
-    % TODO: Remove kbcheck from the DrawDots() function
     % Use 20% of the screen size. Assume apertureSize is the diameter
     TaskParameters.GUI.circleArea = ...
-        (pi*((TaskParameters.GUI.apertureSizeWidth/2).^2));
-    TaskParameters.GUI.nDots = round(TaskParameters.GUI.circleArea * 0.05);
-    % First we'll calculate the left, right top and bottom of the aperture (in
-    % degrees)
-    BpodSystem.Data.Custom.rDots.l = ...
-        TaskParameters.GUI.centerX-TaskParameters.GUI.apertureSizeWidth/2;
-    BpodSystem.Data.Custom.rDots.r = ...
-        TaskParameters.GUI.centerX+TaskParameters.GUI.apertureSizeWidth/2;
-    BpodSystem.Data.Custom.rDots.b = ...
-        TaskParameters.GUI.centerY-TaskParameters.GUI.apertureSizeHeight/2;
-    BpodSystem.Data.Custom.rDots.t = ...
-        TaskParameters.GUI.centerY+TaskParameters.GUI.apertureSizeHeight/2;
+                        (pi*((TaskParameters.GUI.apertureSizeWidth/2).^2));
+    TaskParameters.GUI.nDots = ...
+       round(TaskParameters.GUI.circleArea * TaskParameters.GUI.drawRatio);
 
-    % Direction in degrees (clockwise from straight up) for the main stimulus
-    mainDirection = iff(IsLeftRewarded, 270, 90);
-    coherence = BpodSystem.Data.Custom.DotsCoherence(iTrial);
-    directions = BpodSystem.Data.Custom.rDots.directions;
-    frameRate = BpodSystem.Data.Custom.rDots.frameRate;
-    dotSpeed = TaskParameters.GUI.dotSpeedDegsPerSec;
-    % Calculate ratio of incoherent for each direction so can use it later
-    % to know how many dots should be per each direction. The ratio is
-    % equal to the total incoherence divide by the number of directions
-    % minus one. A coherence of zero has equal oppurtunity in all
-    % directions, and thus the main direction ratio is the normal coherence
-    % plus the its share of random incoherence.
-    directionIncoherence = (1 - coherence)/length(directions);
-    directionsRatios(1:length(directions)) = directionIncoherence;
-    directionsRatios(directions == mainDirection) = ...
-                 directionsRatios(directions == mainDirection) + coherence;
-    % Round the number of dots that we have such that we get whole number
-    % for each direction
-    BpodSystem.Data.Custom.rDots.directionNDots = ...
-                        round(directionsRatios * TaskParameters.GUI.nDots);
-    % Re-evaluate the number of dots
-    TaskParameters.GUI.nDots = sum(...
-                              BpodSystem.Data.Custom.rDots.directionNDots);
-    % Convert lifetime to number of frames
-    BpodSystem.Data.Custom.rDots.lifetime = ceil(...
-                           TaskParameters.GUI.dotLifetimeSecs * frameRate);
-    % Each dot will have a integer value 'life' which is how many frames the
-    % dot has been going.  The starting 'life' of each dot will be a random
-    % number between 0 and dotsParams.lifetime-1 so that they don't all 'die' on the
-    % same frame:
-    BpodSystem.Data.Custom.rDots.dotsLife = ceil(...
-        rand(1,TaskParameters.GUI.nDots)*...
-        BpodSystem.Data.Custom.rDots.lifetime);
-    % The distance traveled by a dot (in degrees) is the speed (degrees/second)
-    % divided by the frame rate (frames/second). The units cancel, leaving
-    % degrees/frame which makes sense. Basic trigonometry (sines and cosines)
-    % allows us to determine how much the changes in the x and y position.
-    BpodSystem.Data.Custom.rDots.dx = ...
-                                 dotSpeed*sin(directions*pi/180)/frameRate;
-    BpodSystem.Data.Custom.rDots.dy = ...
-                                -dotSpeed*cos(directions*pi/180)/frameRate;
-    % Create all the dots in random starting positions
-    BpodSystem.Data.Custom.rDots.x = ...
-        (rand(1,TaskParameters.GUI.nDots)-.5)*...
-        TaskParameters.GUI.apertureSizeWidth + TaskParameters.GUI.centerX;
-    BpodSystem.Data.Custom.rDots.y = ...
-        (rand(1,TaskParameters.GUI.nDots)-.5)*...
-        TaskParameters.GUI.apertureSizeHeight + TaskParameters.GUI.centerY;
-    % Calculate the size of a dot in pixel
-    BpodSystem.Data.Custom.rDots.dotSizePx = Angle2Pix(...
-        TaskParameters.GUI.screenWidthCm,...
-        BpodSystem.Data.Custom.visual.windowRect(3),...
-        TaskParameters.GUI.screenDistCm, TaskParameters.GUI.dotSizeInDegs);
-    % Prepare the first frame for drawing
-    PreDrawDots();
+    BpodSystem.Data.Custom.rDots.centerX = TaskParameters.GUI.centerX;
+    BpodSystem.Data.Custom.rDots.centerY = TaskParameters.GUI.centerY;
+    BpodSystem.Data.Custom.rDots.apertureSizeWidth = TaskParameters.GUI.apertureSizeWidth;
+    BpodSystem.Data.Custom.rDots.apertureSizeHeight = TaskParameters.GUI.apertureSizeHeight;
+    BpodSystem.Data.Custom.rDots.drawRatio = TaskParameters.GUI.drawRatio;
+    BpodSystem.Data.Custom.rDots.mainDirection = iff(IsLeftRewarded, 270, 90);
+    
+    BpodSystem.Data.Custom.rDots.dotSpeed = TaskParameters.GUI.dotSpeedDegsPerSec;
+    BpodSystem.Data.Custom.rDots.dotLifetimeSecs = TaskParameters.GUI.dotLifetimeSecs;
+    BpodSystem.Data.Custom.rDots.coherence = BpodSystem.Data.Custom.DotsCoherence(iTrial);
+    BpodSystem.Data.Custom.rDots.screenWidthCm = TaskParameters.GUI.screenWidthCm;
+    BpodSystem.Data.Custom.rDots.screenDistCm = TaskParameters.GUI.screenDistCm;
+    BpodSystem.Data.Custom.rDots.dotSizeInDegs = TaskParameters.GUI.dotSizeInDegs;
+
+    % Start from the 5th byte
+    serializeAndWrite(BpodSystem.Data.dotsMapped_file, 5, BpodSystem.Data.Custom.rDots);
+    BpodSystem.Data.dotsMapped_file.Data(1:4) = typecast(uint32(1), 'uint8');
+
     DeliverStimulus = {'SoftCode',5};
     ContDeliverStimulus = {};
-    StopStimulus = {'SoftCode',6};
+    StopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut, {}, {'SoftCode',6});
+    ChoiceStopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut, {'SoftCode',6}, {});
+    EarlyStopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut,ChoiceStopStimulus, StopStimulus);
 else
     assert(false, 'Unexpected ExperimentType');
 end
@@ -247,11 +201,11 @@ Wire1OutCorrect = iff(TaskParameters.GUI.Wire1VideoTrigger && BpodSystem.Data.Cu
 % the training. On auditory discrimination task, both lateral ports are
 % illuminated after end of stimulus delivery.
 if BpodSystem.Data.Custom.ForcedLEDTrial(iTrial)
-    LEDActivation = {strcat('PWM',num2str(RewardedPort)),RewardedPortPWM};
-elseif TaskParameters.GUI.ExperimentType == ExperimentType.Auditory || TaskParameters.GUI.StimAfterPokeOut
-    LEDActivation = {strcat('PWM',num2str(LeftPort)),LeftPWM,strcat('PWM',num2str(RightPort)),RightPWM};
+    ExtemdedStimulus = {strcat('PWM',num2str(RewardedPort)),RewardedPortPWM};
+elseif TaskParameters.GUI.ExperimentType == ExperimentType.Auditory
+    ExtemdedStimulus = {strcat('PWM',num2str(LeftPort)),LeftPWM,strcat('PWM',num2str(RightPort)),RightPWM};
 else
-    LEDActivation = {};
+    ExtemdedStimulus = {};
 end
 
 PCTimeout=TaskParameters.GUI.PCTimeout;
@@ -283,7 +237,7 @@ sma = AddState(sma, 'Name', 'stimulus_delivery',...
 sma = AddState(sma, 'Name', 'early_withdrawal',...
     'Timer',0,...
     'StateChangeConditions',{'Tup','timeOut_EarlyWithdrawal'},...
-    'OutputActions', [StopStimulus AirFlowSamplingOn, {'GlobalTimerTrig',3}]);
+    'OutputActions', [EarlyStopStimulus AirFlowSamplingOn, {'GlobalTimerTrig',3}]);
 sma = AddState(sma, 'Name', 'BeepMinSampling',...
     'Timer', MinSampleBeepDuration,...
     'StateChangeConditions', {CenterPortOut,'WaitForChoice','Tup','CenterPortRewardDelivery'},...
@@ -297,11 +251,11 @@ sma = AddState(sma, 'Name', 'CenterPortRewardDelivery',...
 sma = AddState(sma, 'Name', 'WaitForChoice',...
     'Timer',TaskParameters.GUI.ChoiceDeadLine,...
     'StateChangeConditions', {LeftPortIn,LeftActionState,RightPortIn,RightActionState,'Tup','timeOut_missed_choice'},...
-    'OutputActions',[StopStimulus LEDActivation]);
+    'OutputActions',[StopStimulus ExtemdedStimulus]);
 sma = AddState(sma, 'Name','WaitForRewardStart',...
     'Timer',0,...
     'StateChangeConditions', {'Tup','WaitForReward'},...
-    'OutputActions', [Wire1OutCorrect {'GlobalTimerTrig',1}]);
+    'OutputActions', [Wire1OutCorrect ChoiceStopStimulus {'GlobalTimerTrig',1}]);
 sma = AddState(sma, 'Name','WaitForReward',...
     'Timer',FeedbackDelayCorrect,...
     'StateChangeConditions', {'Tup','Reward','GlobalTimer1_End','Reward',RewardOut, 'RewardGrace' },...
@@ -317,7 +271,7 @@ sma = AddState(sma, 'Name','Reward',...
 sma = AddState(sma, 'Name','WaitForPunishStart',...
     'Timer',0,...
     'StateChangeConditions', {'Tup','WaitForPunish'},...
-    'OutputActions',[Wire1OutError {'GlobalTimerTrig',2}]);
+    'OutputActions',[Wire1OutError ChoiceStopStimulus {'GlobalTimerTrig',2}]);
 sma = AddState(sma, 'Name','WaitForPunish',...
     'Timer',FeedbackDelayError,...
     'StateChangeConditions', {'Tup','Punishment','GlobalTimer2_End','Punishment',PunishOut, 'PunishGrace' },...
@@ -349,7 +303,7 @@ sma = AddState(sma, 'Name', 'timeOut_SkippedFeedback',...
 sma = AddState(sma, 'Name', 'timeOut_missed_choice',...
     'Timer',iff(~PCTimeout,TaskParameters.GUI.TimeOutMissedChoice,0.01),...
     'StateChangeConditions',{'Tup','ITI'},...
-    'OutputActions',ErrorFeedback);
+    'OutputActions',[ErrorFeedback ChoiceStopStimulus]);
 sma = AddState(sma, 'Name', 'ITI',...
     'Timer',iff(~PCTimeout,TaskParameters.GUI.ITI,0.01),...
     'StateChangeConditions',{'Tup','exit'},...

@@ -8,9 +8,11 @@ addpath('Definitions');
 %% Task parameters
 global TaskParameters
 TaskParameters = BpodSystem.ProtocolSettings;
-GUICurVer = 16;
+GUICurVer = 18;
 if isempty(fieldnames(TaskParameters))
     TaskParameters = CreateTaskParameters(GUICurVer);
+elseif ~isfield(TaskParameters.GUI, 'GUIVer')
+    TaskParameters.GUI.GUIVer = 0;
 end
 if TaskParameters.GUI.GUIVer ~= GUICurVer
     Overwrite = true;
@@ -29,6 +31,30 @@ if TaskParameters.GUI.GUIVer ~= GUICurVer
     TaskParameters.GUITabs = DefaultTaskParameter.GUITabs;
     TaskParameters.GUI.GUIVer = GUICurVer;
 end
+% Warn the user if the rig we are running on is not the same as the last
+% one we ran on.
+computerName = getenv('computername');
+if strcmp(TaskParameters.GUI.ComputerName, 'Unassigned')
+    disp('No computer rig is assigned to this animal. Won''t warn user.');
+elseif ~strcmp(TaskParameters.GUI.ComputerName, computerName)
+    Opt.Interpreter = 'tex';
+    Opt.Default = 'Quit';
+    msg = '\fontsize{12}This computer (\bf'+string(computerName)+'\rm) '...
+        + 'is not the same last saved computer (\bf'...
+        + string(TaskParameters.GUI.ComputerName)+'\rm) that this '...
+        + 'animal (\bf'+string(BpodSystem.GUIData.SubjectName)+'\rm) '...
+        + 'was running on with this configration (\bf'...
+        + string(BpodSystem.GUIData.SettingsFileName)+'\rm).'...
+        + '\newline\newline'...
+        + 'Continue?';
+    answer = questdlg(msg, 'Different training rig detected','Continue',...
+        'Quit', Opt);
+    if strcmp(answer, 'Quit')
+        RunProtocol('Stop');
+        return;
+    end
+end
+TaskParameters.GUI.ComputerName = computerName;
 BpodParameterGUI('init', TaskParameters);
 
 %% Initializing data (trial type) vectors
@@ -122,8 +148,7 @@ if TaskParameters.GUI.ExperimentType == ExperimentType.Auditory && ~BpodSystem.E
     ProgramPulsePal(BpodSystem.Data.Custom.PulsePalParamStimulus);
     SendCustomPulseTrain(1, BpodSystem.Data.Custom.RightClickTrain{1}, ones(1,length(BpodSystem.Data.Custom.RightClickTrain{1}))*5);
     SendCustomPulseTrain(2, BpodSystem.Data.Custom.LeftClickTrain{1}, ones(1,length(BpodSystem.Data.Custom.LeftClickTrain{1}))*5);
-elseif TaskParameters.GUI.ExperimentType == ExperimentType.GratingOrientation || ...
-    TaskParameters.GUI.ExperimentType == ExperimentType.RandomDots
+elseif TaskParameters.GUI.ExperimentType == ExperimentType.GratingOrientation
     % Setup PTB with some default values
     PsychDefaultSetup(2);
     Screen('CloseAll');
@@ -131,26 +156,16 @@ elseif TaskParameters.GUI.ExperimentType == ExperimentType.GratingOrientation ||
         % Skip sync tests for demo purposes only
         Screen('Preference', 'SkipSyncTests', 2);
     end
-    if TaskParameters.GUI.ExperimentType == ExperimentType.GratingOrientation
-        background = TaskParameters.GUI.grey;
-    elseif TaskParameters.GUI.ExperimentType == ExperimentType.RandomDots
-        BLACK = 0;
-        background = BLACK;
-        % Create all the directions that we have
-        BpodSystem.Data.Custom.rDots.directions = 0:45:360-45;
-    end
-    % Open the screen
+    background = TaskParameters.GUI.grey;
     [window, windowRect] = PsychImaging('OpenWindow',...
         TaskParameters.GUI.screenNumber, background, [], 32, 2, [], [], ...
         kPsychNeed32BPCFloat);
     BpodSystem.Data.Custom.visual.window = window;
     BpodSystem.Data.Custom.visual.windowRect = windowRect;
-    if TaskParameters.GUI.ExperimentType == ExperimentType.RandomDots
-        ifi = Screen('GetFlipInterval', window);
-        ifi = ifi*3; % Give the slow computers sometime to catch up
-        BpodSystem.Data.Custom.rDots.ifi = ifi;
-        BpodSystem.Data.Custom.rDots.frameRate = 1/ifi;
-    end
+
+elseif TaskParameters.GUI.ExperimentType == ExperimentType.RandomDots
+        BpodSystem.Data.dotsMapped_file = createMMFile('c:\Bpoduser\', 'mmap_matlab_randomdot.dat', file_size);
+        BpodSystem.Data.dotsMapped_file.Data(1:4) = typecast(uint32(0), 'uint8');
 end
 
 
@@ -162,6 +177,8 @@ iTrial=0;
 sendPlotData(mapped_file,iTrial,BpodSystem.Data.Custom,TaskParameters.GUI, [0]);
 
 %% Main loop
+SAVE_EVERY = 20;
+shouldSave = false;
 RunSession = true;
 iTrial = 1;
 sleepDur = 0;
@@ -184,19 +201,11 @@ while true
     end
     RawEvents = RunStateMatrix;
     trialEndTime = clock;
-    % delete timers that might have been created by the visual task
-    delete(timerfind);
     if ~isempty(fieldnames(RawEvents))
         tic;
         BpodSystem.Data = AddTrialEvents(BpodSystem.Data,RawEvents);
         BpodSystem.Data.TrialSettings(iTrial) = TaskParameters;
         BpodSystem.Data.Timer.AppendData(iTrial) = toc; tic;
-		try
-			SaveBpodSessionData;
-		catch ME
-			warning(datestr(datetime('now')) + ": Failed to save file: " + ME.message);
-		end
-        BpodSystem.Data.Timer.SaveData(iTrial) = toc; tic;
     end
     if BpodSystem.BeingUsed == 0
 		while true
@@ -218,6 +227,24 @@ while true
     BpodSystem.Data.Timer.updateCustomDataFields(iTrial) = toc(startTimer); tic;
     sendPlotData(mapped_file,iTrial,BpodSystem.Data.Custom,TaskParameters.GUI, BpodSystem.Data.TrialStartTimestamp);
     BpodSystem.Data.Timer.sendPlotData(iTrial) = toc; tic;
+    % Saving takes a lot of time when the number of trial increases. To
+    % keep the animal motivated, don't save if the animal got the last
+    % trial correctly as they are usually eager to do more trials. Wait for
+    % the first mistake where there will be probably a timeout punishment
+    % and save.
+    if mod(iTrial, SAVE_EVERY) == 0
+        shouldSave = true;
+    end
+    if shouldSave && ~BpodSystem.Data.Custom.Rewarded(iTrial) && ...
+       ~BpodSystem.Data.Custom.CatchTrial(iTrial)
+        try
+            SaveBpodSessionData;
+            shouldSave = false;
+        catch ME
+            warning(datestr(datetime('now')) + ": Failed to save file: " + ME.message);
+        end
+    end
+    BpodSystem.Data.Timer.SaveData(iTrial) = toc; tic;
     iTrial = iTrial + 1;
     if ~TaskParameters.GUI.PCTimeout
         BpodSystem.Data.Timer.calculateTimeout(iTrial-1) = toc;

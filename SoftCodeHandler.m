@@ -29,16 +29,8 @@ elseif softCode == 4
     % flip the screen
     Screen('Flip', BpodSystem.Data.Custom.visual.window);
 elseif softCode == 5
-    disp('5 is fired');
-    BpodSystem.Data.Custom.rDots.count = 1;
-    BpodSystem.Data.Custom.rDots.keepRunning = true;
-    BpodSystem.Data.Custom.visual.nextFrameTime = GetSecs();
-    FlipFrameCB("", "");
+    BpodSystem.Data.dotsMapped_file.Data(1:4) = typecast(uint32(2), 'uint8');
 elseif softCode == 6
-    now = GetSecs;
-    %diff = now - BpodSystem.Data.Custom.Grating.original;
-    %expected = BpodSystem.Data.Custom.Grating.count * 10;
-    disp('I should stop now. Diff is: ');% + string(diff) + ' - expected: ' + string(expected));
-    BpodSystem.Data.Custom.rDots.keepRunning = false;
+    BpodSystem.Data.dotsMapped_file.Data(1:4) = typecast(uint32(0), 'uint8');
 end
 end
