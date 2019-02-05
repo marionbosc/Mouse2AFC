@@ -222,7 +222,7 @@ BpodSystem.Data.Timer.customCatchNForceLed(iTrial) = toc; tic;
 %else
 %	indicesRwd = 1;
 %end
-LAST_TRIALS=8;
+LAST_TRIALS=20;
 indicesRwd = iff(iTrial > LAST_TRIALS, iTrial - LAST_TRIALS, 1);
 %ndxRewd = BpodSystem.Data.Custom.Rewarded(indicesRwd:iTrial);
 ndxLeftRewd = BpodSystem.Data.Custom.ChoiceCorrect(indicesRwd:iTrial) == 1  & BpodSystem.Data.Custom.ChoiceLeft(indicesRwd:iTrial) == 1;
