@@ -34,7 +34,7 @@ elseif TaskParameters.GUI.ExperimentType == ExperimentType.LightIntensity
     RightPWM = round(BpodSystem.Data.Custom.LightIntensityRight(iTrial)*RightPWM/100);
     DeliverStimulus = {strcat('PWM',num2str(LeftPort)),LeftPWM,strcat('PWM',num2str(RightPort)),RightPWM};
     ContDeliverStimulus = DeliverStimulus;
-    StopStimulus = {};
+    StopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut, DeliverStimulus, {});
     ChoiceStopStimulus = {};
     EarlyStopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut,ChoiceStopStimulus, StopStimulus);
 elseif TaskParameters.GUI.ExperimentType == ExperimentType.GratingOrientation
