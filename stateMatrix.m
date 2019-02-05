@@ -82,7 +82,7 @@ elseif TaskParameters.GUI.ExperimentType == ExperimentType.RandomDots
     ContDeliverStimulus = {};
     StopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut, {}, {'SoftCode',6});
     ChoiceStopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut, {'SoftCode',6}, {});
-    EarlyStopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut,ChoiceStopStimulus, StopStimulus);
+    EarlyStopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut, ChoiceStopStimulus, StopStimulus);
 else
     assert(false, 'Unexpected ExperimentType');
 end
