@@ -168,7 +168,7 @@ if TaskParameters.GUI.IncorrectChoiceSignalType == IncorrectChoiceSignalType.Noi
     IncorrectChoice_Signal = {'SoftCode', 11};
 elseif TaskParameters.GUI.IncorrectChoiceSignalType == IncorrectChoiceSignalType.BeepOnWire_1
     PunishmentDuration = 0.25;
-    IncorrectChoice_Signal = {'WireState', 1};
+    IncorrectChoice_Signal = {'WireState', 2^0};
 elseif TaskParameters.GUI.IncorrectChoiceSignalType == IncorrectChoiceSignalType.PortLED
     PunishmentDuration = 0.1;
     IncorrectChoice_Signal = {strcat('PWM',num2str(LeftPort)),LeftPWM,strcat('PWM',num2str(CenterPort)),CenterPWM,strcat('PWM',num2str(RightPort)),RightPWM};
