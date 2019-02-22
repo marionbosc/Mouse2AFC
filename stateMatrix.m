@@ -194,8 +194,8 @@ else
 end
 
 %Wire1 settings
-Wire1OutError = iff(TaskParameters.GUI.Wire1VideoTrigger, {'WireState', 1}, {});
-Wire1OutCorrect = iff(TaskParameters.GUI.Wire1VideoTrigger && BpodSystem.Data.Custom.CatchTrial(iTrial), {'WireState', 1}, {});
+Wire1OutError = iff(TaskParameters.GUI.Wire1VideoTrigger, {'WireState', 2^1}, {});
+Wire1OutCorrect = iff(TaskParameters.GUI.Wire1VideoTrigger && BpodSystem.Data.Custom.CatchTrial(iTrial), {'WireState', 2^1}, {});
 
 % LED on the side lateral port to cue the rewarded side at the beginning of
 % the training. On auditory discrimination task, both lateral ports are
