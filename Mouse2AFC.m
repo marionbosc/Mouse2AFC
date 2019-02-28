@@ -200,7 +200,11 @@ while true
     if pauseTime > 0
         pause(pauseTime);
     end
+    TrialStartSysTime = clock; % Used to aproximate the start time of the
+                               % so we can bind trial later to imaging data.
     RawEvents = RunStateMatrix;
+    BpodSystem.Data.Custom.TrialStartSysTime(iTrial) = posixtime(...
+                                              datetime(TrialStartSysTime));
     trialEndTime = clock;
     if ~isempty(fieldnames(RawEvents))
         tic;
