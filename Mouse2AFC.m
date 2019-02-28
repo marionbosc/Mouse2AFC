@@ -208,16 +208,16 @@ while true
         BpodSystem.Data.Timer.AppendData(iTrial) = toc; tic;
     end
     if BpodSystem.BeingUsed == 0
-		while true
-			try
-				SaveBpodSessionData;
-				break;
-			catch ME
-				warning(strcat("Error during last save: " + getReport(ME)));
-				warning(datestr(datetime('now')) + ": trying again in few secs...");
-				pause(.5);
-			end
-		end
+        while true
+            try
+                SaveBpodSessionData;
+                break;
+            catch ME
+                warning(strcat("Error during last save: " + getReport(ME)));
+                warning(datestr(datetime('now')) + ": trying again in few secs...");
+                pause(.5);
+            end
+        end
         return
     end
     HandlePauseCondition; % Checks to see if the protocol is paused. If so, waits until user resumes.
