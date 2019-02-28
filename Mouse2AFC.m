@@ -183,6 +183,7 @@ RunSession = true;
 iTrial = 1;
 sleepDur = 0;
 trialEndTime = clock;
+SettingsPath = BpodSystem.SettingsPath; % Needed later for unsaved changes
 % The state-matrix is generated only once in each iteration, however some
 % of the trials parameters are pre-generated and updated in the plots few
 % iterations before.
@@ -208,6 +209,9 @@ while true
         BpodSystem.Data.Timer.AppendData(iTrial) = toc; tic;
     end
     if BpodSystem.BeingUsed == 0
+        SavedTaskParameters = BpodSystem.ProtocolSettings;
+        CheckUnsaved(TaskParameters, SavedTaskParameters, SettingsPath,...
+                     BpodSystem);
         while true
             try
                 SaveBpodSessionData;
