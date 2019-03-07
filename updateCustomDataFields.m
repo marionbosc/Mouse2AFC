@@ -246,9 +246,10 @@ end
 TaskParameters.GUI.CalcLeftBias = (PerfL-PerfR)/2 + 0.5;
 
 choiceMadeTrials = BpodSystem.Data.Custom.ChoiceCorrect(~isnan(BpodSystem.Data.Custom.ChoiceCorrect));
+rewardedTrials = BpodSystem.Data.Custom.ChoiceCorrect(BpodSystem.Data.Custom.Rewarded == 1);
 lengthChoiceMadeTrials = length(choiceMadeTrials);
 if lengthChoiceMadeTrials >= 1
-    performance = sum(choiceMadeTrials == true)/lengthChoiceMadeTrials;
+    performance = sum(rewardedTrials == true)/lengthChoiceMadeTrials;
     TaskParameters.GUI.Performance = [num2str(performance*100,'%.2f'), '%/', num2str(lengthChoiceMadeTrials), 'T'];
     NUM_LAST_TRIALS=20;
     if lengthChoiceMadeTrials > NUM_LAST_TRIALS
