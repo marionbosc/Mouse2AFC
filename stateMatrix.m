@@ -33,9 +33,10 @@ if TaskParameters.GUI.ExperimentType == ExperimentType.Auditory
     EarlyStopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut,ChoiceStopStimulus, StopStimulus);
 elseif TaskParameters.GUI.ExperimentType == ExperimentType.LightIntensity
     % Divide Intensity by 100 to get fraction value
-    LeftPWM = round(BpodSystem.Data.Custom.LightIntensityLeft(iTrial)*LeftPWM/100);
-    RightPWM = round(BpodSystem.Data.Custom.LightIntensityRight(iTrial)*RightPWM/100);
-    DeliverStimulus = {strcat('PWM',num2str(LeftPort)),LeftPWM,strcat('PWM',num2str(RightPort)),RightPWM};
+    LeftPWMStim = round(BpodSystem.Data.Custom.LightIntensityLeft(iTrial)*LeftPWM/100);
+    RightPWMStim = round(BpodSystem.Data.Custom.LightIntensityRight(iTrial)*RightPWM/100);
+    DeliverStimulus = {strcat('PWM',num2str(LeftPort)),LeftPWMStim,...
+                       strcat('PWM',num2str(RightPort)),RightPWMStim};
     ContDeliverStimulus = DeliverStimulus;
     StopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut, DeliverStimulus, {});
     ChoiceStopStimulus = {};
