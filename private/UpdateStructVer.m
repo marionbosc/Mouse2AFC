@@ -5,7 +5,7 @@ function UpdatedStruct = UpdateStructVer(OldVerStruct, NewVersionStruct,...
     % Add values that didn't exist before
     for n=1:length(new_fields_names)
         field_name = new_fields_names{n};
-        if shouldOverwrite % Overwrite current value with njew value
+        if shouldOverwrite % Overwrite current value with new value
             OldVerStruct.(field_name) = NewVersionStruct.(field_name);
         % Write new value only if no value exists (i.e it's a new field)
         elseif ~any(strcmp(old_fields_names,field_name))
