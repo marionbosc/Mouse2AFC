@@ -367,8 +367,17 @@ if TaskParameters.GUI.ExperimentType == ExperimentType.Auditory && ~BpodSystem.E
     SendCustomPulseTrain(2, BpodSystem.Data.Custom.LeftClickTrain{iTrial+1}, ones(1,length(BpodSystem.Data.Custom.LeftClickTrain{iTrial+1}))*5);
 end
 
-% Set current stimulus for next trial - set between -100 to +100
-TaskParameters.GUI.CurrentStim = iff(BpodSystem.Data.Custom.DV(iTrial+1) > 0, (BpodSystem.Data.Custom.DV(iTrial+1) + 1)/0.02,(BpodSystem.Data.Custom.DV(iTrial+1) - 1)/0.02);
+% Set current stimulus for next trial
+DV = BpodSystem.Data.Custom.DV(iTrial+1);
+if TaskParameters.GUI.ExperimentType == ExperimentType.RandomDots
+    TaskParameters.GUI.CurrentStim = strcat(...
+        num2str(abs(DV/0.01)), iff(DV < 0, '% R cohr.', '% L cohr.'));
+else
+    % Set between -100 to +100
+    StimIntensity = num2str(iff(DV > 0, (DV+1)/0.02, (DV-1)/-0.02));
+    TaskParameters.GUI.CurrentStim = strcat(StimIntensity,...
+        iff(DV < 0, '% R', '% L'));
+end
 
 %%update hidden TaskParameter fields
 TaskParameters.Figures.ParameterGUI.Position = BpodSystem.ProtocolFigures.ParameterGUI.Position;
