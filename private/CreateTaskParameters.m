@@ -78,6 +78,8 @@ TaskParameters.GUIMeta.StimulusSelectionCriteria.Style = 'popupmenu';
 TaskParameters.GUIMeta.StimulusSelectionCriteria.String = StimulusSelectionCriteria.String;
 TaskParameters.GUI.BetaDistAlphaNBeta = 0.3;
 TaskParameters.GUI.OmegaTable.Omega =  [100:-5:55]';
+TaskParameters.GUI.OmegaTable.RDK = (TaskParameters.GUI.OmegaTable.Omega - 50)*2;
+TaskParameters.GUIMeta.OmegaTable.RDK.Style = 'text';
 % Set first and last 3 values to be the effective ones
 TaskParameters.GUI.OmegaTable.OmegaProb = zeros(numel(TaskParameters.GUI.OmegaTable.Omega),1);
 TaskParameters.GUI.OmegaTable.OmegaProb(1) = 9; % 100
@@ -94,7 +96,10 @@ TaskParameters.GUI.CurrentStim = 0;
 TaskParameters.GUIMeta.CurrentStim.Style = 'text';
 TaskParameters.GUIMeta.OmegaTable.Style = 'table';
 TaskParameters.GUIMeta.OmegaTable.String = 'Omega probabilities';
-TaskParameters.GUIMeta.OmegaTable.ColumnLabel = {'a = Omega*100','P(a)'};
+TaskParameters.GUIMeta.OmegaTable.ColumnLabel = {'Stim %','RDK Coh', 'P(a)'};
+TaskParameters.GUIMeta.OmegaTable.ColumnEditable = [true, false, true];
+TaskParameters.GUI.TableNote = 'Edit Stim % to update RDK';
+TaskParameters.GUIMeta.TableNote.Style = 'text';
 % Sampling
 TaskParameters.GUI.StimulusTime = 0.3;
 TaskParameters.GUI.RewardAfterMinSampling = false;
@@ -125,7 +130,7 @@ TaskParameters.GUI.BeepAfterMinSampling = false;
 TaskParameters.GUIMeta.BeepAfterMinSampling.Style = 'checkbox';
 TaskParameters.GUIPanels.Auditory = {'SumRates'};
 TaskParameters.GUIPanels.LightIntensity = {'LeftPokeAttenPrcnt','CenterPokeAttenPrcnt','RightPokeAttenPrcnt','StimAfterPokeOut', 'BeepAfterMinSampling'};
-TaskParameters.GUIPanels.StimulusSelection = {'OmegaTable','BetaDistAlphaNBeta','StimulusSelectionCriteria','LeftBias','LeftBiasVal','CorrectBias'};
+TaskParameters.GUIPanels.StimulusSelection = {'OmegaTable','TableNote','BetaDistAlphaNBeta','StimulusSelectionCriteria','LeftBias','LeftBiasVal','CorrectBias'};
 TaskParameters.GUIPanels.Sampling = {'RewardAfterMinSampling','CenterPortRewAmount','MinSampleMin',...
                                      'MinSampleMax','MinSampleAutoincrement','MinSampleIncr','MinSampleDecr',...
                                      'CutAirSampling','StimulusTime','PortLEDtoCueReward','PercentForcedLEDTrial'};

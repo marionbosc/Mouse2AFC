@@ -8,7 +8,7 @@ addpath('Definitions');
 %% Task parameters
 global TaskParameters
 TaskParameters = BpodSystem.ProtocolSettings;
-GUICurVer = 19;
+GUICurVer = 20;
 if isempty(fieldnames(TaskParameters))
     TaskParameters = CreateTaskParameters(GUICurVer);
 elseif ~isfield(TaskParameters.GUI, 'GUIVer')
@@ -18,6 +18,14 @@ if TaskParameters.GUI.GUIVer ~= GUICurVer
     Overwrite = true;
     WriteOnlyNew = ~Overwrite;
     DefaultTaskParameter = CreateTaskParameters(GUICurVer);
+    if isfield(TaskParameters.GUI,'OmegaTable')
+        TaskParameters.GUI.OmegaTable = ...
+            UpdateStructVer(TaskParameters.GUI.OmegaTable,...
+                            DefaultTaskParameter.GUI.OmegaTable,...
+                            WriteOnlyNew);
+    end
+    [TaskParameters.GUI.OmegaTable,~] = orderfields(...
+               TaskParameters.GUI.OmegaTable, {'Omega','RDK','OmegaProb'});
     TaskParameters.GUI = UpdateStructVer(TaskParameters.GUI,...
                                          DefaultTaskParameter.GUI,WriteOnlyNew);
     TaskParameters.GUIMeta = UpdateStructVer(TaskParameters.GUIMeta,...

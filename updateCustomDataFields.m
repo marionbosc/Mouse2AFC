@@ -369,6 +369,8 @@ if TaskParameters.GUI.ExperimentType == ExperimentType.Auditory && ~BpodSystem.E
     SendCustomPulseTrain(2, BpodSystem.Data.Custom.LeftClickTrain{iTrial+1}, ones(1,length(BpodSystem.Data.Custom.LeftClickTrain{iTrial+1}))*5);
 end
 
+% Update RDK GUI
+TaskParameters.GUI.OmegaTable.RDK = (TaskParameters.GUI.OmegaTable.Omega - 50)*2;
 % Set current stimulus for next trial
 DV = BpodSystem.Data.Custom.DV(iTrial+1);
 if TaskParameters.GUI.ExperimentType == ExperimentType.RandomDots
