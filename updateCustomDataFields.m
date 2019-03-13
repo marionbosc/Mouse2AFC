@@ -164,6 +164,8 @@ BpodSystem.Data.Timer.customMinSampling(iTrial) = toc; tic;
 
 %feedback delay
 switch TaskParameters.GUI.FeedbackDelaySelection
+    case FeedbackDelaySelection.None
+        TaskParameters.GUI.FeedbackDelay = 0;
     case FeedbackDelaySelection.AutoIncr
         % if no feedback was not completed then use the last value unless
         % then decrement the feedback.
