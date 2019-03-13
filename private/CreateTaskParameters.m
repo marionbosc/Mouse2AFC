@@ -131,9 +131,13 @@ TaskParameters.GUIPanels.Sampling = {'RewardAfterMinSampling','CenterPortRewAmou
                                      'CutAirSampling','StimulusTime','PortLEDtoCueReward','PercentForcedLEDTrial'};
 TaskParameters.GUI.Performance = '(Calc. after 1st trial)';
 TaskParameters.GUIMeta.Performance.Style = 'text';
+TaskParameters.GUI.AllPerformance = '(Calc. after 1st trial)';
+TaskParameters.GUIMeta.AllPerformance.Style = 'text';
 TaskParameters.GUI.IsCatch = 'false';
 TaskParameters.GUIMeta.IsCatch.Style = 'text';
-TaskParameters.GUIPanels.CurrentTrial = {'StimDelay','MinSample','CurrentStim','CalcLeftBias','FeedbackDelay', 'IsCatch', 'Performance'};
+TaskParameters.GUIPanels.CurrentTrial = {'StimDelay','MinSample',...
+    'CurrentStim','CalcLeftBias','FeedbackDelay', 'IsCatch',...
+    'Performance','AllPerformance'};
 % General Visual options
 TaskParameters.GUI.screenNumber = 2;
 TaskParameters.GUI.runSyncTests = false;

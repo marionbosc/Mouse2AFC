@@ -251,6 +251,8 @@ lengthChoiceMadeTrials = length(choiceMadeTrials);
 if lengthChoiceMadeTrials >= 1
     performance = sum(rewardedTrials == true)/lengthChoiceMadeTrials;
     TaskParameters.GUI.Performance = [num2str(performance*100,'%.2f'), '%/', num2str(lengthChoiceMadeTrials), 'T'];
+    performance = sum(rewardedTrials == true)/iTrial;
+    TaskParameters.GUI.AllPerformance = [num2str(performance*100,'%.2f'), '%/', num2str(iTrial), 'T'];
     NUM_LAST_TRIALS=20;
     if lengthChoiceMadeTrials > NUM_LAST_TRIALS
         choiceMadeTrials = choiceMadeTrials(lengthChoiceMadeTrials-NUM_LAST_TRIALS + 1:lengthChoiceMadeTrials);
