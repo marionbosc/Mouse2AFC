@@ -210,11 +210,13 @@ TaskParameters.GUI.ShowFeedback = 1;
 TaskParameters.GUIMeta.ShowFeedback.Style = 'checkbox';
 TaskParameters.GUIPanels.ShowPlots = {'ShowPsycStim','ShowVevaiometric','ShowTrialRate','ShowFix','ShowST','ShowFeedback'};
 %Vevaiometric
+TaskParameters.GUI.VevaiometricYLim = 20;
 TaskParameters.GUI.VevaiometricMinWT = 0.5;
 TaskParameters.GUI.VevaiometricNBin = 8;
 TaskParameters.GUI.VevaiometricShowPoints = 1;
 TaskParameters.GUIMeta.VevaiometricShowPoints.Style = 'checkbox';
-TaskParameters.GUIPanels.Vevaiometric = {'VevaiometricMinWT','VevaiometricNBin','VevaiometricShowPoints'};
+TaskParameters.GUIPanels.Vevaiometric = {'VevaiometricYLim', ...
+    'VevaiometricMinWT','VevaiometricNBin','VevaiometricShowPoints'};
 %%
 TaskParameters.GUI = orderfields(TaskParameters.GUI);
 %% Tabs

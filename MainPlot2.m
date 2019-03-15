@@ -217,6 +217,8 @@ switch Action
         end
         %% Vevaiometric
         if TaskParametersGUI.ShowVevaiometric
+            AxesHandles.HandleVevaiometric.YLim = [0 TaskParametersGUI.VevaiometricYLim];
+            set(AxesHandles.HandleVevaiometric,'YLim', [0 TaskParametersGUI.VevaiometricYLim]);
             ndxError = DataCustom.ChoiceCorrect(1:iTrial) == 0 ; %all (completed) error trials (including catch errors)
             ndxCorrectCatch = DataCustom.CatchTrial(1:iTrial) & DataCustom.ChoiceCorrect(1:iTrial) == 1; %only correct catch trials
             ndxMinWT = DataCustom.FeedbackTime > TaskParametersGUI.VevaiometricMinWT;

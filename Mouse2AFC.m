@@ -8,7 +8,7 @@ addpath('Definitions');
 %% Task parameters
 global TaskParameters
 TaskParameters = BpodSystem.ProtocolSettings;
-GUICurVer = 20;
+GUICurVer = 21;
 if isempty(fieldnames(TaskParameters))
     TaskParameters = CreateTaskParameters(GUICurVer);
 elseif ~isfield(TaskParameters.GUI, 'GUIVer')
