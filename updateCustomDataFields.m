@@ -248,19 +248,34 @@ end
 TaskParameters.GUI.CalcLeftBias = (PerfL-PerfR)/2 + 0.5;
 
 choiceMadeTrials = BpodSystem.Data.Custom.ChoiceCorrect(~isnan(BpodSystem.Data.Custom.ChoiceCorrect));
-rewardedTrials = BpodSystem.Data.Custom.ChoiceCorrect(BpodSystem.Data.Custom.Rewarded == 1);
+rewardedTrialsCount = sum(BpodSystem.Data.Custom.Rewarded == 1);
 lengthChoiceMadeTrials = length(choiceMadeTrials);
 if lengthChoiceMadeTrials >= 1
-    performance = sum(rewardedTrials == true)/lengthChoiceMadeTrials;
-    TaskParameters.GUI.Performance = [num2str(performance*100,'%.2f'), '%/', num2str(lengthChoiceMadeTrials), 'T'];
-    performance = sum(rewardedTrials == true)/iTrial;
-    TaskParameters.GUI.AllPerformance = [num2str(performance*100,'%.2f'), '%/', num2str(iTrial), 'T'];
+    performance = rewardedTrialsCount/lengthChoiceMadeTrials;
+    TaskParameters.GUI.Performance = [num2str(performance*100,'%.2f'),...
+        '%/', num2str(lengthChoiceMadeTrials), 'T'];
+    performance = rewardedTrialsCount/iTrial;
+    TaskParameters.GUI.AllPerformance = [...
+        num2str(performance*100,'%.2f'), '%/', num2str(iTrial), 'T'];
     NUM_LAST_TRIALS=20;
-    if lengthChoiceMadeTrials > NUM_LAST_TRIALS
-        choiceMadeTrials = choiceMadeTrials(lengthChoiceMadeTrials-NUM_LAST_TRIALS + 1:lengthChoiceMadeTrials);
-        performance = sum(choiceMadeTrials == true)/NUM_LAST_TRIALS;
-        TaskParameters.GUI.Performance = [TaskParameters.GUI.Performance, ...
-            ' - ', num2str(performance*100,'%.2f'), '%/', num2str(NUM_LAST_TRIALS) ,'T'];
+    if iTrial > NUM_LAST_TRIALS
+        if lengthChoiceMadeTrials > NUM_LAST_TRIALS
+            rewardedTrials_ = choiceMadeTrials(...
+                lengthChoiceMadeTrials-NUM_LAST_TRIALS + 1 :...
+                lengthChoiceMadeTrials);
+            performance = sum(rewardedTrials_ == true)/NUM_LAST_TRIALS;
+            TaskParameters.GUI.Performance = [...
+                TaskParameters.GUI.Performance, ...
+                ' - ', num2str(performance*100,'%.2f'), '%/',...
+                num2str(NUM_LAST_TRIALS) ,'T'];
+        end
+        rewardedTrialsCount = sum(BpodSystem.Data.Custom.Rewarded(...
+            iTrial-NUM_LAST_TRIALS+1:iTrial) == 1);
+        performance = rewardedTrialsCount/NUM_LAST_TRIALS;
+        TaskParameters.GUI.AllPerformance = [...
+            TaskParameters.GUI.AllPerformance, ...
+            ' - ', num2str(performance*100,'%.2f'), '%/',...
+            num2str(NUM_LAST_TRIALS), 'T'];
     end
 end
 BpodSystem.Data.Timer.customCalcBias(iTrial) = toc; tic;
