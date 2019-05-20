@@ -74,6 +74,22 @@ end
 
 if any(strcmp('WaitForRewardStart',statesThisTrial))  % CorrectChoice
     BpodSystem.Data.Custom.ChoiceCorrect(iTrial) = 1;
+    if BpodSystem.Data.Custom.CatchTrial(iTrial)
+        catch_stim_idx = GetCatchStimIdx(...
+                             BpodSystem.Data.Custom.StimulusOmega(iTrial));
+        % Lookup the stimulus probability and increase by its 1/frequency.
+        stim_val = BpodSystem.Data.Custom.StimulusOmega(iTrial) * 100;
+        if stim_val < 50
+            stim_val = 100 - stim_val;
+        end
+        stim_prob = TaskParameters.GUI.OmegaTable.OmegaProb(...
+                          TaskParameters.GUI.OmegaTable.Omega == stim_val);
+        sum_all_prob = sum(TaskParameters.GUI.OmegaTable.OmegaProb);
+        stim_prob = (1+sum_all_prob-stim_prob)/sum_all_prob;
+        BpodSystem.Data.Custom.CatchCount(catch_stim_idx) = ...
+             BpodSystem.Data.Custom.CatchCount(catch_stim_idx) + stim_prob;
+        BpodSystem.Data.Custom.LastSuccessCatchTial = iTrial;
+    end
     if any(strcmp('WaitForReward',statesThisTrial))  % Feedback waiting time
         BpodSystem.Data.Custom.FeedbackTime(iTrial) = BpodSystem.Data.RawEvents.Trial{end}.States.WaitForReward(end,end) - BpodSystem.Data.RawEvents.Trial{end}.States.WaitForRewardStart(1,1);
         if BpodSystem.Data.Custom.LeftRewarded(iTrial) == 1 % Correct choice = left
@@ -198,23 +214,6 @@ end
 BpodSystem.Data.Timer.customFeedbackDelay(iTrial) = toc; tic;
 
 %% Drawing future trials
-
-% determine if catch trial
-if iTrial > TaskParameters.GUI.StartEasyTrials
-    BpodSystem.Data.Custom.CatchTrial(iTrial+1) = rand(1,1) < TaskParameters.GUI.PercentCatch;
-else
-    BpodSystem.Data.Custom.CatchTrial(iTrial+1) = false;
-end
-% Create as char vector rather than string so that GUI sync doesn't complain
-TaskParameters.GUI.IsCatch = iff(BpodSystem.Data.Custom.CatchTrial(iTrial+1), 'true', 'false');
-
-% Determine if Forced LED trial:
-if TaskParameters.GUI.PortLEDtoCueReward
-    BpodSystem.Data.Custom.ForcedLEDTrial(iTrial+1) = rand(1,1) < TaskParameters.GUI.PercentForcedLEDTrial;
-else
-    BpodSystem.Data.Custom.ForcedLEDTrial(iTrial+1) = false;
-end
-BpodSystem.Data.Timer.customCatchNForceLed(iTrial) = toc; tic;
 
 % Calculate bias
 % Consider bias only on the last 8 trials/
@@ -402,7 +401,52 @@ end
 
 %%update hidden TaskParameter fields
 TaskParameters.Figures.ParameterGUI.Position = BpodSystem.ProtocolFigures.ParameterGUI.Position;
-BpodSystem.Data.Timer.customFinializeUpdate(iTrial) = toc; % tic;
+BpodSystem.Data.Timer.customFinializeUpdate(iTrial) = toc; tic;
+
+
+% determine if catch trial
+if iTrial < TaskParameters.GUI.StartEasyTrials || ...
+   TaskParameters.GUI.PercentCatch == 0
+    BpodSystem.Data.Custom.CatchTrial(iTrial+1) = false;
+else
+    every_n_trials = round(1/TaskParameters.GUI.PercentCatch);
+    limit = round(every_n_trials*0.2);
+    lower_limit = every_n_trials - limit;
+    upper_limit = every_n_trials + limit;
+    if ~BpodSystem.Data.Custom.Rewarded(iTrial) ||...
+     iTrial + 1 < BpodSystem.Data.Custom.LastSuccessCatchTial + lower_limit
+        BpodSystem.Data.Custom.CatchTrial(iTrial+1) = false;
+    elseif iTrial + 1 < BpodSystem.Data.Custom.LastSuccessCatchTial + upper_limit
+        %TODO: If OmegaProb changed since last time, then redo it
+        non_zero_prob = TaskParameters.GUI.OmegaTable.Omega(...
+                              TaskParameters.GUI.OmegaTable.OmegaProb > 0);
+        non_zero_prob = [1-(non_zero_prob'/100), flip(non_zero_prob'/100)];
+        active_stim_idxs = GetCatchStimIdx(non_zero_prob);
+        cur_stim_idx = GetCatchStimIdx(...
+                           BpodSystem.Data.Custom.StimulusOmega(iTrial+1));
+        min_catch_counts = min(...
+                      BpodSystem.Data.Custom.CatchCount(active_stim_idxs));
+        min_catch_idxs = intersect(active_stim_idxs,find(...
+            floor(BpodSystem.Data.Custom.CatchCount) == min_catch_counts));
+        if any(min_catch_idxs == cur_stim_idx)
+            BpodSystem.Data.Custom.CatchTrial(iTrial+1) = true;
+        else
+            BpodSystem.Data.Custom.CatchTrial(iTrial+1) = false;
+        end
+    else
+        BpodSystem.Data.Custom.CatchTrial(iTrial+1) = true;
+    end
+end
+% Create as char vector rather than string so that GUI sync doesn't complain
+TaskParameters.GUI.IsCatch = iff(BpodSystem.Data.Custom.CatchTrial(iTrial+1), 'true', 'false');
+% Determine if Forced LED trial:
+if TaskParameters.GUI.PortLEDtoCueReward
+    BpodSystem.Data.Custom.ForcedLEDTrial(iTrial+1) = rand(1,1) < TaskParameters.GUI.PercentForcedLEDTrial;
+else
+    BpodSystem.Data.Custom.ForcedLEDTrial(iTrial+1) = false;
+end
+BpodSystem.Data.Timer.customCatchNForceLed(iTrial) = toc; %tic;
+
 
 if iTrial == 3
        disp('Disabled attempt to save data to PHP server'); 

@@ -88,6 +88,8 @@ BpodSystem.Data.Custom.RewardMagnitude = TaskParameters.GUI.RewardAmount*[1,1];
 BpodSystem.Data.Custom.CenterPortRewAmount =TaskParameters.GUI.CenterPortRewAmount;
 BpodSystem.Data.Custom.TrialNumber = [];
 BpodSystem.Data.Custom.ForcedLEDTrial = false;
+BpodSystem.Data.Custom.CatchCount = zeros(1, 21);
+BpodSystem.Data.Custom.LastSuccessCatchTial = 1;
 
 file_size = 40*1024*1024; % 40 MB mem-mapped file
 mapped_file = createMMFile(tempdir, 'mmap_matlab_plot.dat', file_size);
