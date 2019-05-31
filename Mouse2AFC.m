@@ -165,11 +165,7 @@ BpodSystem.Data.Custom.ForcedLEDTrial = false;
 % make auditory stimuli for first trials
 for a = 1:2
     if BpodSystem.Data.Custom.AuditoryTrial(a)
-        if TaskParameters.GUI.AuditoryTrialSelection == 1
-            BpodSystem.Data.Custom.AuditoryOmega(a) = betarnd(TaskParameters.GUI.AuditoryAlpha/4,TaskParameters.GUI.AuditoryAlpha/4,1,1);
-        else
-            BpodSystem.Data.Custom.AuditoryOmega(a) = randsample([min(TaskParameters.GUI.OmegaTable.Omega) max(TaskParameters.GUI.OmegaTable.Omega)],1)/100;
-        end
+        BpodSystem.Data.Custom.AuditoryOmega(a) = round(rand(1)); % AuditoryOmega = 0 or 1 to make it really easy
         BpodSystem.Data.Custom.LeftClickRate(a) = round(BpodSystem.Data.Custom.AuditoryOmega(a)*TaskParameters.GUI.SumRates);
         BpodSystem.Data.Custom.RightClickRate(a) = round((1-BpodSystem.Data.Custom.AuditoryOmega(a))*TaskParameters.GUI.SumRates);
         BpodSystem.Data.Custom.LeftClickTrain{a} = GeneratePoissonClickTrain(BpodSystem.Data.Custom.LeftClickRate(a), TaskParameters.GUI.AuditoryStimulusTime);

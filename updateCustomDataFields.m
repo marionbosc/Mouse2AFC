@@ -226,7 +226,7 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
     if iTrial > TaskParameters.GUI.StartEasyTrials
         AuditoryAlpha = TaskParameters.GUI.AuditoryAlpha;
     else
-        AuditoryAlpha = TaskParameters.GUI.AuditoryAlpha/4;
+        AuditoryAlpha = round(rand(1)); % AuditoryOmega = 0 or 1 to make it really easy
     end
     % L/R Bias trial selection for Beta distribution
     BetaRatio = (1 - min(0.9,max(0.1,TaskParameters.GUI.LeftBiasAud))) / min(0.9,max(0.1,TaskParameters.GUI.LeftBiasAud)); %use a = ratio*b to yield E[X] = LeftBiasAud using Beta(a,b) pdf
@@ -239,7 +239,11 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - 5
                 BpodSystem.Data.Custom.AuditoryOmega(lastidx+a) = 0.5;
             else
                 if TaskParameters.GUI.AuditoryTrialSelection == 1 % Beta distribution trial selection
-                    BpodSystem.Data.Custom.AuditoryOmega(lastidx+a) = betarnd(max(0,BetaA),max(0,BetaB),1,1); %prevent negative parameters
+                    if iTrial < TaskParameters.GUI.StartEasyTrials % easy trial
+                        BpodSystem.Data.Custom.AuditoryOmega(lastidx+a) = round(rand(1)); % AuditoryOmega = 0 or 1 to make it really easy
+                    else
+                        BpodSystem.Data.Custom.AuditoryOmega(lastidx+a) = betarnd(max(0,BetaA),max(0,BetaB),1,1); %prevent negative parameters
+                    end
                 else % Discrete value trial selection
                     if iTrial < TaskParameters.GUI.StartEasyTrials % easy trial 
                         EasyProb = zeros(numel(TaskParameters.GUI.OmegaTable.OmegaProb),1);
