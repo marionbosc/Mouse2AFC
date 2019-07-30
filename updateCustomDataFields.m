@@ -155,8 +155,13 @@ switch TaskParameters.GUIMeta.FeedbackDelaySelection.String{TaskParameters.GUI.F
                 max(TaskParameters.GUI.FeedbackDelayMin,BpodSystem.Data.Custom.FeedbackDelay(iTrial)+TaskParameters.GUI.FeedbackDelayIncr));
         end
     case 'TruncExp'
-        TaskParameters.GUI.FeedbackDelay = TruncatedExponential(TaskParameters.GUI.FeedbackDelayMin,...
-            TaskParameters.GUI.FeedbackDelayMax,TaskParameters.GUI.FeedbackDelayTau);
+        if iTrial > TaskParameters.GUI.StartEasyTrials
+            TaskParameters.GUI.FeedbackDelay = TruncatedExponential(TaskParameters.GUI.FeedbackDelayMin,...
+                TaskParameters.GUI.FeedbackDelayMax,TaskParameters.GUI.FeedbackDelayTau);
+        else
+            TaskParameters.GUI.FeedbackDelay = TruncatedExponential(TaskParameters.GUI.FeedbackDelayMin,...
+                min(TaskParameters.GUI.FeedbackDelayMax,1),min(TaskParameters.GUI.FeedbackDelayTau,0.7));
+        end
     case 'Fix'
         %     ATTEMPT TO GRAY OUT FIELDS
         %     if ~strcmp('edit',TaskParameters.GUIMeta.FeedbackDelay.Style)

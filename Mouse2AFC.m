@@ -184,7 +184,7 @@ for a = 1:2
         end
         if length(BpodSystem.Data.Custom.LeftClickTrain{a}) > length(BpodSystem.Data.Custom.RightClickTrain{a})
             BpodSystem.Data.Custom.LeftRewarded(a) = double(1);
-        elseif length(BpodSystem.Data.Custom.LeftClickTrain{1}) < length(BpodSystem.Data.Custom.RightClickTrain{a})
+        elseif length(BpodSystem.Data.Custom.LeftClickTrain{a}) < length(BpodSystem.Data.Custom.RightClickTrain{a})
             BpodSystem.Data.Custom.LeftRewarded(a) = double(0);
         else
             BpodSystem.Data.Custom.LeftRewarded(a) = rand<0.5;
