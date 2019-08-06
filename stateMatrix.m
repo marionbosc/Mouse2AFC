@@ -69,8 +69,9 @@ elseif TaskParameters.GUI.ExperimentType == ExperimentType.RandomDots
     BpodSystem.Data.Custom.rDots.apertureSizeWidth = TaskParameters.GUI.apertureSizeWidth;
     BpodSystem.Data.Custom.rDots.apertureSizeHeight = TaskParameters.GUI.apertureSizeHeight;
     BpodSystem.Data.Custom.rDots.drawRatio = TaskParameters.GUI.drawRatio;
-    BpodSystem.Data.Custom.rDots.mainDirection = iff(IsLeftRewarded, 270, 90);
-    
+    BpodSystem.Data.Custom.rDots.mainDirection = floor(RDKDirection.getDegrees(...
+        iff(IsLeftRewarded,TaskParameters.GUI.RDKAngleLeftPort,...
+                           TaskParameters.GUI.RDKAngleRightPort)));
     BpodSystem.Data.Custom.rDots.dotSpeed = TaskParameters.GUI.dotSpeedDegsPerSec;
     BpodSystem.Data.Custom.rDots.dotLifetimeSecs = TaskParameters.GUI.dotLifetimeSecs;
     BpodSystem.Data.Custom.rDots.coherence = BpodSystem.Data.Custom.DotsCoherence(iTrial);

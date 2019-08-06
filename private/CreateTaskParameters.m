@@ -151,12 +151,18 @@ TaskParameters.GUI.centerY = 0;
 TaskParameters.GUIPanels.VisualGeneral = {'screenNumber','runSyncTests',...
     'centerX','centerY'};
 % Random dots options
+TaskParameters.GUI.RDKAngleRightPort = RDKDirection.Degrees90;
+TaskParameters.GUIMeta.RDKAngleRightPort.Style = 'popupmenu';
+TaskParameters.GUIMeta.RDKAngleRightPort.String = RDKDirection.String;
+TaskParameters.GUI.RDKAngleLeftPort = RDKDirection.Degrees270;
+TaskParameters.GUIMeta.RDKAngleLeftPort.Style = 'popupmenu';
+TaskParameters.GUIMeta.RDKAngleLeftPort.String = RDKDirection.String;
 TaskParameters.GUI.screenDistCm = 30;
 TaskParameters.GUI.screenWidthCm = 20;
 TaskParameters.GUI.apertureSizeWidth = 36; % size of rectangular aperture [w,h] in degrees
 TaskParameters.GUI.apertureSizeHeight = 36;
 % Use 20% of the screen size
-TaskParameters.GUI.drawRatio = 0.2; 
+TaskParameters.GUI.drawRatio = 0.2;
 TaskParameters.GUI.circleArea = (pi*((TaskParameters.GUI.apertureSizeWidth/2).^2)); % assume apertureSize is the diameter
 TaskParameters.GUIMeta.circleArea.Style = 'text';
 TaskParameters.GUI.nDots = round(TaskParameters.GUI.circleArea * 0.05);
@@ -165,9 +171,10 @@ TaskParameters.GUIMeta.nDots.Style = 'text';
 TaskParameters.GUI.dotSizeInDegs = 2; % size of dots in degrees
 TaskParameters.GUI.dotSpeedDegsPerSec = 25; %degrees/second
 TaskParameters.GUI.dotLifetimeSecs = 1;  %lifetime of each dot sec
-TaskParameters.GUIPanels.RandomDots = {'screenDistCm','screenWidthCm',...
-    'apertureSizeWidth','apertureSizeHeight','drawRatio','circleArea',...
-    'nDots','dotSizeInDegs','dotSpeedDegsPerSec','dotLifetimeSecs'};
+TaskParameters.GUIPanels.RandomDots = {'RDKAngleRightPort',...
+    'RDKAngleLeftPort','screenDistCm','screenWidthCm','apertureSizeWidth',...
+    'apertureSizeHeight','drawRatio','circleArea','nDots','dotSizeInDegs',...
+    'dotSpeedDegsPerSec','dotLifetimeSecs'};
 % Grating orientation specific
 TaskParameters.GUI.gaborSizeFactor = 1.0;
 TaskParameters.GUI.phase = 0.5; % Phase of the wave, goes between 0 to 360
