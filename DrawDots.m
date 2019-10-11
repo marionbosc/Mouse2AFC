@@ -1,6 +1,6 @@
 % A modified version from the code found in:
 % http://www.mbfys.ru.nl/~robvdw/DGCN22/PRACTICUM_2011/LABS_2011/ALTERNATIVE_LABS/Lesson_2.html#18
-function DrawDots()
+function DrawDots(varargin)
 
 BLACK_COLOR=0;
 WHITE_COLOR=[255,255,255];
@@ -14,9 +14,13 @@ tic;
 % Setup PTB with some default values
 %PsychDefaultSetup(2);
 
-% Set the screen number to the external secondary monitor if there is one
-% connected
-screenNumber = max(Screen('Screens'));
+if nargin == 0
+   % Set the screen number to the external secondary monitor if there is one
+   % connected
+   screenNumber = max(Screen('Screens'));
+else
+   screenNumber = str2double(varargin(1));
+end
 
 % Skip sync tests for demo purposes only
 Screen('Preference', 'SkipSyncTests', 1);
