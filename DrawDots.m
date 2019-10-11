@@ -28,6 +28,12 @@ Screen('Preference', 'SkipSyncTests', 1);
 disp('Setting up screen: ' + string(toc));
 tic;
 
+disp(windowRect)
+%[width, height]=Screen(?WindowSize?, windowPointerOrScreenNumber [, realFBSize=0]);
+
+%photoDiodeBox = [windowRect(3)-2, 0, windowRect(3), 20];
+photoDiodeBox = [0 0 windowRect(3)/15 windowRect(4)/15]
+
 ifi = Screen('GetFlipInterval', windowPtr);
 frameRate = 1/ifi;
 
@@ -133,6 +139,7 @@ while true
 
             vbl = 0; % Draw the frame asap once we are told
             % disp('Setting up took: ' + string(toc));
+            Screen(windowPtr, 'FillRect', WHITE_COLOR, photoDiodeBox);
         else
             pause(0.01);
             continue;
@@ -206,6 +213,8 @@ while true
                   dotsParams.apertureSizeWidth + dotsParams.centerX;
     y(deadDots) = (rand(1,sum(deadDots))-.5)*...
                   dotsParams.apertureSizeHeight + dotsParams.centerY;
+
+    Screen(windowPtr, 'FillRect', WHITE_COLOR, photoDiodeBox);
 
     next_frame_time = vbl + ifi;
     %disp('Post draw took: ' + string(toc));
