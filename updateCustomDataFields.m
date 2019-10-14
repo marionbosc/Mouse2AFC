@@ -50,7 +50,9 @@ BpodSystem.Data.Timer.customInitialize(iTrial) = toc; tic;
 % Extract the states that were used in the last trial
 statesThisTrial = BpodSystem.Data.RawData.OriginalStateNamesByNumber{iTrial}(BpodSystem.Data.RawData.OriginalStateData{iTrial});
 if any(strcmp('WaitForStimulus',statesThisTrial))
-    BpodSystem.Data.Custom.FixDur(iTrial) = diff(BpodSystem.Data.RawEvents.Trial{end}.States.WaitForStimulus);
+    BpodSystem.Data.Custom.FixDur(iTrial) = ...
+     (eventsStatesThisTrial.WaitForStimulus(end,2) - eventsStatesThisTrial.WaitForStimulus(end,1)) + ...
+     (eventsStatesThisTrial.TriggerWaitForStimulus(end,2) - eventsStatesThisTrial.TriggerWaitForStimulus(end,1));
 end
 if any(strcmp('stimulus_delivery',statesThisTrial))
     if TaskParameters.GUI.RewardAfterMinSampling
