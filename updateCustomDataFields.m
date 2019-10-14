@@ -138,7 +138,7 @@ BpodSystem.Data.Custom.StimDelay(iTrial) = TaskParameters.GUI.StimDelay;
 BpodSystem.Data.Custom.FeedbackDelay(iTrial) = TaskParameters.GUI.FeedbackDelay;
 BpodSystem.Data.Custom.MinSample(iTrial) = TaskParameters.GUI.MinSample;
 BpodSystem.Data.Custom.RewardMagnitude(iTrial+1,:) = TaskParameters.GUI.RewardAmount*[1,1];
-BpodSystem.Data.Custom.CenterPortRewAmount(iTrial+1) =TaskParameters.GUI.CenterPortRewAmount;
+BpodSystem.Data.Custom.CenterPortRewAmount(iTrial+1) = TaskParameters.GUI.CenterPortRewAmount;
 
 BpodSystem.Data.Timer.customExtractData(iTrial) = toc; tic;
 
