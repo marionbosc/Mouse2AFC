@@ -133,6 +133,12 @@ end
 if any(strcmp('CenterPortRewardDelivery',statesThisTrial)) && TaskParameters.GUI.RewardAfterMinSampling
     BpodSystem.Data.Custom.RewardAfterMinSampling(iTrial) = true;
 end
+if any(strcmp('WaitCenterPortOut',statesThisTrial))
+    BpodSystem.Data.Custom.ReactionTime(iTrial) = diff(eventsStatesThisTrial.WaitCenterPortOut);
+else % Assign with -1 so we can differntiate it from nan trials where the
+     % state potentially existed but we didn't calculate it
+    BpodSystem.Data.Custom.ReactionTime(iTrial) = -1;
+end
 %% State-independent fields
 BpodSystem.Data.Custom.StimDelay(iTrial) = TaskParameters.GUI.StimDelay;
 BpodSystem.Data.Custom.FeedbackDelay(iTrial) = TaskParameters.GUI.FeedbackDelay;
