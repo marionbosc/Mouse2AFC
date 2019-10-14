@@ -159,22 +159,51 @@ end
 BpodSystem.Data.Timer.customStimDelay(iTrial) = toc; tic;
 
 %min sampling time
-if TaskParameters.GUI.MinSampleAutoincrement && iTrial > TaskParameters.GUI.StartEasyTrials
-	% Check if animal completed pre-stimulus delay successfully
-	if ~BpodSystem.Data.Custom.FixBroke(iTrial)
-		if BpodSystem.Data.Custom.Rewarded(iTrial)
-			TaskParameters.GUI.MinSample = min(TaskParameters.GUI.MinSampleMax,...
-				max(TaskParameters.GUI.MinSampleMin,BpodSystem.Data.Custom.MinSample(iTrial) + TaskParameters.GUI.MinSampleIncr));
-		elseif BpodSystem.Data.Custom.EarlyWithdrawal(iTrial)
-			TaskParameters.GUI.MinSample = max(TaskParameters.GUI.MinSampleMin,...
-				min(TaskParameters.GUI.MinSampleMax,BpodSystem.Data.Custom.MinSample(iTrial) - TaskParameters.GUI.MinSampleDecr));
-		end
-	else % Read new updated GUI values
-		TaskParameters.GUI.MinSample = max(TaskParameters.GUI.MinSampleMin,...
-			min(TaskParameters.GUI.MinSampleMax,BpodSystem.Data.Custom.MinSample(iTrial)));
-	end
-else % Use non-incremental fixed value
-    TaskParameters.GUI.MinSample = TaskParameters.GUI.MinSampleMin;
+if iTrial > TaskParameters.GUI.StartEasyTrials
+    switch TaskParameters.GUI.MinSampleType
+        case MinSampleType.FixMin
+            TaskParameters.GUI.MinSample = TaskParameters.GUI.MinSampleMin;
+        case MinSampleType.AutoIncr
+            % Check if animal completed pre-stimulus delay successfully
+            if ~BpodSystem.Data.Custom.FixBroke(iTrial)
+                if BpodSystem.Data.Custom.Rewarded(iTrial)
+                    TaskParameters.GUI.MinSample = min(TaskParameters.GUI.MinSampleMax,...
+                        max(TaskParameters.GUI.MinSampleMin,BpodSystem.Data.Custom.MinSample(iTrial) + TaskParameters.GUI.MinSampleIncr));
+                elseif BpodSystem.Data.Custom.EarlyWithdrawal(iTrial)
+                    TaskParameters.GUI.MinSample = max(TaskParameters.GUI.MinSampleMin,...
+                        min(TaskParameters.GUI.MinSampleMax,BpodSystem.Data.Custom.MinSample(iTrial) - TaskParameters.GUI.MinSampleDecr));
+                end
+            else % Read new updated GUI values
+                TaskParameters.GUI.MinSample = max(TaskParameters.GUI.MinSampleMin,...
+                    min(TaskParameters.GUI.MinSampleMax,BpodSystem.Data.Custom.MinSample(iTrial)));
+            end
+        case MinSampleType.RandBetMinMax_DefIsMax
+            use_rand = rand(1,1) < TaskParameters.GUI.MinSampleRandProb;
+            if ~use_rand
+                TaskParameters.GUI.MinSample = TaskParameters.GUI.MinSampleMax;
+            else
+                TaskParameters.GUI.MinSample = (TaskParameters.GUI.MinSampleMax-TaskParameters.GUI.MinSampleMin).*rand(1,1) + TaskParameters.GUI.MinSampleMin;
+            end
+        case MinSampleType.RandNumIntervalsMinMax_DefIsMax
+            use_rand = rand(1,1) < TaskParameters.GUI.MinSampleRandProb;
+            if ~use_rand
+                TaskParameters.GUI.MinSample = TaskParameters.GUI.MinSampleMax;
+            else
+                TaskParameters.GUI.MinSampleNumInterval = round(TaskParameters.GUI.MinSampleNumInterval);
+                if TaskParameters.GUI.MinSampleNumInterval == 0 || TaskParameters.GUI.MinSampleNumInterval == 1
+                    TaskParameters.GUI.MinSample = TaskParameters.GUI.MinSampleMin;
+                else
+                    step = (TaskParameters.GUI.MinSampleMax - TaskParameters.GUI.MinSampleMin)/(TaskParameters.GUI.MinSampleNumInterval-1);
+                    intervals = [TaskParameters.GUI.MinSampleMin:step:TaskParameters.GUI.MinSampleMax];
+                    intervals_idx = randi([1 TaskParameters.GUI.MinSampleNumInterval],1,1);
+                    disp("Intervals:");
+                    disp(intervals)
+                    TaskParameters.GUI.MinSample = intervals(intervals_idx);
+                end
+            end
+        otherwise
+            assert(false, 'Unexpected MinSampleType value');
+    end
 end
 BpodSystem.Data.Timer.customMinSampling(iTrial) = toc; tic;
 

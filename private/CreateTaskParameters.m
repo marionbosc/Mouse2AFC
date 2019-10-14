@@ -6,8 +6,6 @@ TaskParameters.GUIMeta.ExperimentType.Style = 'popupmenu';
 TaskParameters.GUIMeta.ExperimentType.String = ExperimentType.String;
 TaskParameters.GUI.ITI = 0; % (s)
 TaskParameters.GUI.RewardAmount = 5;
-TaskParameters.GUI.CutAirReward = false;
-TaskParameters.GUIMeta.CutAirReward.Style = 'checkbox';
 TaskParameters.GUI.ChoiceDeadLine = 20;
 TaskParameters.GUI.TimeOutIncorrectChoice = 0; % (s)
 TaskParameters.GUI.TimeOutBrokeFixation = 0; % (s)
@@ -26,7 +24,7 @@ TaskParameters.GUIMeta.CatchError.Style = 'checkbox';
 TaskParameters.GUI.Ports_LMRAir = 1238;
 TaskParameters.GUI.Wire1VideoTrigger = false;
 TaskParameters.GUIMeta.Wire1VideoTrigger.Style = 'checkbox';
-TaskParameters.GUIPanels.General = {'ExperimentType','ITI','RewardAmount','CutAirReward','ChoiceDeadLine',...
+TaskParameters.GUIPanels.General = {'ExperimentType','ITI','RewardAmount','ChoiceDeadLine',...
     'TimeOutIncorrectChoice','TimeOutBrokeFixation','TimeOutEarlyWithdrawal','TimeOutMissedChoice',...
     'TimeOutSkippedFeedback','PlayNoiseforError','PCTimeout',...
     'StartEasyTrials','Percent50Fifty','PercentCatch','CatchError','Ports_LMRAir','Wire1VideoTrigger'};
@@ -38,11 +36,10 @@ TaskParameters.GUI.StimDelayMin = 0.3;
 TaskParameters.GUI.StimDelayMax = 0.6;
 TaskParameters.GUI.StimDelayIncr = 0.01;
 TaskParameters.GUI.StimDelayDecr = 0.01;
-TaskParameters.GUI.CutAirStimDelay = true;
-TaskParameters.GUIMeta.CutAirStimDelay.Style = 'checkbox';
+TaskParameters.GUI.StimDelayGrace = 0.1;
 TaskParameters.GUI.StimDelay = TaskParameters.GUI.StimDelayMin;
 TaskParameters.GUIMeta.StimDelay.Style = 'text';
-TaskParameters.GUIPanels.StimDelay = {'StimDelayAutoincrement','StimDelayMin','StimDelayMax','StimDelayIncr','StimDelayDecr','CutAirStimDelay'};
+TaskParameters.GUIPanels.StimDelay = {'StimDelayAutoincrement','StimDelayMin','StimDelayMax','StimDelayIncr','StimDelayDecr','StimDelayGrace'};
 %% FeedbackDelay
 TaskParameters.GUI.FeedbackDelaySelection = FeedbackDelaySelection.Fix;
 TaskParameters.GUIMeta.FeedbackDelaySelection.Style = 'popupmenu';
@@ -62,6 +59,14 @@ TaskParameters.GUIMeta.ITISignalType.String = ITISignalType.String;
 TaskParameters.GUI.FeedbackDelay = TaskParameters.GUI.FeedbackDelayMin;
 TaskParameters.GUIMeta.FeedbackDelay.Style = 'text';
 TaskParameters.GUIPanels.FeedbackDelay = {'FeedbackDelaySelection','FeedbackDelayMin','FeedbackDelayMax','FeedbackDelayIncr','FeedbackDelayDecr','FeedbackDelayTau','FeedbackDelayGrace','IncorrectChoiceSignalType','ITISignalType'};
+%% Air control
+TaskParameters.GUI.CutAirStimDelay = true;
+TaskParameters.GUIMeta.CutAirStimDelay.Style = 'checkbox';
+TaskParameters.GUI.CutAirSampling = true;
+TaskParameters.GUIMeta.CutAirSampling.Style = 'checkbox';
+TaskParameters.GUI.CutAirReward = false;
+TaskParameters.GUIMeta.CutAirReward.Style = 'checkbox';
+TaskParameters.GUIPanels.AirControl = {'CutAirStimDelay','CutAirReward','CutAirSampling'};
 %% Stimulus and Sampling Params
 % Stimulus
 TaskParameters.GUI.LeftBias = 0.5;
@@ -107,12 +112,13 @@ TaskParameters.GUIMeta.RewardAfterMinSampling.Style = 'checkbox';
 TaskParameters.GUI.CenterPortRewAmount = 0.5;
 TaskParameters.GUI.MinSampleMin = 0;
 TaskParameters.GUI.MinSampleMax = 0;
-TaskParameters.GUI.MinSampleAutoincrement = false;
-TaskParameters.GUIMeta.MinSampleAutoincrement.Style = 'checkbox';
+TaskParameters.GUI.MinSampleType = MinSampleType.AutoIncr;
+TaskParameters.GUIMeta.MinSampleType.Style = 'popupmenu';
+TaskParameters.GUIMeta.MinSampleType.String = MinSampleType.String;
 TaskParameters.GUI.MinSampleIncr = 0.05;
 TaskParameters.GUI.MinSampleDecr = 0.02;
-TaskParameters.GUI.CutAirSampling = true;
-TaskParameters.GUIMeta.CutAirSampling.Style = 'checkbox';
+TaskParameters.GUI.MinSampleNumInterval = 1;
+TaskParameters.GUI.MinSampleRandProb = 0;
 TaskParameters.GUI.MinSample = TaskParameters.GUI.MinSampleMin;
 TaskParameters.GUIMeta.MinSample.Style = 'text';
 TaskParameters.GUI.PercentForcedLEDTrial = 0;
@@ -132,8 +138,8 @@ TaskParameters.GUIPanels.Auditory = {'SumRates'};
 TaskParameters.GUIPanels.LightIntensity = {'LeftPokeAttenPrcnt','CenterPokeAttenPrcnt','RightPokeAttenPrcnt','StimAfterPokeOut', 'BeepAfterMinSampling'};
 TaskParameters.GUIPanels.StimulusSelection = {'OmegaTable','TableNote','BetaDistAlphaNBeta','StimulusSelectionCriteria','LeftBias','LeftBiasVal','CorrectBias'};
 TaskParameters.GUIPanels.Sampling = {'RewardAfterMinSampling','CenterPortRewAmount','MinSampleMin',...
-                                     'MinSampleMax','MinSampleAutoincrement','MinSampleIncr','MinSampleDecr',...
-                                     'CutAirSampling','StimulusTime','PortLEDtoCueReward','PercentForcedLEDTrial'};
+                                     'MinSampleMax','MinSampleType','MinSampleIncr','MinSampleDecr','MinSampleNumInterval','MinSampleRandProb',...
+                                     'StimulusTime','PortLEDtoCueReward','PercentForcedLEDTrial'};
 TaskParameters.GUI.Performance = '(Calc. after 1st trial)';
 TaskParameters.GUIMeta.Performance.Style = 'text';
 TaskParameters.GUI.AllPerformance = '(Calc. after 1st trial)';
@@ -227,7 +233,7 @@ TaskParameters.GUIPanels.Vevaiometric = {'VevaiometricYLim', ...
 %%
 TaskParameters.GUI = orderfields(TaskParameters.GUI);
 %% Tabs
-TaskParameters.GUITabs.General = {'CurrentTrial','StimDelay','General','FeedbackDelay'};
+TaskParameters.GUITabs.General = {'CurrentTrial','StimDelay','General','FeedbackDelay','AirControl'};
 TaskParameters.GUITabs.Sampling = {'CurrentTrial','LightIntensity','Auditory','Sampling','StimulusSelection'};
 TaskParameters.GUITabs.Visual = {'CurrentTrial','VisualGeneral','RandomDots','Grating'};
 TaskParameters.GUITabs.Plots = {'ShowPlots','Vevaiometric'};
