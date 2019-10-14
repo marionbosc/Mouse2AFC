@@ -62,6 +62,8 @@ elseif ~strcmp(TaskParameters.GUI.ComputerName, computerName)
         return;
     end
 end
+% Set to nan so user might remember to set it
+TaskParameters.GUI.MouseWeight = nan;
 TaskParameters.GUI.ComputerName = computerName;
 BpodParameterGUI('init', TaskParameters);
 

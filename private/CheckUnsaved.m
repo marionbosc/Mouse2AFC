@@ -8,7 +8,7 @@ else
     fields_names = fieldnames(CurTaskParameters.GUI);
     for n=1:length(fields_names)
         field_name = fields_names{n};
-        if isequal(field_name, 'GUIVer')
+        if isequal(field_name, 'GUIVer') || isequal(field_name, 'MouseWeight')
             continue
         elseif isfield(CurTaskParameters.GUI,field_name) && ...
           ~isfield(SavedTaskParameters.GUI, field_name)

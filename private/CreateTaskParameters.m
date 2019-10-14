@@ -144,15 +144,16 @@ TaskParameters.GUIPanels.Sampling = {'RewardAfterMinSampling','CenterPortRewAmou
 TaskParameters.GUI.MouseState = MouseState.FreelyMoving;
 TaskParameters.GUIMeta.MouseState.Style = 'popupmenu';
 TaskParameters.GUIMeta.MouseState.String = MouseState.String;
+TaskParameters.GUI.MouseWeight = nan;
 TaskParameters.GUI.Performance = '(Calc. after 1st trial)';
 TaskParameters.GUIMeta.Performance.Style = 'text';
 TaskParameters.GUI.AllPerformance = '(Calc. after 1st trial)';
 TaskParameters.GUIMeta.AllPerformance.Style = 'text';
 TaskParameters.GUI.IsCatch = 'false';
 TaskParameters.GUIMeta.IsCatch.Style = 'text';
-TaskParameters.GUIPanels.CurrentTrial = {'MouseState','StimDelay',...
-    'MinSample','CurrentStim','CalcLeftBias','FeedbackDelay','IsCatch',...
-    'Performance','AllPerformance'};
+TaskParameters.GUIPanels.CurrentTrial = {'MouseState','MouseWeight',...
+    'StimDelay','MinSample','CurrentStim','CalcLeftBias',...
+    'FeedbackDelay','IsCatch','Performance','AllPerformance'};
 % General Visual options
 TaskParameters.GUI.screenNumber = 2;
 TaskParameters.GUI.runSyncTests = false;
