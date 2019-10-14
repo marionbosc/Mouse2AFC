@@ -39,7 +39,8 @@ TaskParameters.GUI.StimDelayDecr = 0.01;
 TaskParameters.GUI.StimDelayGrace = 0.1;
 TaskParameters.GUI.StimDelay = TaskParameters.GUI.StimDelayMin;
 TaskParameters.GUIMeta.StimDelay.Style = 'text';
-TaskParameters.GUIPanels.StimDelay = {'StimDelayAutoincrement','StimDelayMin','StimDelayMax','StimDelayIncr','StimDelayDecr','StimDelayGrace'};
+TaskParameters.GUI.PreStimuDelayCntrReward = 0;
+TaskParameters.GUIPanels.StimDelay = {'StimDelayAutoincrement','StimDelayMin','StimDelayMax','StimDelayIncr','StimDelayDecr','StimDelayGrace','PreStimuDelayCntrReward'};
 %% FeedbackDelay
 TaskParameters.GUI.FeedbackDelaySelection = FeedbackDelaySelection.Fix;
 TaskParameters.GUIMeta.FeedbackDelaySelection.Style = 'popupmenu';

@@ -146,7 +146,7 @@ switch Action
         ndxRwd = DataCustom.Rewarded;
         C = zeros(size(R)); C(DataCustom.ChoiceLeft==1&ndxRwd,1) = 1; C(DataCustom.ChoiceLeft==0&ndxRwd,2) = 1;
         R = R.*C;
-        RewardObtained = sum([sum(R(:)) sum(RCP)]);
+        RewardObtained = sum([sum(R(:)) sum(RCP)]) + sum(DataCustom.PreStimCntrReward);
         set(AxesHandles.CumRwd, 'position', [iTrial+1 1], 'string', ...
             [num2str(RewardObtained/1000) ' mL']);
         clear R C
