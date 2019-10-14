@@ -140,14 +140,18 @@ TaskParameters.GUIPanels.StimulusSelection = {'OmegaTable','TableNote','BetaDist
 TaskParameters.GUIPanels.Sampling = {'RewardAfterMinSampling','CenterPortRewAmount','MinSampleMin',...
                                      'MinSampleMax','MinSampleType','MinSampleIncr','MinSampleDecr','MinSampleNumInterval','MinSampleRandProb',...
                                      'StimulusTime','PortLEDtoCueReward','PercentForcedLEDTrial'};
+%% Summary Tab
+TaskParameters.GUI.MouseState = MouseState.FreelyMoving;
+TaskParameters.GUIMeta.MouseState.Style = 'popupmenu';
+TaskParameters.GUIMeta.MouseState.String = MouseState.String;
 TaskParameters.GUI.Performance = '(Calc. after 1st trial)';
 TaskParameters.GUIMeta.Performance.Style = 'text';
 TaskParameters.GUI.AllPerformance = '(Calc. after 1st trial)';
 TaskParameters.GUIMeta.AllPerformance.Style = 'text';
 TaskParameters.GUI.IsCatch = 'false';
 TaskParameters.GUIMeta.IsCatch.Style = 'text';
-TaskParameters.GUIPanels.CurrentTrial = {'StimDelay','MinSample',...
-    'CurrentStim','CalcLeftBias','FeedbackDelay', 'IsCatch',...
+TaskParameters.GUIPanels.CurrentTrial = {'MouseState','StimDelay',...
+    'MinSample','CurrentStim','CalcLeftBias','FeedbackDelay','IsCatch',...
     'Performance','AllPerformance'};
 % General Visual options
 TaskParameters.GUI.screenNumber = 2;
