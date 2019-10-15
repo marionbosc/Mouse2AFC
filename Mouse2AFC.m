@@ -5,6 +5,8 @@ function Mouse2AFC
 global BpodSystem
 addpath('Definitions');
 
+% Check before overriding TaskParameters
+BpodSystem.Data.Custom.IsHomeCage = isfield(BpodSystem.ProtocolSettings, 'HomeCage');
 %% Task parameters
 global TaskParameters
 TaskParameters = BpodSystem.ProtocolSettings;

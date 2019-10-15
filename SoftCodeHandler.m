@@ -32,5 +32,8 @@ elseif softCode == 5
     BpodSystem.Data.dotsMapped_file.Data(1:4) = typecast(uint32(2), 'uint8');
 elseif softCode == 6
     BpodSystem.Data.dotsMapped_file.Data(1:4) = typecast(uint32(0), 'uint8');
+elseif softCode == 30 && BpodSystem.Data.Custom.IsHomeCage
+    disp('Reporting animal is using the system at this very moment.');
+    BpodSystem.ProtocolSettings.HomeCage.ReportAnimalInsideFn();
 end
 end
