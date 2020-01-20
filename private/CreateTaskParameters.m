@@ -125,6 +125,9 @@ TaskParameters.GUIMeta.MinSample.Style = 'text';
 TaskParameters.GUI.PercentForcedLEDTrial = 0;
 TaskParameters.GUI.PortLEDtoCueReward = false;
 TaskParameters.GUIMeta.PortLEDtoCueReward.Style = 'checkbox';
+TaskParameters.GUI.OptoProb_stimulus_delivery = 0;
+TaskParameters.GUI.OptoTrial_stimulus_delivery = '';
+TaskParameters.GUIMeta.OptoTrial_stimulus_delivery.Style = 'text';
 % Auditory Specific
 TaskParameters.GUI.SumRates = 100;
 % Light Intensity Specific
@@ -140,7 +143,8 @@ TaskParameters.GUIPanels.LightIntensity = {'LeftPokeAttenPrcnt','CenterPokeAtten
 TaskParameters.GUIPanels.StimulusSelection = {'OmegaTable','TableNote','BetaDistAlphaNBeta','StimulusSelectionCriteria','LeftBias','LeftBiasVal','CorrectBias'};
 TaskParameters.GUIPanels.Sampling = {'RewardAfterMinSampling','CenterPortRewAmount','MinSampleMin',...
                                      'MinSampleMax','MinSampleType','MinSampleIncr','MinSampleDecr','MinSampleNumInterval','MinSampleRandProb',...
-                                     'StimulusTime','PortLEDtoCueReward','PercentForcedLEDTrial'};
+                                     'StimulusTime','PortLEDtoCueReward','PercentForcedLEDTrial','OptoProb_stimulus_delivery',...
+                                     'OptoTrial_stimulus_delivery'};
 %% Summary Tab
 TaskParameters.GUI.MouseState = MouseState.FreelyMoving;
 TaskParameters.GUIMeta.MouseState.Style = 'popupmenu';

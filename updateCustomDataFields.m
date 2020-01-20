@@ -42,6 +42,9 @@ BpodSystem.Data.Custom.ST(iTrial) = NaN;
 BpodSystem.Data.Custom.Rewarded(iTrial) = false;
 % Signals whether a center-port reward was given after min-sampling ends.
 BpodSystem.Data.Custom.RewardAfterMinSampling(iTrial) = false;
+% Tracks the amount of water the animal received up tp this point
+BpodSystem.Data.Custom.RewardReceivedTotal(iTrial+1) = 0; % We will updated later
+
 BpodSystem.Data.Custom.TrialNumber(iTrial) = iTrial;
 
 BpodSystem.Data.Timer.customInitialize(iTrial) = toc; tic;
@@ -129,9 +132,13 @@ if any(strcmp('timeOut_SkippedFeedback',statesThisTrial))
 end
 if any(strcmp('Reward',statesThisTrial))
     BpodSystem.Data.Custom.Rewarded(iTrial) = true;
+    BpodSystem.Data.Custom.RewardReceivedTotal(iTrial) = ...
+        BpodSystem.Data.Custom.RewardReceivedTotal(iTrial) + TaskParameters.GUI.RewardAmount;
 end
 if any(strcmp('CenterPortRewardDelivery',statesThisTrial)) && TaskParameters.GUI.RewardAfterMinSampling
     BpodSystem.Data.Custom.RewardAfterMinSampling(iTrial) = true;
+    BpodSystem.Data.Custom.RewardReceivedTotal(iTrial) = ...
+        BpodSystem.Data.Custom.RewardReceivedTotal(iTrial) + TaskParameters.GUI.CenterPortRewAmount;
 end
 if any(strcmp('WaitCenterPortOut',statesThisTrial))
     BpodSystem.Data.Custom.ReactionTime(iTrial) = diff(eventsStatesThisTrial.WaitCenterPortOut);
@@ -146,7 +153,6 @@ BpodSystem.Data.Custom.MinSample(iTrial) = TaskParameters.GUI.MinSample;
 BpodSystem.Data.Custom.RewardMagnitude(iTrial+1,:) = TaskParameters.GUI.RewardAmount*[1,1];
 BpodSystem.Data.Custom.CenterPortRewAmount(iTrial+1) = TaskParameters.GUI.CenterPortRewAmount;
 BpodSystem.Data.Custom.PreStimCntrReward(iTrial+1) = TaskParameters.GUI.PreStimuDelayCntrReward;
-
 BpodSystem.Data.Timer.customExtractData(iTrial) = toc; tic;
 
 %% Updating Delays
@@ -442,6 +448,13 @@ end
 TaskParameters.Figures.ParameterGUI.Position = BpodSystem.ProtocolFigures.ParameterGUI.Position;
 BpodSystem.Data.Timer.customFinializeUpdate(iTrial) = toc; tic;
 
+%determine if optogentics trial
+OptoEnabled = rand(1,1) <  TaskParameters.GUI.OptoProb_stimulus_delivery;
+if iTrial < TaskParameters.GUI.StartEasyTrials
+    OptoEnabled = false;
+end
+BpodSystem.Data.Custom.OptoEnabled_stimulus_delivery(iTrial+1) = OptoEnabled;
+TaskParameters.GUI.OptoTrial_stimulus_delivery = iff(OptoEnabled, 'True', 'False');
 
 % determine if catch trial
 if iTrial < TaskParameters.GUI.StartEasyTrials || ...
