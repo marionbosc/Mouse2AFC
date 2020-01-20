@@ -241,6 +241,7 @@ while true
                 pause(.5);
             end
         end
+        SessionAnalysis(BpodSystem.DataPath);
         return
     end
     HandlePauseCondition; % Checks to see if the protocol is paused. If so, waits until user resumes.
