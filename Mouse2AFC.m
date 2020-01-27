@@ -10,7 +10,7 @@ BpodSystem.Data.Custom.IsHomeCage = isfield(BpodSystem.ProtocolSettings, 'HomeCa
 %% Task parameters
 global TaskParameters
 TaskParameters = BpodSystem.ProtocolSettings;
-GUICurVer = 26;
+GUICurVer = 27;
 if isempty(fieldnames(TaskParameters))
     TaskParameters = CreateTaskParameters(GUICurVer);
 elseif ~isfield(TaskParameters.GUI, 'GUIVer')
@@ -163,22 +163,8 @@ if TaskParameters.GUI.ExperimentType == ExperimentType.Auditory && ~BpodSystem.E
     ProgramPulsePal(BpodSystem.Data.Custom.PulsePalParamStimulus);
     SendCustomPulseTrain(1, BpodSystem.Data.Custom.RightClickTrain{1}, ones(1,length(BpodSystem.Data.Custom.RightClickTrain{1}))*5);
     SendCustomPulseTrain(2, BpodSystem.Data.Custom.LeftClickTrain{1}, ones(1,length(BpodSystem.Data.Custom.LeftClickTrain{1}))*5);
-elseif TaskParameters.GUI.ExperimentType == ExperimentType.GratingOrientation
-    % Setup PTB with some default values
-    PsychDefaultSetup(2);
-    Screen('CloseAll');
-    if ~TaskParameters.GUI.runSyncTests
-        % Skip sync tests for demo purposes only
-        Screen('Preference', 'SkipSyncTests', 2);
-    end
-    background = TaskParameters.GUI.grey;
-    [window, windowRect] = PsychImaging('OpenWindow',...
-        TaskParameters.GUI.screenNumber, background, [], 32, 2, [], [], ...
-        kPsychNeed32BPCFloat);
-    BpodSystem.Data.Custom.visual.window = window;
-    BpodSystem.Data.Custom.visual.windowRect = windowRect;
-
-elseif TaskParameters.GUI.ExperimentType == ExperimentType.RandomDots
+elseif TaskParameters.GUI.ExperimentType == ExperimentType.RandomDots || ...
+       TaskParameters.GUI.ExperimentType == ExperimentType.GratingOrientation
         BpodSystem.Data.dotsMapped_file = createMMFile('c:\Bpoduser\', 'mmap_matlab_randomdot.dat', file_size);
         BpodSystem.Data.dotsMapped_file.Data(1:4) = typecast(uint32(0), 'uint8');
 end

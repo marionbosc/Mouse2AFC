@@ -20,14 +20,6 @@ if softCode > 10 && softCode < 21 %for auditory clicks
             ProgramPulsePal(BpodSystem.Data.Custom.PulsePalParamStimulus);
         end
     end
-elseif softCode == 3
-    % Grating is already prepared before, no need to do nothing, just flip
-    % the screen
-    Screen('Flip', BpodSystem.Data.Custom.visual.window);
-elseif softCode == 4
-    % We want to show empty gray screen, so no need to do anything, just
-    % flip the screen
-    Screen('Flip', BpodSystem.Data.Custom.visual.window);
 elseif softCode == 5
     BpodSystem.Data.dotsMapped_file.Data(1:4) = typecast(uint32(2), 'uint8');
 elseif softCode == 6

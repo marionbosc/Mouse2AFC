@@ -160,23 +160,22 @@ TaskParameters.GUIPanels.CurrentTrial = {'MouseState','MouseWeight',...
     'StimDelay','MinSample','CurrentStim','CalcLeftBias',...
     'FeedbackDelay','IsCatch','Performance','AllPerformance'};
 % General Visual options
-TaskParameters.GUI.screenNumber = 2;
-TaskParameters.GUI.runSyncTests = false;
-TaskParameters.GUI.centerX = 0; % center of the field of dots (x,y)
-TaskParameters.GUI.centerY = 0;
-TaskParameters.GUIPanels.VisualGeneral = {'screenNumber','runSyncTests',...
-    'centerX','centerY'};
-% Random dots options
-TaskParameters.GUI.RDKAngleRightPort = RDKDirection.Degrees90;
-TaskParameters.GUIMeta.RDKAngleRightPort.Style = 'popupmenu';
-TaskParameters.GUIMeta.RDKAngleRightPort.String = RDKDirection.String;
-TaskParameters.GUI.RDKAngleLeftPort = RDKDirection.Degrees270;
-TaskParameters.GUIMeta.RDKAngleLeftPort.Style = 'popupmenu';
-TaskParameters.GUIMeta.RDKAngleLeftPort.String = RDKDirection.String;
+TaskParameters.GUI.VisualStimAnglePortRight = VisualStimAngle.Degrees90;
+TaskParameters.GUIMeta.VisualStimAnglePortRight.Style = 'popupmenu';
+TaskParameters.GUIMeta.VisualStimAnglePortRight.String = VisualStimAngle.String;
+TaskParameters.GUI.VisualStimAnglePortLeft = VisualStimAngle.Degrees270;
+TaskParameters.GUIMeta.VisualStimAnglePortLeft.Style = 'popupmenu';
+TaskParameters.GUIMeta.VisualStimAnglePortLeft.String = VisualStimAngle.String;
 TaskParameters.GUI.screenDistCm = 30;
 TaskParameters.GUI.screenWidthCm = 20;
-TaskParameters.GUI.apertureSizeWidth = 36; % size of rectangular aperture [w,h] in degrees
+TaskParameters.GUI.apertureSizeWidth = 36; % size of circular aperture [w,h] in degrees
 TaskParameters.GUI.apertureSizeHeight = 36;
+TaskParameters.GUI.centerX = 0; % center of render of stimulus (x,y)
+TaskParameters.GUI.centerY = 0;
+TaskParameters.GUIPanels.VisualGeneral = {'VisualStimAnglePortRight',...
+    'VisualStimAnglePortLeft','screenDistCm','screenWidthCm',...
+    'apertureSizeWidth','apertureSizeHeight','centerX','centerY'};
+% Random dots options
 % Use 20% of the screen size
 TaskParameters.GUI.drawRatio = 0.2;
 TaskParameters.GUI.circleArea = (pi*((TaskParameters.GUI.apertureSizeWidth/2).^2)); % assume apertureSize is the diameter
@@ -187,36 +186,18 @@ TaskParameters.GUIMeta.nDots.Style = 'text';
 TaskParameters.GUI.dotSizeInDegs = 2; % size of dots in degrees
 TaskParameters.GUI.dotSpeedDegsPerSec = 25; %degrees/second
 TaskParameters.GUI.dotLifetimeSecs = 1;  %lifetime of each dot sec
-TaskParameters.GUIPanels.RandomDots = {'RDKAngleRightPort',...
-    'RDKAngleLeftPort','screenDistCm','screenWidthCm','apertureSizeWidth',...
-    'apertureSizeHeight','drawRatio','circleArea','nDots','dotSizeInDegs',...
-    'dotSpeedDegsPerSec','dotLifetimeSecs'};
+TaskParameters.GUIPanels.RandomDots = {'drawRatio','circleArea','nDots',...
+    'dotSizeInDegs','dotSpeedDegsPerSec','dotLifetimeSecs'};
 % Grating orientation specific
-TaskParameters.GUI.gaborSizeFactor = 1.0;
-TaskParameters.GUI.phase = 0.5; % Phase of the wave, goes between 0 to 360
+TaskParameters.GUI.gaborSizeFactor = 1.2;
+TaskParameters.GUI.phase = 0; % Phase of the wave, goes between 0 to 360
 % Spatial Frequency (Cycles Per Pixel)
 % One Cycle = Grey-Black-Grey-White-Grey i.e. One Black and One White Lobe
-TaskParameters.GUI.numCycles = 5;
-TaskParameters.GUI.sigmaDivFactor = 7; % Gamma and circle blurness around grating
-TaskParameters.GUI.contrast = 0.8; % How blur is it between the lines, I've tried up to 100
-TaskParameters.GUI.grey = 0.5;
-TaskParameters.GUIMeta.runSyncTests.Style = 'checkbox';
-TaskParameters.GUI.aspectRatio = 1.0;
-% Build a procedural gabor texture (Note: to get a "standard" Gabor patch
-% we set a grey background offset, disable normalisation, and set a
-% pre-contrast multiplier of 0.5.
-% For full details see:
-% https://groups.yahoo.com/neo/groups/psychtoolbox/conversations/topics/9174
-TaskParameters.GUI.backgroundOffsetR = 0.5;
-TaskParameters.GUI.backgroundOffsetG = 0.5;
-TaskParameters.GUI.backgroundOffsetB = 0.5;
-TaskParameters.GUI.backgroundOffsetAlpha = 0.5;
-TaskParameters.GUI.disableNorm = 1;
-TaskParameters.GUI.preContrastMultiplier = 0.5;
-TaskParameters.GUIPanels.Grating = {'gaborSizeFactor','phase','numCycles','sigmaDivFactor','contrast',...
-    'grey','aspectRatio','backgroundOffsetR','backgroundOffsetG',...
-    'backgroundOffsetB','backgroundOffsetAlpha','disableNorm',...
-    'preContrastMultiplier'};
+TaskParameters.GUI.numCycles = 20;
+TaskParameters.GUI.cyclesPerSecondDrift = 5;
+TaskParameters.GUI.gaussianFilterRatio = 0.1; % Gamma and circle blurness around grating
+TaskParameters.GUIPanels.Grating = {'gaborSizeFactor','phase','numCycles',...
+    'cyclesPerSecondDrift', 'gaussianFilterRatio'};
 %% Plots
 %Show Plots/
 TaskParameters.GUI.ShowPsycStim = 1;
@@ -245,7 +226,7 @@ TaskParameters.GUI = orderfields(TaskParameters.GUI);
 %% Tabs
 TaskParameters.GUITabs.General = {'CurrentTrial','StimDelay','General','FeedbackDelay','AirControl'};
 TaskParameters.GUITabs.Sampling = {'CurrentTrial','LightIntensity','Auditory','Sampling','StimulusSelection'};
-TaskParameters.GUITabs.Visual = {'CurrentTrial','VisualGeneral','RandomDots','Grating'};
+TaskParameters.GUITabs.Visual = {'CurrentTrial','Grating','RandomDots','VisualGeneral'};
 TaskParameters.GUITabs.Plots = {'ShowPlots','Vevaiometric'};
 %%Non-GUI Parameters (but saved)
 TaskParameters.Figures.OutcomePlot.Position = [200, 200, 1000, 400];

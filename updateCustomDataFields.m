@@ -155,6 +155,11 @@ BpodSystem.Data.Custom.CenterPortRewAmount(iTrial+1) = TaskParameters.GUI.Center
 BpodSystem.Data.Custom.PreStimCntrReward(iTrial+1) = TaskParameters.GUI.PreStimuDelayCntrReward;
 BpodSystem.Data.Timer.customExtractData(iTrial) = toc; tic;
 
+% IF we are running grating experiments, add the grating orientation that was used
+if TaskParameters.GUI.ExperimentType == ExperimentType.GratingOrientation
+    BpodSystem.Data.Custom.GratingOrientation(iTrial) = BpodSystem.Data.Custom.drawParams.gratingOrientation;
+end
+
 %% Updating Delays
 %stimulus delay
 if TaskParameters.GUI.StimDelayAutoincrement

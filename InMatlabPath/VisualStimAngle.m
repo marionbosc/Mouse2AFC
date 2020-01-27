@@ -1,4 +1,4 @@
-classdef RDKDirection
+classdef VisualStimAngle
     properties (Constant)
         Degrees0 = 1;
         Degrees45 = 2;
@@ -11,7 +11,7 @@ classdef RDKDirection
     end
     methods(Static)
         function string = String()
-            string = properties(RDKDirection)';
+            string = properties(VisualStimAngle)';
         end
     end
     methods(Static)

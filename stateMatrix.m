@@ -42,20 +42,47 @@ elseif TaskParameters.GUI.ExperimentType == ExperimentType.LightIntensity
     ChoiceStopStimulus = {};
     EWDStopStimulus = {};
 elseif TaskParameters.GUI.ExperimentType == ExperimentType.GratingOrientation
-    % Clear first any previously drawn buffer by drawing a rect
-    Screen(BpodSystem.Data.Custom.visual.window,'FillRect',...
-           TaskParameters.GUI.grey);
-    Screen('Flip', BpodSystem.Data.Custom.visual.window);
-    % Prepare the new texture for drawing
-    orientation = BpodSystem.Data.Custom.GratingOrientation(iTrial);
-    [gabortex, propertiesMat] = GetGaborData(BpodSystem.Data.Custom.visual, TaskParameters.GUI);
-    Screen('DrawTextures', BpodSystem.Data.Custom.visual.window,gabortex,...
-        [], [], orientation,[], [], [], [], kPsychDontDoRotation, propertiesMat');
-    DeliverStimulus = {'SoftCode',3};
+    rightPortAngle = VisualStimAngle.getDegrees(TaskParameters.GUI.VisualStimAnglePortRight);
+    leftPortAngle = VisualStimAngle.getDegrees(TaskParameters.GUI.VisualStimAnglePortLeft);
+    % Calculate the distance between right and left port angle to determine
+    % whether we should use the circle arc between the two values in the
+    % clock-wise or counter-clock-wise direction to calculate the different
+    % difficulties.
+    ccw = iff(mod(rightPortAngle-leftPortAngle,360) < mod(leftPortAngle-rightPortAngle,360), true, false);
+    if ccw
+        finalDV = BpodSystem.Data.Custom.DV(iTrial);
+        if rightPortAngle < leftPortAngle
+            rightPortAngle = rightPortAngle + 360;
+        end
+        angleDiff = rightPortAngle - leftPortAngle;
+        minAngle = leftPortAngle;
+    else
+        finalDV = -BpodSystem.Data.Custom.DV(iTrial);
+        if leftPortAngle < rightPortAngle
+            leftPortAngle = leftPortAngle + 360;
+        end
+        angleDiff = leftPortAngle - rightPortAngle;
+        minAngle = rightPortAngle;
+    end
+    % orientation = ((DVMax - DV)*(DVMAX-DVMin)*(MaxAngle - MinANgle)) + MinAngle
+    gratingOrientation = ((1 - finalDV)*angleDiff/2) + minAngle;
+    gratingOrientation = mod(gratingOrientation, 360);
+    BpodSystem.Data.Custom.drawParams.stimType = DrawStimType.StaticGratings;
+    BpodSystem.Data.Custom.drawParams.gratingOrientation = gratingOrientation;
+    BpodSystem.Data.Custom.drawParams.numCycles = TaskParameters.GUI.numCycles;
+    BpodSystem.Data.Custom.drawParams.cyclesPerSecondDrift = TaskParameters.GUI.cyclesPerSecondDrift;
+    BpodSystem.Data.Custom.drawParams.phase = TaskParameters.GUI.phase;
+    BpodSystem.Data.Custom.drawParams.gaborSizeFactor = TaskParameters.GUI.gaborSizeFactor;
+    BpodSystem.Data.Custom.drawParams.gaussianFilterRatio = TaskParameters.GUI.gaussianFilterRatio;
+    % Start from the 5th byte
+    serializeAndWrite(BpodSystem.Data.dotsMapped_file, 5, BpodSystem.Data.Custom.drawParams);
+    BpodSystem.Data.dotsMapped_file.Data(1:4) = typecast(uint32(1), 'uint8');
+
+    DeliverStimulus = {'SoftCode',5};
     ContDeliverStimulus = {};
-    StopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut, {}, {'SoftCode',4});
-    ChoiceStopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut, {'SoftCode',4}, {});
-    EWDStopStimulus = {'SoftCode',4};
+    StopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut, {}, {'SoftCode',6});
+    ChoiceStopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut, {'SoftCode',6}, {});
+    EWDStopStimulus = {'SoftCode',6};
 elseif TaskParameters.GUI.ExperimentType == ExperimentType.RandomDots
     % Setup the parameters
     % Use 20% of the screen size. Assume apertureSize is the diameter
@@ -64,23 +91,24 @@ elseif TaskParameters.GUI.ExperimentType == ExperimentType.RandomDots
     TaskParameters.GUI.nDots = ...
        round(TaskParameters.GUI.circleArea * TaskParameters.GUI.drawRatio);
 
-    BpodSystem.Data.Custom.rDots.centerX = TaskParameters.GUI.centerX;
-    BpodSystem.Data.Custom.rDots.centerY = TaskParameters.GUI.centerY;
-    BpodSystem.Data.Custom.rDots.apertureSizeWidth = TaskParameters.GUI.apertureSizeWidth;
-    BpodSystem.Data.Custom.rDots.apertureSizeHeight = TaskParameters.GUI.apertureSizeHeight;
-    BpodSystem.Data.Custom.rDots.drawRatio = TaskParameters.GUI.drawRatio;
-    BpodSystem.Data.Custom.rDots.mainDirection = floor(RDKDirection.getDegrees(...
-        iff(IsLeftRewarded,TaskParameters.GUI.RDKAngleLeftPort,...
-                           TaskParameters.GUI.RDKAngleRightPort)));
-    BpodSystem.Data.Custom.rDots.dotSpeed = TaskParameters.GUI.dotSpeedDegsPerSec;
-    BpodSystem.Data.Custom.rDots.dotLifetimeSecs = TaskParameters.GUI.dotLifetimeSecs;
-    BpodSystem.Data.Custom.rDots.coherence = BpodSystem.Data.Custom.DotsCoherence(iTrial);
-    BpodSystem.Data.Custom.rDots.screenWidthCm = TaskParameters.GUI.screenWidthCm;
-    BpodSystem.Data.Custom.rDots.screenDistCm = TaskParameters.GUI.screenDistCm;
-    BpodSystem.Data.Custom.rDots.dotSizeInDegs = TaskParameters.GUI.dotSizeInDegs;
+    BpodSystem.Data.Custom.drawParams.stimType = DrawStimType.RDK;
+    BpodSystem.Data.Custom.drawParams.centerX = TaskParameters.GUI.centerX;
+    BpodSystem.Data.Custom.drawParams.centerY = TaskParameters.GUI.centerY;
+    BpodSystem.Data.Custom.drawParams.apertureSizeWidth = TaskParameters.GUI.apertureSizeWidth;
+    BpodSystem.Data.Custom.drawParams.apertureSizeHeight = TaskParameters.GUI.apertureSizeHeight;
+    BpodSystem.Data.Custom.drawParams.drawRatio = TaskParameters.GUI.drawRatio;
+    BpodSystem.Data.Custom.drawParams.mainDirection = floor(VisualStimAngle.getDegrees(...
+        iff(IsLeftRewarded,TaskParameters.GUI.VisualStimAnglePortLeft,...
+                           TaskParameters.GUI.VisualStimAnglePortRight)));
+    BpodSystem.Data.Custom.drawParams.dotSpeed = TaskParameters.GUI.dotSpeedDegsPerSec;
+    BpodSystem.Data.Custom.drawParams.dotLifetimeSecs = TaskParameters.GUI.dotLifetimeSecs;
+    BpodSystem.Data.Custom.drawParams.coherence = BpodSystem.Data.Custom.DotsCoherence(iTrial);
+    BpodSystem.Data.Custom.drawParams.screenWidthCm = TaskParameters.GUI.screenWidthCm;
+    BpodSystem.Data.Custom.drawParams.screenDistCm = TaskParameters.GUI.screenDistCm;
+    BpodSystem.Data.Custom.drawParams.dotSizeInDegs = TaskParameters.GUI.dotSizeInDegs;
 
     % Start from the 5th byte
-    serializeAndWrite(BpodSystem.Data.dotsMapped_file, 5, BpodSystem.Data.Custom.rDots);
+    serializeAndWrite(BpodSystem.Data.dotsMapped_file, 5, BpodSystem.Data.Custom.drawParams);
     BpodSystem.Data.dotsMapped_file.Data(1:4) = typecast(uint32(1), 'uint8');
 
     DeliverStimulus = {'SoftCode',5};
