@@ -1,1 +1,3 @@
 UserKillScript.m
+*.asv
+*__pycache__*
