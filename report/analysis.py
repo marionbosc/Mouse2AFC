@@ -34,9 +34,11 @@ analysis_for = ExpType.RDK
 SCALE_X = None
 SCALE_Y = None
 SAVE_FIG_SIZE = None
+FORMATS = None
+DPI = None
 
 def setMatplotlibParams(silent=False):
-    global SCALE_X, SCALE_Y, SAVE_FIG_SIZE
+    global SCALE_X, SCALE_Y, SAVE_FIG_SIZE, FORMATS, DPI
 
     rc_params = ['figure.figsize','font.size','lines.linewidth',
                  'lines.dashed_pattern','lines.dashdot_pattern',
