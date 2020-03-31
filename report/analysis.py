@@ -623,6 +623,7 @@ def _psych(df, PsycStim_axes, color, linewidth, legend_name, plot_points=True,
       # Choice trials
       PsycY = df.ChoiceLeft[(~ndxNan) & ndxChoice].groupby(
                                              BinIdx[~ndxNan & ndxChoice]).mean()
+      PsycY *= 100 # Convert to percentile
       PsycX = (((np.unique(BinIdx[(~ndxNan) & ndxChoice])+1)/StimBin)*2)-1-(
                                                           EXTRA_BIN*(1/StimBin))
       if offset: # Shift points a little bit to the right/light so that their center
@@ -637,12 +638,9 @@ def _psych(df, PsycStim_axes, color, linewidth, legend_name, plot_points=True,
                                             #BinIdx[ndxError & ndxMinWT]).mean()
       # Xerr = (((np.unique(BinIdx[ndxError & ndxMinWT])+1)/DVNBin)*2)-1-(
                                                           #EXTRA_BIN*(1/DVNBin))
-      PsycStim = Line2D([-1, 1], [.5, .5], linestyle='none',marker='o',
-                        markeredgecolor=color, markerfacecolor=color,
-                        markerSize=1.5*linewidth*SCALE_X)
-      PsycStim.set_xdata(PsycX)
-      PsycStim.set_ydata(PsycY*100) # Convert to percentile
-      PsycStim_axes.add_line(PsycStim)
+      PsycStim_axes.plot(PsycX, PsycY, linestyle='none', marker='o',
+                         markeredgecolor=color, markerfacecolor=color,
+                         markerSize=1.5*linewidth*SCALE_X)
 
     if np.sum((~ndxNan) & ndxChoice) > 1:
         x = StimDV[(~ndxNan) & ndxChoice]
@@ -699,11 +697,10 @@ def _psych(df, PsycStim_axes, color, linewidth, legend_name, plot_points=True,
                     "" if not plot_points else " ({:,} trials)".format(len(df)))
         else:
           legend_name=None
-        PsycStimFit = Line2D([-1., 1.],[.5, .5],color=color,linewidth=linewidth*SCALE_X,
-                             label=legend_name)
-        PsycStimFit.set_xdata(x_sampled)
-        PsycStimFit.set_ydata(y_points * 100) # Convert to percentile
-        PsycStim_axes.add_line(PsycStimFit)
+        PsycStim_axes.plot(x_sampled, y_points * 100, # Convert y to percentile
+                           color=color, linewidth=linewidth*SCALE_X,
+                           label=legend_name)
+
         # print("label: {} - len data: {}".format(legend_name, len(y)))
         if SEM:
           #sem_lower, sem_upper = (int_low, int_upper) if GLM else (-y.sem(), y.sem())
@@ -866,8 +863,7 @@ def plotMT(df, color, axes, normalize):
       Ys/=Ys.max()
     else:
       axes.set_ylim([min_rt,max_rt])
-    line = Line2D(Xs,Ys,color=color,marker='o',label=df.Name.unique()[0])
-    axes.add_line(line)
+    axes.plot(Xs,Ys,color=color,marker='o',label=df.Name.unique()[0])
 
 def plotEWD(df, color, axes):
     #df = filterSession(df,30,50,dt.date(2019,4,1),70)
@@ -1025,10 +1021,9 @@ def vevaiometric(df, filterGroupFn, vevaiometric_axes, max_feedbacktime):
                                    (catch_groups,'g',"Catch Trials")]:
     all_group_points=pd.concat(group_list)
     if not DRAW_MEANS:
-      line = Line2D(all_group_points.DV, all_group_points.FeedbackTime,
-                    linestyle='None',marker='o',markersize=2*SCALE_X,
-                    color=color,markerfacecolor=color,markeredgecolor=color)
-      vevaiometric_axes.add_line(line)
+      vevaiometric_axes.plot(all_group_points.DV, all_group_points.FeedbackTime,
+        linestyle='None', marker='o', markersize=2*SCALE_X, color=color,
+        markerfacecolor=color, markeredgecolor=color)
       max_fb=max(max_fb,all_group_points.FeedbackTime.max() + 1)
       min_fb=min(min_fb,max(0,min_fb,all_group_points.FeedbackTime.min() - 1))
 
@@ -1046,9 +1041,8 @@ def vevaiometric(df, filterGroupFn, vevaiometric_axes, max_feedbacktime):
       x_rng = np.arange(-1,0.1,0.2) if is_left else np.arange(0,1.1,0.2)
       linfit = [slope * i + intercept for i in x_rng]
       _label = "{} ({:,} pts)".format(label, len(all_group_points)) if i== 0 else None
-      Vevaiometric_line = Line2D(x_rng,linfit,linestyle='-',color=color,
-                                 linewidth=2*SCALE_X, label=_label)
-      vevaiometric_axes.add_line(Vevaiometric_line)
+      vevaiometric_axes.plot(x_rng,linfit,linestyle='-',color=color,
+                             linewidth=2*SCALE_X, label=_label)
       # Draw SEM
       lower,upper=(0,int(VevaiometricNBin/2)) if not i else (int(VevaiometricNBin/2),VevaiometricNBin)
       #print("i: {} - lower: {} - upper: {}".format(i, lower, upper))
