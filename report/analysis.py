@@ -452,16 +452,95 @@ def trialRate(df, axes):
   groups = df.groupby([df.Date, df.SessionNum])
   if not len(groups):
     return
-  done_once = False
+  # Our sessions doesn't go generally beyond 1.5 hours. I found an instance
+  # where TrialStartTimeStamp give strange times (e.g vgat2)
+  MAX_SESSION_TIME = 3*60*60
+  # Get each session time total time
+  sessions_times = []
   for (date, session_num), session_df in groups:
-    label = "Single Session" if not done_once else None
-    done_once = True
-    TrialsStartTime = session_df.TrialStartTimestamp
-    axes.plot(TrialsStartTime-TrialsStartTime.min(), session_df.TrialNumber,
-              color="gray", label=label)
+    session_time = session_df.TrialStartTimestamp.max() - \
+                   session_df.TrialStartTimestamp.min()
+    if session_time > MAX_SESSION_TIME:
+      continue
+    sessions_times.append(session_time)
+    continue # Comment this line for debuggig info
+    from time import asctime, localtime
+    print("session date:", date, session_num,
+          "session time: {:,.2f}".format(sessions_times[-1]/60),
+          "- Num. trials:", session_df.TrialNumber.max(),
+          "- Min:", asctime(localtime(session_df.TrialStartSysTime.min())),
+          "- Max:", asctime(localtime(session_df.TrialStartSysTime.max())))
+  # Calculate the sessions times and IQR so we can filter later based on them
+  Q1 = np.quantile(sessions_times, 0.25)
+  Q3 = np.quantile(sessions_times, 0.75)
+  IQR = Q3 - Q1
+  print("Num. Sessions: {}".format(len(groups)))
+  print("Sessions Time: IQR: {} - Q1: {} - Q3: {} - Lower-bound: {} - "
+        "Upper-bound: {}".format(IQR//60, Q1//60, Q3//60, (Q1-1.5*IQR)//60,
+                                 (Q3+1.5*IQR)//60))
 
-  axes.xaxis.set_major_formatter(
-                            FuncFormatter(lambda x, _: '{}'.format(int(x//60))))
+  done_once = False
+  incl_sessions = []
+  for (date, session_num), session_df in groups:
+    x_data = session_df.TrialStartTimestamp - \
+             session_df.TrialStartTimestamp.min()
+    session_max_time = x_data.max()
+    if session_max_time > MAX_SESSION_TIME:
+      print("Skipping {}-SessNum:{} - unrealistic max time: {:,}".format(date,
+            session_num, session_max_time))
+      continue
+    elif session_max_time < Q1-1.5*IQR or session_max_time > Q3 + 1.5*IQR:
+      print("Skipping {}-SessNum:{} - max time: {:,} - num. trials: {}".format(
+            date, session_num, int(session_max_time//60),
+            session_df.TrialNumber.max()))
+      continue
+    label = "Single Session ({} sessions)".format(len(groups)) if not done_once\
+                                                               else None
+    done_once = True
+    x_data_min = x_data / 60 # Convert to minutes
+    axes.plot(x_data_min, session_df.TrialNumber, color="gray", label=label)
+    incl_sessions.append(pd.DataFrame({"Time":x_data,
+                                       "TrialNumber":session_df.TrialNumber}))
+
+  # Draw the average curve only if we have more than one session
+  if len(incl_sessions) > 1:
+    max_sessions_time, max_sessions_trials = list(zip(*map(
+      lambda grp: (grp.Time.max(), grp.TrialNumber.max()), incl_sessions)))
+    median_session_time = np.median(max_sessions_time)
+    median_session_trials_num = np.median(max_sessions_trials)
+    print("Median session time:", median_session_time/60)
+    print("Median session trial nums:", median_session_trials_num)
+    # Get 95% of the max times that exists in all the sessions, such that we
+    # discard unusually long sessions when we plot the fitting function
+    max_session_time_lim = np.percentile(max_sessions_time, 95)
+    print("Max session time limit:", max_session_time_lim)
+    incl_sessions = pd.concat(incl_sessions)
+    incl_sessions = incl_sessions[incl_sessions.Time < max_session_time_lim]
+    incl_sessions.sort_values("Time", inplace=True)
+    def fitFunc(data, c0, c1):
+     return  c0*data + c1*np.sqrt(data)
+    # Using qcut value of 1 has no effect
+    for bin, bin_df in incl_sessions.groupby(pd.qcut(incl_sessions.Time, 1)):
+      x_data = bin_df.Time.values
+      # We need to interpolate the average curve from the other curves
+      from scipy.optimize import curve_fit
+      optimized_Cs, optimize_covar = curve_fit(fitFunc, x_data,
+                                               bin_df.TrialNumber.values)
+      # print("Bin:", bin, "x-len:", np.min(x_data), np.max(x_data),
+      #       "Optimized Cs:", optimized_Cs)
+      y_data = fitFunc(x_data, *optimized_Cs)
+      x_data_min = x_data / 60
+      axes.plot(x_data_min, y_data, color="k", label="Sessions Average",
+                linewidth=3*SCALE_X, alpha=0.8)
+
+    axes.axvline(median_session_time/60, linestyle="dashed", color='k',
+                 label="Median Session Time", alpha=0.8,
+                 zorder=len(max_sessions_time)) # Draw below average line
+    axes.axhline(median_session_trials_num, linestyle="dashed", color='k',
+                 label="Median Session Trials Count", alpha=0.8,
+                 zorder=len(max_sessions_time))
+
+  axes.xaxis.set_major_formatter(FuncFormatter(lambda x, _:'{}'.format(int(x))))
   #axes.yaxis.tick_right()
   #axes.yaxis.set_label_position("right")
   axes.set_xlabel("Time (Minutes)")
