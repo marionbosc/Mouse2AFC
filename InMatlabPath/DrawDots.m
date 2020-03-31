@@ -47,7 +47,7 @@ disp(windowRect)
 %[width, height]=Screen(?WindowSize?, windowPointerOrScreenNumber [, realFBSize=0]);
 
 %photoDiodeBox = [windowRect(3)-2, 0, windowRect(3), 20];
-photoDiodeBox = [0 0 windowRect(3)/15 windowRect(4)/15]
+photoDiodeBox = [(windowRect(3)-(windowRect(3)/15)) 0 windowRect(3) windowRect(4)/15]
 
 ifi = Screen('GetFlipInterval', windowPtr)
 frameRate = 1/ifi;
