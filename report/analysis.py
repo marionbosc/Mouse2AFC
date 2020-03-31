@@ -769,7 +769,7 @@ def psychAnimalSessions(df,ANIMAL,PsycStim_axes,METHOD):
         return
     assert len(df.Name.unique()) == 1 # Assure that we only have one mouse
     df = df.sort_values(["Date","SessionNum","TrialNumber"])
-    sessions = df.groupby([df.Date,df.SessionNum])
+    sessions = df.groupby([df.Date, df.SessionNum])
     used_sessions = []
     done_once = False
     for i, (date_sessionnum, session) in enumerate(sessions):
