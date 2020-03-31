@@ -224,38 +224,36 @@ def performanceOverTime(df, head_fixation_date=None, single_session=None,
     else:
         catch_wt_correct.append(np.NaN)
 
-    # USed difficulties is a list of lists, each sublist is the used difficulties
-    # for a given trial/session
-    used_difficulties = block.GUI_OmegaTable.apply(
-                        lambda table: table.Omega[np.where(table.OmegaProb)[0]])
+    used_difficulties = []
+    num_points = 0
+    for diff in [block.Difficulty1, block.Difficulty2,
+                 block.Difficulty3, block.Difficulty4]:
+      valid_diff = diff[diff.notnull()]
+      # Was used for more 10% of the block, and discard parts where the
+      # experimenter temporarily had multiple values while updating table
+      if len(valid_diff) >= 5 and len(valid_diff) > len(block)/10:
+        mean_valid_diff = valid_diff.mean()
+        exp_type = block.GUI_ExperimentType.unique()
+        if len(exp_type) == 1 and exp_type[0] == ExpType.RDK:
+          mean_valid_diff = (mean_valid_diff - 50)*2 # Convert to RDK coherence
+        used_difficulties.append(mean_valid_diff)
+        num_points += 1
+      else:
+        used_difficulties.append(np.nan)
     difficulties.append(used_difficulties)
+    num_difficulties.append(min(3,num_points))
 
-    num_points = np.mean(list(map(lambda li: len(li), used_difficulties)))
-    num_difficulties.append(min(3,round(num_points)))
     if head_fixation_date is not None and head_fixation_session is None and \
      date >= head_fixation_date:
       # The length of any list will do
       head_fixation_session =  len(performance) -1
 
     num_sessions += 1
-
+  # Convert difficulties to list of each difficulty
+  difficulties = list(zip(*difficulties))
+  MAX_COUNT_DIFFICULTY= len(difficulties) # i.e == 4
   #print("Difficulties:", difficulties)
-  MAX_COUNT_DIFFICULTY=4
-  def getMostFreqDifficulties(li):
-    unique, counts = np.unique(np.concatenate(li.ravel()),return_counts=True)
-    # This is similar to zip(unique, counts)
-    items_freq = np.asarray((unique, counts)).T
-    # Sort in desending order using numpy strange syntax
-    items_freq = items_freq[items_freq[:,1].argsort()][::-1]
-    # Choose top 3 values (ignore frequences) or NaN if there are less than 3
-    items = items_freq[:min(MAX_COUNT_DIFFICULTY,len(items_freq)),0]
-    if len(items) < MAX_COUNT_DIFFICULTY:
-        items = np.append(items, np.repeat(np.nan,
-                                           MAX_COUNT_DIFFICULTY-len(items)))
-    return items
-  # We might have more than the max difficulties or less than it. If it's more
-  # then cut it down, if it's less then append nans
-  difficulties=list(zip(*map(getMostFreqDifficulties, difficulties)))
+
   x_data=np.array(x_data,dtype=np.int)
   #TODO: Do session all performance
   axes.set_xlim(x_data[0],x_data[-1])
@@ -740,9 +738,16 @@ def filterSession(df,skip_first,skip_last,min_date,min_perf):
     for (date, session_num), session in all_sessions:
       if date < min_date or session.SessionPerformance.unique()[0] < min_perf:
         continue
-      difficulties_points_conut = session.GUI_OmegaTable.apply(
-                                lambda table: np.count_nonzero(table.OmegaProb))
-      num_points=difficulties_points_conut.mean()
+
+      num_points = 0
+      for diff in [session.Difficulty1, session.Difficulty2,
+                   session.Difficulty3, session.Difficulty4]:
+        valid_diff = diff[diff.notnull()]
+        # Was used for more 10% of the block, and discard parts where the
+        # experimenter temporarily had multiple values while updating table
+        if len(valid_diff) >= 5 and len(valid_diff) > len(block)/10:
+          num_points += 1
+
       if num_points < 3:
         continue
       used_sessions.append(session[(skip_first < session.TrialNumber) &
