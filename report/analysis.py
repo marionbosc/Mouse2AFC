@@ -445,6 +445,105 @@ def initialTraining(df, animal_name, max_num_sessions):
   fig.savefig("Initial_{}_{}_sessions_{}.png".format(exp_str,max_num_sessions,
                                                      animal_name), dpi=400)
 
+@unique
+class StackMetricUnit(Enum):
+  Ratio = auto()
+  Percent = auto()
+  Seconds = auto()
+
+def stackMetric(metric_col_name, df, axes_raw, axes_avg, *,
+                limit_session_at_max_trials, trials_groupping_bin_size,
+                stack_metric_unit,  min_num_pts_per_animal_bin,
+                min_session_len=None, animals_colors=[]):
+  for color_idx, (animal_name, animal_df) in enumerate(df.groupby(df.Name)):
+    print("Processing animal:", animal_name)
+    metric_avgs = []
+    sessions_count = 0
+    trials_count = 0
+    for (date, sess_num), sess_df in animal_df.groupby([animal_df.Date,
+                                                        animal_df.SessionNum]):
+      if min_session_len and sess_df.MaxTrial.iloc[0] <= min_session_len:
+        continue
+      sess_df = sess_df[sess_df.TrialNumber < limit_session_at_max_trials]
+      sess_df = sess_df.reset_index()
+      sessions_count += 1 # TODO: Remove session if none of its values were used
+      #print("Max tria:", sess_df.TrialNumber.max())
+      # We can also cut using np.linspace()
+      #group_by_arg = pd.cut(sess_df.TrialNumber, trials_groupping_bin_size,
+      #                      labels=False, include_lowest=True)
+      for bin_idx, trials_block_df in sess_df.reset_index().groupby(
+                                      sess_df.index//trials_groupping_bin_size):
+        # print("Date:",date,"Session num:",sess_num,"Trials bin df:",bin_idx)
+        col = trials_block_df[metric_col_name]
+        col = col[col.notnull()]
+        if not len(col):
+          continue
+        trials_count += len(col)
+        mean_val = col.mean()
+        if len(metric_avgs) <= bin_idx:
+          metric_avgs.append([])
+        metric_avgs[bin_idx].append(mean_val)
+        # We can also draw the raw axes here, but we can combine it with the
+        # other plotting few lines below
+    print("Calculating sessions mean and sem for", animal_name)
+    print("Metric avg len:", len(metric_avgs))
+    # The next variable holds the mean of means for each bin, however we might
+    # skip some bins if they don't have eough points. Logic entails that if we
+    # skip bin_idx = x then we will skip all bin_idx > x. So array will be
+    # suffice, and to be sure, we will use np.nan for skipped entries
+    metric_mean_of_means = []
+    metric_sem = []
+    detected_skip=False
+    label = "{} ({} sessions - {:,} trials)".format(animal_name, sessions_count,
+                                                    trials_count)
+    color = animals_colors[color_idx] if len(animals_colors) else None
+    for x_tick, means_array in enumerate(metric_avgs):
+      if len(means_array) < min_num_pts_per_animal_bin:
+        metric_mean_of_means.append(np.nan)
+        metric_sem.append(np.nan)
+        detected_skip = True
+        continue
+      assert not detected_skip # We shouldn't reach this point if we skipped a
+                               # bin earlier
+      x_val = (1+x_tick) * trials_groupping_bin_size
+      if stack_metric_unit == StackMetricUnit.Percent:
+        means_array = np.array(means_array)*100
+      axes_raw.scatter([x_val]*len(means_array), means_array, color=color,
+                       s=2, label=label if x_tick is 0 else None)
+      metric_mean_of_means.append(np.mean(means_array))
+      from scipy.stats import sem # Could also just create a pandas series
+      metric_sem.append(sem(means_array))
+    Xs = range(trials_groupping_bin_size,
+               (len(metric_avgs)+1)*trials_groupping_bin_size,
+               trials_groupping_bin_size)
+    Xs = np.array(Xs)
+    Ys = np.array(metric_mean_of_means)
+    metric_sem = np.array(metric_sem)
+    #if stack_metric_unit == StackMetricUnit.Percent:
+    # Mean arrays was already multiplied by 100 when calculating raw values
+    # above for percent
+    axes_avg.plot(Xs, Ys, color=color, label=label)
+    axes_avg.fill_between(Xs, Ys + metric_sem, Ys - metric_sem, color=color,
+                          alpha=0.2)
+  fontP = FontProperties()
+  fontP.set_size('small')
+  bbox_to_anchor=(0.5,-0.07)
+  for axes in [axes_raw, axes_avg]:
+    axes.legend(loc='upper center', bbox_to_anchor=bbox_to_anchor, ncol=2,
+                fancybox=True, prop=fontP)
+    axes.set_xlabel("Trial Number")
+    axes.set_xlim(xmin=0)
+    axes.set_ylim(bottom=0)
+    if stack_metric_unit == StackMetricUnit.Percent:
+      #axes.set_ylabel("(%)")
+      axes.yaxis.set_major_formatter(
+                         FuncFormatter(lambda y, _: '{}%'.format(int(y))))
+      axes.set_ylim(ymax=100)
+    elif stack_metric_unit == StackMetricUnit.Seconds:
+      axes.set_ylabel("Seconds")
+    elif stack_metric_unit == StackMetricUnit.Ratio:
+      axes.set_ylabel("Ratio")
+      axes.set_ylim(ymax=1)
 
 def trialRate(df, axes):
   axes.set_title("Trial Rate - {}".format(" ".join(df.Name.unique())))
