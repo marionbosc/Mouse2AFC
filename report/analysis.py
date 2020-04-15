@@ -11,7 +11,6 @@ from matplotlib.ticker import FuncFormatter
 from matplotlib.font_manager import FontProperties
 from matplotlib.lines import Line2D
 import numpy as np
-from scipy.optimize import curve_fit
 import pandas as pd
 from enum import Enum, auto, unique
 
@@ -681,6 +680,7 @@ def _psych(df, PsycStim_axes, color, linewidth, legend_name, plot_points=True,
           def fsigmoid(x, a, b):
               return 1.0 / (1.0 + np.exp(-a*(x-b)))
           #y_ind = fsigmoid(np.linspace(-1,1,len(PsycX)), 2, 0)
+          from scipy.optimize import curve_fit
           try:
             popt, pcov = curve_fit(fsigmoid, x, y, maxfev=1000)# , method='dogbox',
                                    # bounds=([0, 0.],[100, 1.]))
