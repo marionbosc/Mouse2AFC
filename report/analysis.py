@@ -677,7 +677,7 @@ def interceptSlope(df):
   intercept, slope = glm_res.params
   return intercept, slope
 
-def psychAxes(animal_name="", axes=None):
+def psychAxes(animal_name="", axes=None, analysis_for=ExpType.RDK):
     title="Psychometric Stim{}".format(
                                   " " + animal_name if len(animal_name) else "")
     x_label= "RDK Coherence"  if analysis_for == ExpType.RDK else "Light Intensity"
@@ -703,11 +703,13 @@ def psychAxes(animal_name="", axes=None):
     axes.axhline(y=50, color='gray', linestyle='dashed', zorder=-10)
     return axes
 
-def psychAll(df, PsycStim_axes):
-    _psych(df, PsycStim_axes, 'k', 3, "All")
+def psychAll(df, PsycStim_axes, *, color, legend_name, linestyle):
+    _psych(df, PsycStim_axes, color=color, linewidth=3, legend_name=legend_name,
+           linestyle=linestyle)
 
-def _psych(df, PsycStim_axes, color, linewidth, legend_name, plot_points=True,
-           offset=False, SEM=False, GLM=True, min_slope=None):
+def _psych(df, PsycStim_axes, color, linewidth, legend_name, *, alpha=1,
+           plot_points=True, offset=False, SEM=False, GLM=True, min_slope=None,
+           linestyle="solid"):
     '''Do the actual plotting'''
     #ndxNan = isnan(DataCustom.ChoiceLeft);
     ndxNan = df.ChoiceLeft.isnull()
@@ -738,7 +740,7 @@ def _psych(df, PsycStim_axes, color, linewidth, legend_name, plot_points=True,
                                                           #EXTRA_BIN*(1/DVNBin))
       PsycStim_axes.plot(PsycX, PsycY, linestyle='none', marker='o',
                          markeredgecolor=color, markerfacecolor=color,
-                         markerSize=1.5*linewidth*SCALE_X)
+                         markerSize=1.5*linewidth*SCALE_X, alpha=alpha)
 
     if np.sum((~ndxNan) & ndxChoice) > 1:
         x = StimDV[(~ndxNan) & ndxChoice]
@@ -797,8 +799,8 @@ def _psych(df, PsycStim_axes, color, linewidth, legend_name, plot_points=True,
         else:
           legend_name=None
         PsycStim_axes.plot(x_sampled, y_points * 100, # Convert y to percentile
-                           color=color, linewidth=linewidth*SCALE_X,
-                           label=legend_name)
+                           color=color, alpha=alpha, linestyle=linestyle,
+                           linewidth=linewidth*SCALE_X, label=legend_name,)
 
         # print("label: {} - len data: {}".format(legend_name, len(y)))
         if SEM:
