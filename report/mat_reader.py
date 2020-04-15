@@ -156,12 +156,23 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
             if not found_ReactionTime:
                 new_dict["ReactionTime"] = reaction_times if len(reaction_times) else [np.nan] * max_trials
             new_dict["File"] = fp
-            mouse, protocol, month_day, year, session_num = fp.rsplit("_",4)
-            new_dict["Name"] = data.Custom.Subject
+            # In couple of cases, I found some strange behavior where
+            # data.Filename didn't match filepath. Probably due to human error
+            # while handling OneDrive sync conflicts
+            assert fp.rsplit(".mat")[0].endswith(data.Filename)
+            mouse, protocol, month_day, year, session_num = \
+                                                     data.Filename.rsplit("_",4)
+            # data.Custom.Subject can incorrectly computed (e.g name, vgat2.1 is
+            # computed as just vgat2). We compute it from fileame instead.
+            new_dict["Name"] = mouse
             month, day = month_day[:-2], int(month_day[-2:])
             date = dt.date(int(year), months_3chars.index(month), day)
             new_dict["Date"] = date
-            new_dict["SessionNum"] = np.uint8(session_num[7]) # Session1.mat
+            session_num = session_num.lower() # e.g: Session1
+            assert session_num.startswith("session")
+            session_num = session_num.lstrip("session")
+            assert session_num.isdigit()
+            new_dict["SessionNum"] = np.uint8(session_num)
             protocol = data.Protocol if hasattr(data, "Protocol") else protocol
             print("Assigning protocol:", protocol)
             new_dict["Protocol"] = protocol
