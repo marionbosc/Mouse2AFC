@@ -55,6 +55,7 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
             if isinstance(data.Custom.ChoiceLeft, (int, float, complex)) or \
                len(data.Custom.ChoiceLeft) <= 10:
                 continue
+            max_trials = np.uint16(len(data.Custom.ChoiceLeft))
             gui_dict = defaultdict(list)
             def extractGUI(trial_gui, gui_dict):
                 for param_name in dir(trial_gui.GUI):
@@ -97,7 +98,6 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
             filter_vals=["PulsePalParamStimulus","PulsePalParamFeedback",
                          "RewardMagnitude","_fieldnames","CatchCount",
                          "TrialStart","GracePeriod"]
-            max_trials = np.uint16(len(data.Custom.ChoiceLeft))
             for field_name in dir(data.Custom):
                 if field_name in filter_vals or field_name.startswith("__"):
                     continue
