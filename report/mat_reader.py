@@ -86,7 +86,7 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
                                              getattr(trial_gui.GUI, param_name))
 
             deque(map(lambda trial_gui: extractGUI(trial_gui, gui_dict),
-                     data.TrialSettings))
+                      data.TrialSettings[:max_trials]))
             #print("GUI dict:", gui_dict)
             #feedback_type = list(map(lambda param:param.GUI.FeedbackDelaySelection,
             #                        data.TrialSettings))
@@ -114,7 +114,8 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
             if not found_ReactionTime:
               reaction_times = []
             #print("Found ReactionTime:", found_ReactionTime)
-            new_dict["TrialStartTimestamp"] = data.TrialStartTimestamp
+            new_dict["TrialStartTimestamp"] = \
+                                           data.TrialStartTimestamp[:max_trials]
             # Modifying a dictionary while looping on it is dangerous, however
             # hopefully it should be okay because we are just reassigning values
             for key in gui_dict.keys():
@@ -153,7 +154,8 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
 
             new_dict["MaxTrial"] = max_trials
             if not mini_df:
-                trials_states = list(map(extractStates, data.RawEvents.Trial))
+                trials_states = list(map(extractStates,
+                                     data.RawEvents.Trial[:max_trials]))
                 if len(trials_states) == max_trials + 1: # Needed for old files
                     trials_states = trials_states[:-1]
                 new_dict["States"] = trials_states
