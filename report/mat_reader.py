@@ -7,6 +7,7 @@ import numpy as np
 from scipy.io import loadmat
 import pandas as pd
 from states import States, StartEnd
+import sys
 
 MIN_DF_COLS_DROP = ["States","drawParams","rDots", "visual", "Subject", "File",
                     "Protocol", ]
@@ -140,6 +141,81 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
                 if not added:
                     print("States:", dir(trial.States))
                 return states
+
+            def calcReactionAndMovementTimes(raw_events_li, trials_settings):
+                reaction_times = []
+                movement_times = []
+                for idx, trial_states_events in enumerate(raw_events_li):
+                  trial_states = trial_states_events.States
+                  trial_events = trial_states_events.Events
+                  # print("Matlab trial:", idx+1)
+                  # Okay, ideally states and events should exist in certain
+                  # sequences that we can even assert on. However, given enough
+                  # animals and trials, eventually some wires get loose and some
+                  # port{in/out} never get registered. So asserts are treated
+                  # as warnings instead with Matlab trial number and filename.
+                  if not np.isnan(trial_states.WaitForChoice[0]):
+                    trial_ports = trials_settings[idx].GUI.Ports_LMRAir
+                    l_port = (trial_ports//1000) % 10
+                    c_port = (trial_ports//100) % 10
+                    r_port = (trial_ports//10) % 10
+                    center_outs = getattr(trial_events,
+                                          "Port{}Out".format(c_port),
+                                          # Get -1 val as missing portout should
+                                          # indicate a timeout_misside_choice.
+                                          -1)
+                    if isinstance(center_outs, (int, float, complex)):
+                      center_outs = np.array([center_outs])
+                    # In some very rare cases, the animal would go out during
+                    # BeepMinSampling ad we would never have a
+                    # CenterPortRewardDeliver state.
+                    reaction_start =  trial_states.CenterPortRewardDelivery[-1]
+                    if np.isnan(reaction_start):
+                      reaction_start = trial_states.BeepMinSampling[-1]
+                    post_stim_out = center_outs[center_outs >= reaction_start]
+                    if len(post_stim_out) is 0:
+                      if np.isnan(trial_states.timeOut_missed_choice[0]):
+                        print("Unexpected states (2) found in Matlab trial: {} "
+                              "- file: {}".format(idx+1, fp), file=sys.stderr)
+                      reaction_times.append(np.nan)
+                      movement_times.append(np.nan)
+                      # No need to continue here, but for verbosity
+                      continue
+                    else:
+                      reaction_end = post_stim_out[0]
+                      reaction_times.append(reaction_end - reaction_start)
+                      if np.isnan(trial_states.timeOut_missed_choice[0]):
+                        lr_ins = np.array([])
+                        for port in [l_port, r_port]:
+                          ins = getattr(trial_events, "Port{}In".format(port),
+                                        [])
+                          if type(ins) == float:
+                            ins = [ins]
+                          lr_ins = np.append(lr_ins, ins)
+                        lr_ins = np.array(lr_ins)
+                        first_post_stim_in = lr_ins[lr_ins > reaction_end]
+                        if len(first_post_stim_in) < 1:
+                          print("Unexpected states (3) found in Matlab "
+                                "trial: {} - file: {}".format(idx+1, fp),
+                                file=sys.stderr)
+                          movement_times.append(np.nan)
+                          continue
+                        else:
+                          first_post_stim_in = first_post_stim_in[0]
+                          movement_times.append(first_post_stim_in - reaction_end)
+                      else:
+                        movement_times.append(np.nan)
+                  else:
+                    if not np.isnan(trial_states.early_withdrawal[0]) and \
+                       not np.isnan(trial_states.broke_fixation[0]):
+                      print("Unexpected states (1) found in Matlab trial: {} - "
+                            "file: {}".format(idx+1, fp), file=sys.stderr)
+                    reaction_times.append(np.nan)
+                    movement_times.append(np.nan)
+                assert len(reaction_times) == max_trials
+                assert len(movement_times) == max_trials
+                return reaction_times, movement_times
+
             for perf_key, dest_key in [("AllPerformance", "SessionAllPerformance"),
                                        ("Performance", "SessionPerformance")]:
                 perf_exists = hasattr(data.TrialSettings[max_trials-1].GUI,
@@ -161,6 +237,11 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
                 new_dict["States"] = trials_states
             if not found_ReactionTime:
                 new_dict["ReactionTime"] = reaction_times if len(reaction_times) else [np.nan] * max_trials
+            calcRT, calcMT = calcReactionAndMovementTimes(
+                                              data.RawEvents.Trial[:max_trials],
+                                              data.TrialSettings[:max_trials])
+            new_dict["calcReactionTime"] = calcRT
+            new_dict["calcMovementTime"] = calcMT
             new_dict["File"] = fp
             # In couple of cases, I found some strange behavior where
             # data.Filename didn't match filepath. Probably due to human error
