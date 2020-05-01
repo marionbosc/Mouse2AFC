@@ -65,7 +65,15 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
                         table = getattr(trial_gui.GUI, param_name)
                         # Non-zero omega-probailities entries are the ones that
                         # user chose to activate
-                        diffs = table.Omega[np.where(table.OmegaProb)[0]]
+                        if trial_gui.GUI.ExperimentType == 4:
+                            if hasattr(table, "RDK"):
+                                src_table = table.RDK
+                            else:
+                                src_table = table.Omega
+                                table.Omega = (table.Omega - 50)*2
+                        else:
+                            src_table = table.Omega
+                        diffs = src_table[np.where(table.OmegaProb)[0]]
                         # Ensure it's sorted in descending order
                         diffs = -np.sort(-diffs)
                         for i in range(4): # 0 -> 3
