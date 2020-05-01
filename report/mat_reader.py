@@ -52,6 +52,9 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
         diff_arrs = {"Difficulty1": [], "Difficulty2":[], "Difficulty3":[],
                      "Difficulty4": []}
         try:
+            if isinstance(data.Custom.ChoiceLeft, (int, float, complex)) or \
+               len(data.Custom.ChoiceLeft) <= 10:
+                continue
             gui_dict = defaultdict(list)
             def extractGUI(trial_gui, gui_dict):
                 for param_name in dir(trial_gui.GUI):
