@@ -16,9 +16,10 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
     # See the extractGUI() function for more details.
     IMP_GUI_COLS = ["GUI_ExperimentType", "GUI_StimAfterPokeOut",
         "GUI_CatchError", "GUI_PercentCatch", "GUI_FeedbackDelayMax",
-        "GUI_MinSampleType", "GUI_MinSampleMin" "GUI_MinSampleMax",
-        "GUI_RewardAfterMinSampling", "GUI_FeedbackDelaySelection",
-        "GUI_CalcLeftBias"]
+        "GUI_MinSampleType", "GUI_MinSample", "GUI_MinSampleMin",
+        "GUI_MinSampleMax", "GUI_RewardAfterMinSampling",
+        "GUI_FeedbackDelaySelection", "GUI_CalcLeftBias", "GUI_MouseState",
+        "GUI_MouseWeight"]
 
     if type(files_patterns) == str:
         files_patterns = [files_patterns]
