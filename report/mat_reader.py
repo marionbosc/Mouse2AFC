@@ -159,7 +159,11 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
             # In couple of cases, I found some strange behavior where
             # data.Filename didn't match filepath. Probably due to human error
             # while handling OneDrive sync conflicts
-            assert fp.rsplit(".mat")[0].endswith(data.Filename)
+            if not hasattr(data, "Filename") or \
+              fp.rstrip(".mat").endswith(data.Filename):
+                data.Filename = \
+                           fp.rstrip("*.mat").replace('\\', '/').rsplit('/')[-1]
+                print("Filename:", data.Filename)
             mouse, protocol, month_day, year, session_num = \
                                                      data.Filename.rsplit("_",4)
             # data.Custom.Subject can incorrectly computed (e.g name, vgat2.1 is
