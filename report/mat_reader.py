@@ -177,7 +177,9 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
             session_num = session_num.lstrip("session")
             assert session_num.isdigit()
             new_dict["SessionNum"] = np.uint8(session_num)
-            protocol = data.Protocol if hasattr(data, "Protocol") else protocol
+            if hasattr(data, "Protocol") and len(data.Protocol):
+                protocol = data.Protocol
+            # else use the older value of protocol we computed above
             print("Assigning protocol:", protocol)
             new_dict["Protocol"] = protocol
             if False:
