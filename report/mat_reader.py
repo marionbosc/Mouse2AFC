@@ -68,18 +68,10 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
                         diffs = table.Omega[np.where(table.OmegaProb)[0]]
                         # Ensure it's sorted in descending order
                         diffs = -np.sort(-diffs)
-                        diff_arrs["Difficulty1"].append(diffs[0])
-                        diff_arrs["Difficulty2"].append(diffs[1] if len(diffs) >= 2 else np.nan)
-                        if len(diffs) < 3:
-                            diff_arrs["Difficulty3"].append(np.nan)
-                            diff_arrs["Difficulty4"].append(np.nan)
-                        elif len(diffs) == 3:
-                            diff_arrs["Difficulty3"].append(diffs[2])
-                            diff_arrs["Difficulty4"].append(np.nan)
-                        else:
-                            diff_arrs["Difficulty3"].append(diffs[-2])
-                            diff_arrs["Difficulty4"].append(diffs[-1])
-                    #
+                        for i in range(4): # 0 -> 3
+                            diff_val = diffs[i] if i < len(diffs) else np.nan
+                            diff_arrs["Difficulty{}".format(i+1)].append(
+                                                                       diff_val)
                     if mini_df and ("GUI_" + param_name) not in IMP_GUI_COLS:
                         continue
                     else:
