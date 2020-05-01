@@ -236,7 +236,7 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
                     trials_states = trials_states[:-1]
                 new_dict["States"] = trials_states
             if not found_ReactionTime:
-                new_dict["ReactionTime"] = reaction_times if len(reaction_times) else [np.nan] * max_trials
+                new_dict["ReactionTime"] = [np.nan] * max_trials
             calcRT, calcMT = calcReactionAndMovementTimes(
                                               data.RawEvents.Trial[:max_trials],
                                               data.TrialSettings[:max_trials])
