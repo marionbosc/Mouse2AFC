@@ -203,7 +203,7 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
             print("Skipping short session", fp)
             continue
 
-        df = pd.concat([df,df2],ignore_index=True)
+        df = pd.concat([df,df2],ignore_index=True,sort=False)
         count+=1
         if count == stop_at:
             break
