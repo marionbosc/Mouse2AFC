@@ -141,15 +141,9 @@ switch Action
         %Plot past trial outcomes
         indxToPlot = mn:iTrial;
         %Cumulative Reward Amount
-        R = DataCustom.RewardMagnitude;
-        RCP = sum(DataCustom.CenterPortRewAmount(DataCustom.RewardAfterMinSampling)); %ones(1,size(DataCustom.RewardMagnitude,1))*0.5;
-        ndxRwd = DataCustom.Rewarded;
-        C = zeros(size(R)); C(DataCustom.ChoiceLeft==1&ndxRwd,1) = 1; C(DataCustom.ChoiceLeft==0&ndxRwd,2) = 1;
-        R = R.*C;
-        RewardObtained = sum([sum(R(:)) sum(RCP)]) + sum(DataCustom.PreStimCntrReward);
+        RewardObtained = CalcRewObtained(DataCustom);
         set(AxesHandles.CumRwd, 'position', [iTrial+1 1], 'string', ...
             [num2str(RewardObtained/1000) ' mL']);
-        clear R C
         %Plot Rewarded
         ndxCor = DataCustom.ChoiceCorrect(indxToPlot)==1;
         Xdata = indxToPlot(ndxCor);
