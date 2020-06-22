@@ -43,6 +43,8 @@ BpodSystem.Data.Custom.Rewarded(iTrial) = false;
 % Signals whether a center-port reward was given after min-sampling ends.
 BpodSystem.Data.Custom.RewardAfterMinSampling(iTrial) = false;
 % Tracks the amount of water the animal received up tp this point
+% TODO: Check if RewardReceivedTotal is needed and calculate it using
+% CalcRewObtained() function.
 BpodSystem.Data.Custom.RewardReceivedTotal(iTrial+1) = 0; % We will updated later
 
 BpodSystem.Data.Custom.TrialNumber(iTrial) = iTrial;
@@ -75,10 +77,26 @@ if any(strcmp('stimulus_delivery',statesThisTrial))
 end
 
 if any(strcmp('WaitForChoice',statesThisTrial)) && ~any(strcmp('timeOut_missed_choice',statesThisTrial))
-    BpodSystem.Data.Custom.MT(end) = diff(eventsStatesThisTrial.WaitForChoice);
+    % We might have more than multiple WaitForChoice if
+    % HabituateIgnoreIncorrect is enabeld
+    BpodSystem.Data.Custom.MT(end) = diff(eventsStatesThisTrial.WaitForChoice(1:2));
 end
 
-if any(strcmp('WaitForRewardStart',statesThisTrial))  % CorrectChoice
+% Extract trial outcome. Check first if it's a wrong choice or a
+% HabituateIgnoreIncorrect but first choice was wrong choice
+if any(strcmp('WaitForPunishStart',statesThisTrial)) || any(strcmp('RegisterWrongWaitCorrect',statesThisTrial))
+    BpodSystem.Data.Custom.ChoiceCorrect(iTrial) = 0;
+    if BpodSystem.Data.Custom.LeftRewarded(iTrial) == 1 % Correct choice = left
+        BpodSystem.Data.Custom.ChoiceLeft(iTrial) = 0; % Left not chosen
+    else
+        BpodSystem.Data.Custom.ChoiceLeft(iTrial) = 1;
+    end
+    if any(strcmp('WaitForPunish',statesThisTrial))  % Feedback waiting time
+        BpodSystem.Data.Custom.FeedbackTime(iTrial) = eventsStatesThisTrial.WaitForPunish(end,end) - eventsStatesThisTrial.WaitForPunishStart(1,1);
+    else % It was a  RegisterWrongWaitCorrect state
+        BpodSystem.Data.Custom.FeedbackTime(iTrial) = nan;
+    end
+elseif any(strcmp('WaitForRewardStart',statesThisTrial))  % CorrectChoice
     BpodSystem.Data.Custom.ChoiceCorrect(iTrial) = 1;
     if BpodSystem.Data.Custom.CatchTrial(iTrial)
         catch_stim_idx = GetCatchStimIdx(...

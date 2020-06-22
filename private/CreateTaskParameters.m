@@ -12,6 +12,8 @@ TaskParameters.GUI.TimeOutBrokeFixation = 0; % (s)
 TaskParameters.GUI.TimeOutEarlyWithdrawal = 0; % (s)
 TaskParameters.GUI.TimeOutMissedChoice = 0; % (s)
 TaskParameters.GUI.TimeOutSkippedFeedback = 0; % (s)
+TaskParameters.GUI.HabituateIgnoreIncorrect = 0; % (s)
+TaskParameters.GUIMeta.HabituateIgnoreIncorrect.Style = 'checkbox';
 TaskParameters.GUI.PlayNoiseforError = 0;
 TaskParameters.GUIMeta.PlayNoiseforError.Style = 'checkbox';
 TaskParameters.GUI.PCTimeout = true;
@@ -26,7 +28,7 @@ TaskParameters.GUI.Wire1VideoTrigger = false;
 TaskParameters.GUIMeta.Wire1VideoTrigger.Style = 'checkbox';
 TaskParameters.GUIPanels.General = {'ExperimentType','ITI','RewardAmount','ChoiceDeadLine',...
     'TimeOutIncorrectChoice','TimeOutBrokeFixation','TimeOutEarlyWithdrawal','TimeOutMissedChoice',...
-    'TimeOutSkippedFeedback','PlayNoiseforError','PCTimeout',...
+    'TimeOutSkippedFeedback','HabituateIgnoreIncorrect','PlayNoiseforError','PCTimeout',...
     'StartEasyTrials','Percent50Fifty','PercentCatch','CatchError','Ports_LMRAir','Wire1VideoTrigger'};
 %% StimDelay
 TaskParameters.GUI.StimDelayAutoincrement = 0;
