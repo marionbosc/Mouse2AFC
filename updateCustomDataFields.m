@@ -127,16 +127,6 @@ elseif any(strcmp('WaitForRewardStart',statesThisTrial))  % CorrectChoice
         warning('''WaitForReward'' state should always appear if ''WaitForRewardStart'' was initiated');
         warning(orig_warn); % Restore the original warning values
     end
-elseif any(strcmp('WaitForPunishStart',statesThisTrial))  % WrongChoice
-    BpodSystem.Data.Custom.ChoiceCorrect(iTrial) = 0;
-    if any(strcmp('WaitForPunish',statesThisTrial))  % Feedback waiting time
-        BpodSystem.Data.Custom.FeedbackTime(iTrial) = eventsStatesThisTrial.WaitForPunish(end,end) - eventsStatesThisTrial.WaitForPunishStart(1,1);
-        if BpodSystem.Data.Custom.LeftRewarded(iTrial) == 1 % Correct choice = left
-            BpodSystem.Data.Custom.ChoiceLeft(iTrial) = 0; % Left not chosen
-        else
-            BpodSystem.Data.Custom.ChoiceLeft(iTrial) = 1;
-        end
-    end
 elseif any(strcmp('broke_fixation',statesThisTrial))
     BpodSystem.Data.Custom.FixBroke(iTrial) = true;
 elseif any(strcmp('early_withdrawal',statesThisTrial))

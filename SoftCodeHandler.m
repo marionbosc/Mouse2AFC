@@ -27,5 +27,6 @@ elseif softCode == 6
 elseif softCode == 30 && BpodSystem.Data.Custom.IsHomeCage
     disp('Reporting animal is using the system at this very moment.');
     BpodSystem.ProtocolSettings.HomeCage.ReportAnimalInsideFn();
+    BpodSystem.ProtocolSettings.StartTime = posixtime(datetime('now'));
 end
 end
