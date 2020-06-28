@@ -84,6 +84,7 @@ BpodSystem.Data.Custom.ST = [];
 BpodSystem.Data.Custom.OptoEnabled_stimulus_delivery = false;
 BpodSystem.Data.Custom.Rewarded = false(0);
 BpodSystem.Data.Custom.RewardAfterMinSampling = false(0);
+BpodSystem.Data.Custom.PreStimCntrReward = [];
 BpodSystem.Data.Custom.LightIntensityLeft = [];
 BpodSystem.Data.Custom.LightIntensityRight = [];
 BpodSystem.Data.Custom.GratingOrientation = [];
@@ -95,6 +96,9 @@ BpodSystem.Data.Custom.TrialNumber = [];
 BpodSystem.Data.Custom.ForcedLEDTrial = false;
 BpodSystem.Data.Custom.CatchCount = zeros(1, 21);
 BpodSystem.Data.Custom.LastSuccessCatchTial = 1;
+% Setting StartTime to any value, it will be overwritten by the first poke
+% in if we are in homecage
+BpodSystem.ProtocolSettings.StartTime = posixtime(datetime('now'));
 
 file_size = 40*1024*1024; % 40 MB mem-mapped file
 mapped_file = createMMFile(tempdir, 'mmap_matlab_plot.dat', file_size);
@@ -213,10 +217,13 @@ while true
         BpodSystem.Data.TrialSettings(iTrial) = TaskParameters;
         BpodSystem.Data.Timer.AppendData(iTrial) = toc; tic;
     end
+    CheckHomeCageStop(BpodSystem);
     if BpodSystem.BeingUsed == 0
         SavedTaskParameters = BpodSystem.ProtocolSettings;
-        CheckUnsaved(TaskParameters, SavedTaskParameters, SettingsPath,...
-                     BpodSystem);
+        if ~BpodSystem.Data.Custom.IsHomeCage
+            CheckUnsaved(TaskParameters, SavedTaskParameters,...
+                         SettingsPath, BpodSystem);
+        end
         while true
             try
                 SaveBpodSessionData;

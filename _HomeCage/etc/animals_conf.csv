@@ -1,0 +1,2 @@
+Name,MinWeight,Protocol,Config,MaxRewardAmount,MaxDuration,MinInterSessionTrial,MaxTimeOutsideIgnoreWeight
+TestAnimal,23,Mouse2AFC,DefaultConfig,0.6,2100,7200,60,57600

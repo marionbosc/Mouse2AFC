@@ -1,0 +1,43 @@
+function CheckHomeCageStop(BpodSystem)
+if BpodSystem.Data.Custom.IsHomeCage
+  if BpodSystem.BeingUsed
+    RunDur = seconds(posixtime(datetime('now'))) - ...
+                            seconds(BpodSystem.ProtocolSettings.StartTime);
+    MaxDur = seconds(BpodSystem.ProtocolSettings.HomeCage.MaxDuration);
+    DiffTime = RunDur - MaxDur;
+    RewardSoFar = CalcRewObtained(BpodSystem.Data.Custom);
+    MaxRew = BpodSystem.ProtocolSettings.HomeCage.MaxRewardAmount;
+    ShouldStop = 0;
+    if DiffTime > 0
+      DurMsg = sprintf(...
+        'as session duration %s exceeded max duration %s with %s',...
+         RunDur, MaxDur, DiffTime);
+      ShouldStop = 1;
+    else
+      DurMsg = sprintf(...
+        '(session duration %s is still under max duration %s by %s)',...
+        RunDur, MaxDur, DiffTime);
+    end
+    if RewardSoFar >= MaxRew
+      RewMsg = sprintf(...
+        'while reward received %du exceeded max allowed reward %du',...
+         RewardSoFar, MaxRew);
+      ShouldStop = 1;
+    else
+      RewMsg = sprintf(...
+        '(reward received %du didn''t exceeded max allowed reward %du)',...
+         RewardSoFar, MaxRew);
+    end
+    if ShouldStop
+      BpodSystem.ProtocolSettings.HomeCage.setFinishMsg(sprintf(...
+        'Stopping %s - Reason: %s %s', BpodSystem.GUIData.SubjectName,...
+        DurMsg, RewMsg));
+      RunProtocol('Stop');
+    end
+  else
+      BpodSystem.ProtocolSettings.HomeCage.setFinishMsg(sprintf(...
+         'Session stopped externally (probably by user?) for %s ', ...
+         BpodSystem.GUIData.SubjectName));
+  end
+end
+end
