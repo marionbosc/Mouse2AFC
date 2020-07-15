@@ -3,6 +3,10 @@ function updateCustomDataFields(iTrial)
 global BpodSystem
 global TaskParameters
 
+function MatStr = str(matrix_state)
+    MatStr = MatrixState.String(matrix_state);
+end
+
 tic;
 %% Standard values
 % Stores which lateral port the animal poked into (if any)
@@ -55,19 +59,19 @@ BpodSystem.Data.Timer.customInitialize(iTrial) = toc; tic;
 % Extract the states that were used in the last trial
 statesThisTrial = BpodSystem.Data.RawData.OriginalStateNamesByNumber{iTrial}(BpodSystem.Data.RawData.OriginalStateData{iTrial});
 eventsStatesThisTrial = BpodSystem.Data.RawEvents.Trial{end}.States;
-if any(strcmp('WaitForStimulus',statesThisTrial))
+if any(strcmp(str(MatrixState.WaitForStimulus),statesThisTrial))
     BpodSystem.Data.Custom.FixDur(iTrial) = ...
      (eventsStatesThisTrial.WaitForStimulus(end,2) - eventsStatesThisTrial.WaitForStimulus(end,1)) + ...
      (eventsStatesThisTrial.TriggerWaitForStimulus(end,2) - eventsStatesThisTrial.TriggerWaitForStimulus(end,1));
 end
-if any(strcmp('stimulus_delivery',statesThisTrial))
+if any(strcmp(str(MatrixState.stimulus_delivery),statesThisTrial))
     if TaskParameters.GUI.RewardAfterMinSampling
         BpodSystem.Data.Custom.ST(iTrial) = diff(eventsStatesThisTrial.stimulus_delivery);
     else
         % 'CenterPortRewardDelivery' state would exist even if no
         % 'RewardAfterMinSampling' is active, in such case it means that
         % min sampling is done and we are in the optional sampling stage.
-        if any(strcmp('CenterPortRewardDelivery',statesThisTrial)) && TaskParameters.GUI.StimulusTime > TaskParameters.GUI.MinSample
+        if any(strcmp(str(MatrixState.CenterPortRewardDelivery),statesThisTrial)) && TaskParameters.GUI.StimulusTime > TaskParameters.GUI.MinSample
             BpodSystem.Data.Custom.ST(iTrial) = eventsStatesThisTrial.CenterPortRewardDelivery(1,2) - eventsStatesThisTrial.stimulus_delivery(1,1);
         else
             % This covers early_withdrawal.
@@ -76,7 +80,7 @@ if any(strcmp('stimulus_delivery',statesThisTrial))
     end
 end
 
-if any(strcmp('WaitForChoice',statesThisTrial)) && ~any(strcmp('timeOut_missed_choice',statesThisTrial))
+if any(strcmp(str(MatrixState.WaitForChoice),statesThisTrial)) && ~any(strcmp(str(MatrixState.timeOut_missed_choice),statesThisTrial))
     % We might have more than multiple WaitForChoice if
     % HabituateIgnoreIncorrect is enabeld
     BpodSystem.Data.Custom.MT(end) = diff(eventsStatesThisTrial.WaitForChoice(1:2));
@@ -84,19 +88,19 @@ end
 
 % Extract trial outcome. Check first if it's a wrong choice or a
 % HabituateIgnoreIncorrect but first choice was wrong choice
-if any(strcmp('WaitForPunishStart',statesThisTrial)) || any(strcmp('RegisterWrongWaitCorrect',statesThisTrial))
+if any(strcmp(str(MatrixState.WaitForPunishStart),statesThisTrial)) || any(strcmp(str(MatrixState.RegisterWrongWaitCorrect),statesThisTrial))
     BpodSystem.Data.Custom.ChoiceCorrect(iTrial) = 0;
     if BpodSystem.Data.Custom.LeftRewarded(iTrial) == 1 % Correct choice = left
         BpodSystem.Data.Custom.ChoiceLeft(iTrial) = 0; % Left not chosen
     else
         BpodSystem.Data.Custom.ChoiceLeft(iTrial) = 1;
     end
-    if any(strcmp('WaitForPunish',statesThisTrial))  % Feedback waiting time
+    if any(strcmp(str(MatrixState.WaitForPunish),statesThisTrial))  % Feedback waiting time
         BpodSystem.Data.Custom.FeedbackTime(iTrial) = eventsStatesThisTrial.WaitForPunish(end,end) - eventsStatesThisTrial.WaitForPunishStart(1,1);
     else % It was a  RegisterWrongWaitCorrect state
         BpodSystem.Data.Custom.FeedbackTime(iTrial) = nan;
     end
-elseif any(strcmp('WaitForRewardStart',statesThisTrial))  % CorrectChoice
+elseif any(strcmp(str(MatrixState.WaitForRewardStart),statesThisTrial))  % CorrectChoice
     BpodSystem.Data.Custom.ChoiceCorrect(iTrial) = 1;
     if BpodSystem.Data.Custom.CatchTrial(iTrial)
         catch_stim_idx = GetCatchStimIdx(...
@@ -114,7 +118,7 @@ elseif any(strcmp('WaitForRewardStart',statesThisTrial))  % CorrectChoice
              BpodSystem.Data.Custom.CatchCount(catch_stim_idx) + stim_prob;
         BpodSystem.Data.Custom.LastSuccessCatchTial = iTrial;
     end
-    if any(strcmp('WaitForReward',statesThisTrial))  % Feedback waiting time
+    if any(strcmp(str(MatrixState.WaitForReward),statesThisTrial))  % Feedback waiting time
         BpodSystem.Data.Custom.FeedbackTime(iTrial) = eventsStatesThisTrial.WaitForReward(end,end) - eventsStatesThisTrial.WaitForRewardStart(1,1);
         if BpodSystem.Data.Custom.LeftRewarded(iTrial) == 1 % Correct choice = left
             BpodSystem.Data.Custom.ChoiceLeft(iTrial) = 1; % Left chosen
@@ -127,28 +131,28 @@ elseif any(strcmp('WaitForRewardStart',statesThisTrial))  % CorrectChoice
         warning('''WaitForReward'' state should always appear if ''WaitForRewardStart'' was initiated');
         warning(orig_warn); % Restore the original warning values
     end
-elseif any(strcmp('broke_fixation',statesThisTrial))
+elseif any(strcmp(str(MatrixState.broke_fixation),statesThisTrial))
     BpodSystem.Data.Custom.FixBroke(iTrial) = true;
-elseif any(strcmp('early_withdrawal',statesThisTrial))
+elseif any(strcmp(str(MatrixState.early_withdrawal),statesThisTrial))
     BpodSystem.Data.Custom.EarlyWithdrawal(iTrial) = true;
-elseif any(strcmp('missed_choice',statesThisTrial)) % should be timeOut_missed_choice?
+elseif any(strcmp(str(MatrixState.timeOut_missed_choice),statesThisTrial))
     BpodSystem.Data.Custom.Feedback(iTrial) = false;
     BpodSystem.Data.Custom.MissedChoice(iTrial) = true;
 end
-if any(strcmp('timeOut_SkippedFeedback',statesThisTrial))
+if any(strcmp(str(MatrixState.timeOut_SkippedFeedback),statesThisTrial))
     BpodSystem.Data.Custom.Feedback(iTrial) = false;
 end
-if any(strcmp('Reward',statesThisTrial))
+if any(strcmp(str(MatrixState.Reward),statesThisTrial))
     BpodSystem.Data.Custom.Rewarded(iTrial) = true;
     BpodSystem.Data.Custom.RewardReceivedTotal(iTrial) = ...
         BpodSystem.Data.Custom.RewardReceivedTotal(iTrial) + TaskParameters.GUI.RewardAmount;
 end
-if any(strcmp('CenterPortRewardDelivery',statesThisTrial)) && TaskParameters.GUI.RewardAfterMinSampling
+if any(strcmp(str(MatrixState.CenterPortRewardDelivery),statesThisTrial)) && TaskParameters.GUI.RewardAfterMinSampling
     BpodSystem.Data.Custom.RewardAfterMinSampling(iTrial) = true;
     BpodSystem.Data.Custom.RewardReceivedTotal(iTrial) = ...
         BpodSystem.Data.Custom.RewardReceivedTotal(iTrial) + TaskParameters.GUI.CenterPortRewAmount;
 end
-if any(strcmp('WaitCenterPortOut',statesThisTrial))
+if any(strcmp(str(MatrixState.WaitCenterPortOut),statesThisTrial))
     BpodSystem.Data.Custom.ReactionTime(iTrial) = diff(eventsStatesThisTrial.WaitCenterPortOut);
 else % Assign with -1 so we can differntiate it from nan trials where the
      % state potentially existed but we didn't calculate it
@@ -462,12 +466,12 @@ TaskParameters.Figures.ParameterGUI.Position = BpodSystem.ProtocolFigures.Parame
 BpodSystem.Data.Timer.customFinializeUpdate(iTrial) = toc; tic;
 
 %determine if optogentics trial
-OptoEnabled = rand(1,1) <  TaskParameters.GUI.OptoProb_stimulus_delivery;
+OptoEnabled = rand(1,1) <  TaskParameters.GUI.OptoProb;
 if iTrial < TaskParameters.GUI.StartEasyTrials
     OptoEnabled = false;
 end
-BpodSystem.Data.Custom.OptoEnabled_stimulus_delivery(iTrial+1) = OptoEnabled;
-TaskParameters.GUI.OptoTrial_stimulus_delivery = iff(OptoEnabled, 'True', 'False');
+BpodSystem.Data.Custom.OptoEnabled(iTrial+1) = OptoEnabled;
+TaskParameters.GUI.IsOptoTrial = iff(OptoEnabled, 'true', 'false');
 
 % determine if catch trial
 if iTrial < TaskParameters.GUI.StartEasyTrials || ...
