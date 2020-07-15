@@ -127,9 +127,6 @@ TaskParameters.GUIMeta.MinSample.Style = 'text';
 TaskParameters.GUI.PercentForcedLEDTrial = 0;
 TaskParameters.GUI.PortLEDtoCueReward = false;
 TaskParameters.GUIMeta.PortLEDtoCueReward.Style = 'checkbox';
-TaskParameters.GUI.OptoProb_stimulus_delivery = 0;
-TaskParameters.GUI.OptoTrial_stimulus_delivery = '';
-TaskParameters.GUIMeta.OptoTrial_stimulus_delivery.Style = 'text';
 % Auditory Specific
 TaskParameters.GUI.SumRates = 100;
 % Light Intensity Specific
@@ -145,8 +142,7 @@ TaskParameters.GUIPanels.LightIntensity = {'LeftPokeAttenPrcnt','CenterPokeAtten
 TaskParameters.GUIPanels.StimulusSelection = {'OmegaTable','TableNote','BetaDistAlphaNBeta','StimulusSelectionCriteria','LeftBias','LeftBiasVal','CorrectBias'};
 TaskParameters.GUIPanels.Sampling = {'RewardAfterMinSampling','CenterPortRewAmount','MinSampleMin',...
                                      'MinSampleMax','MinSampleType','MinSampleIncr','MinSampleDecr','MinSampleNumInterval','MinSampleRandProb',...
-                                     'StimulusTime','PortLEDtoCueReward','PercentForcedLEDTrial','OptoProb_stimulus_delivery',...
-                                     'OptoTrial_stimulus_delivery'};
+                                     'StimulusTime','PortLEDtoCueReward','PercentForcedLEDTrial'};
 %% Summary Tab
 TaskParameters.GUI.MouseState = MouseState.FreelyMoving;
 TaskParameters.GUIMeta.MouseState.Style = 'popupmenu';
@@ -158,9 +154,12 @@ TaskParameters.GUI.AllPerformance = '(Calc. after 1st trial)';
 TaskParameters.GUIMeta.AllPerformance.Style = 'text';
 TaskParameters.GUI.IsCatch = 'false';
 TaskParameters.GUIMeta.IsCatch.Style = 'text';
+TaskParameters.GUI.IsOptoTrial = 'false';
+TaskParameters.GUIMeta.IsOptoTrial.Style = 'text';
 TaskParameters.GUIPanels.CurrentTrial = {'MouseState','MouseWeight',...
     'StimDelay','MinSample','CurrentStim','CalcLeftBias',...
-    'FeedbackDelay','IsCatch','Performance','AllPerformance'};
+    'FeedbackDelay','IsCatch','IsOptoTrial','Performance',...
+    'AllPerformance'};
 % General Visual options
 TaskParameters.GUI.VisualStimAnglePortRight = VisualStimAngle.Degrees90;
 TaskParameters.GUIMeta.VisualStimAnglePortRight.Style = 'popupmenu';
@@ -223,12 +222,35 @@ TaskParameters.GUI.VevaiometricShowPoints = 1;
 TaskParameters.GUIMeta.VevaiometricShowPoints.Style = 'checkbox';
 TaskParameters.GUIPanels.Vevaiometric = {'VevaiometricYLim', ...
     'VevaiometricMinWT','VevaiometricNBin','VevaiometricShowPoints'};
+%Optogenetics
+TaskParameters.GUI.OptoProb = 0;
+TaskParameters.GUI.OptoOr2P = TTLWireUsage.Optogenetics;
+TaskParameters.GUIMeta.OptoOr2P.Style = 'popupmenu';
+TaskParameters.GUIMeta.OptoOr2P.String = TTLWireUsage.String;
+TaskParameters.GUI.OptoStartState1 = MatrixState.stimulus_delivery;
+TaskParameters.GUIMeta.OptoStartState1.Style = 'popupmenu';
+TaskParameters.GUIMeta.OptoStartState1.String = MatrixState.String;
+TaskParameters.GUI.OptoStartDelay = 0;
+TaskParameters.GUI.OptoMaxTime = 10;
+TaskParameters.GUI.OptoEndState1 = MatrixState.WaitCenterPortOut;
+TaskParameters.GUIMeta.OptoEndState1.Style = 'popupmenu';
+TaskParameters.GUIMeta.OptoEndState1.String = MatrixState.String;
+TaskParameters.GUI.OptoEndState2 = MatrixState.WaitForChoice;
+TaskParameters.GUIMeta.OptoEndState2.Style = 'popupmenu';
+TaskParameters.GUIMeta.OptoEndState2.String = MatrixState.String;
+TaskParameters.GUI.OptoBrainRegion = BrainRegion.V1_L;
+TaskParameters.GUIMeta.OptoBrainRegion.Style = 'popupmenu';
+TaskParameters.GUIMeta.OptoBrainRegion.String = BrainRegion.String;
+TaskParameters.GUIPanels.Optogenetics = {'OptoProb', 'OptoOr2P',...
+   'OptoStartState1', 'OptoStartDelay','OptoMaxTime',...
+   'OptoEndState1','OptoEndState2','OptoBrainRegion','IsOptoTrial'};
 %%
 TaskParameters.GUI = orderfields(TaskParameters.GUI);
 %% Tabs
-TaskParameters.GUITabs.General = {'CurrentTrial','StimDelay','General','FeedbackDelay','AirControl'};
+TaskParameters.GUITabs.General = {'CurrentTrial','AirControl','General','FeedbackDelay','StimDelay'};
 TaskParameters.GUITabs.Sampling = {'CurrentTrial','LightIntensity','Auditory','Sampling','StimulusSelection'};
 TaskParameters.GUITabs.Visual = {'CurrentTrial','Grating','RandomDots','VisualGeneral'};
+TaskParameters.GUITabs.Opto = {'Optogenetics'};
 TaskParameters.GUITabs.Plots = {'ShowPlots','Vevaiometric'};
 %%Non-GUI Parameters (but saved)
 TaskParameters.Figures.OutcomePlot.Position = [200, 200, 1000, 400];

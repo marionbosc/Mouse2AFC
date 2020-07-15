@@ -10,7 +10,7 @@ BpodSystem.Data.Custom.IsHomeCage = isfield(BpodSystem.ProtocolSettings, 'HomeCa
 %% Task parameters
 global TaskParameters
 TaskParameters = BpodSystem.ProtocolSettings;
-GUICurVer = 28;
+GUICurVer = 29;
 if isempty(fieldnames(TaskParameters))
     TaskParameters = CreateTaskParameters(GUICurVer);
 elseif ~isfield(TaskParameters.GUI, 'GUIVer')
@@ -81,7 +81,7 @@ BpodSystem.Data.Custom.FixDur = [];
 BpodSystem.Data.Custom.MT = [];
 BpodSystem.Data.Custom.CatchTrial = false;
 BpodSystem.Data.Custom.ST = [];
-BpodSystem.Data.Custom.OptoEnabled_stimulus_delivery = false;
+BpodSystem.Data.Custom.OptoEnabled = false;
 BpodSystem.Data.Custom.Rewarded = false(0);
 BpodSystem.Data.Custom.RewardAfterMinSampling = false(0);
 BpodSystem.Data.Custom.PreStimCntrReward = [];
