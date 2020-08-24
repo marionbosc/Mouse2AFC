@@ -5,6 +5,8 @@ function Mouse2AFC
 global BpodSystem
 addpath('Definitions');
 
+% Save whether it's ver 1 or 2
+BpodSystem.SystemSettings.IsVer2 = isprop(BpodSystem, 'FirmwareVersion');
 % Check before overriding TaskParameters
 BpodSystem.Data.Custom.IsHomeCage = isfield(BpodSystem.ProtocolSettings, 'HomeCage');
 %% Task parameters
@@ -52,7 +54,7 @@ elseif ~strcmp(TaskParameters.GUI.ComputerName, computerName)
     msg = '\fontsize{12}This computer (\bf'+string(computerName)+'\rm) '...
         + 'is not the same last saved computer (\bf'...
         + string(TaskParameters.GUI.ComputerName)+'\rm) that this '...
-        + 'animal (\bf'+string(BpodSystem.GUIData.SubjectName)+'\rm) '...
+        + 'animal (\bf'+string(SubjectName(BpodSystem))+'\rm) '...
         + 'was running on with this configration (\bf'...
         + string(BpodSystem.GUIData.SettingsFileName)+'\rm).'...
         + '\newline\newline'...
@@ -154,7 +156,7 @@ BpodSystem.SoftCodeHandlerFunction = 'SoftCodeHandler';
 
 %server data
 [~,BpodSystem.Data.Custom.Rig] = system('hostname');
-[~,BpodSystem.Data.Custom.Subject] = fileparts(fileparts(fileparts(fileparts(BpodSystem.DataPath))));
+BpodSystem.Data.Custom.Subject = SubjectName(BpodSystem);
 
 %% Configuring PulsePal
 load PulsePalParamStimulus.mat
@@ -188,7 +190,7 @@ RunSession = true;
 iTrial = 1;
 sleepDur = 0;
 trialEndTime = clock;
-SettingsPath = BpodSystem.SettingsPath; % Needed later for unsaved changes
+SettingsPath_ = SettingsPath(BpodSystem); % Needed later for unsaved changes
 % The state-matrix is generated only once in each iteration, however some
 % of the trials parameters are pre-generated and updated in the plots few
 % iterations before.
@@ -218,11 +220,11 @@ while true
         BpodSystem.Data.Timer.AppendData(iTrial) = toc; tic;
     end
     CheckHomeCageStop(BpodSystem);
-    if BpodSystem.BeingUsed == 0
+    if BpodBeingUsed(BpodSystem) == 0
         SavedTaskParameters = BpodSystem.ProtocolSettings;
         if ~BpodSystem.Data.Custom.IsHomeCage
             CheckUnsaved(TaskParameters, SavedTaskParameters,...
-                         SettingsPath, BpodSystem);
+                         SettingsPath_, BpodSystem);
         end
         while true
             try
@@ -234,7 +236,7 @@ while true
                 pause(.5);
             end
         end
-        SessionAnalysis(BpodSystem.DataPath);
+        SessionAnalysis(DataPath(BpodSystem));
         return
     end
     HandlePauseCondition; % Checks to see if the protocol is paused. If so, waits until user resumes.

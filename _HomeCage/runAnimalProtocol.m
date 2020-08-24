@@ -4,10 +4,17 @@ global BpodSystem
 %SubjectName = 'Dummy Subject'
 %SettingsFileName = 'Default Settings';
 % ProtocolName = 'Mouse2AFC';
-BpodSystem.CurrentProtocolName = ProtocolName;
+BpodSystem.SystemSettings.IsVer2 = isprop(BpodSystem, 'FirmwareVersion');
+if BpodSystem.SystemSettings.IsVer2
+    BpodSystem.Status.CurrentProtocolName = ProtocolName;
+    BpodUserPath = fileparts(fileparts(BpodSystem.Path.DataFolder));
+else
+    BpodSystem.CurrentProtocolName = ProtocolName;
+    BpodUserPath = BpodSystem.BpodUserPath;
+end
 
 FormattedDate = [datestr(now, 3) datestr(now, 7) '_' datestr(now, 10)];
-DataFolder = fullfile(BpodSystem.BpodUserPath,'Data',SubjectName,ProtocolName,'Session Data');
+DataFolder = fullfile(BpodUserPath,'Data',SubjectName,ProtocolName,'Session Data');
 Candidates = dir(DataFolder);
 nSessionsToday = 0;
 for x = 1:length(Candidates)
@@ -17,12 +24,17 @@ for x = 1:length(Candidates)
 		end
 	end
 end
-DataPath = fullfile(BpodSystem.BpodUserPath,'Data',SubjectName,ProtocolName,'Session Data',[SubjectName '_' ProtocolName '_' FormattedDate '_Session' num2str(nSessionsToday+1) '.mat']);
-SettingsPath = fullfile(BpodSystem.BpodUserPath,'Data',SubjectName,ProtocolName, 'Session Settings',[SettingsFileName '.mat']);
-BpodSystem.DataPath = DataPath;
-BpodSystem.SettingsPath = SettingsPath;
-ProtocolPath = fullfile(BpodSystem.BpodUserPath,'Protocols',ProtocolName,[ProtocolName '.m']);
-BpodSystem.Live = 1;
+DataPath = fullfile(BpodUserPath,'Data',SubjectName,ProtocolName,'Session Data',[SubjectName '_' ProtocolName '_' FormattedDate '_Session' num2str(nSessionsToday+1) '.mat']);
+SettingsPath = fullfile(BpodUserPath,'Data',SubjectName,ProtocolName, 'Session Settings',[SettingsFileName '.mat']);
+ProtocolPath = fullfile(BpodUserPath,'Protocols',ProtocolName,[ProtocolName '.m']);
+if BpodSystem.SystemSettings.IsVer2
+    BpodSystem.Path.CurrentDataFile = DataPath;
+    BpodSystem.Path.Settings = SettingsPath;
+else
+    BpodSystem.DataPath = DataPath;
+    BpodSystem.SettingsPath = SettingsPath;
+    BpodSystem.Live = 1;
+end
 BpodSystem.GUIData.ProtocolName = ProtocolName;
 BpodSystem.GUIData.SubjectName = SubjectName;
 BpodSystem.GUIData.SettingsFileName = SettingsFileName;
@@ -33,8 +45,14 @@ BpodSystem.ProtocolSettings = eval(['SettingStruct.' FieldName]);
 BpodSystem.ProtocolSettings.HomeCage = HomeCage;
 BpodSystem.Data = struct;
 addpath(ProtocolPath);
-set(BpodSystem.GUIHandles.RunButton, 'cdata', BpodSystem.Graphics.PauseButton, 'TooltipString', 'Press to pause session');
-BpodSystem.BeingUsed = 1;
-BpodSystem.ProtocolStartTime = BpodTime;
+if BpodSystem.SystemSettings.IsVer2
+   set(BpodSystem.GUIHandles.RunButton, 'cdata', BpodSystem.GUIData.PauseButton, 'TooltipString', 'Press to pause session');
+   BpodSystem.Status.BeingUsed = 1;
+   figure(BpodSystem.GUIHandles.MainFig);
+else
+   set(BpodSystem.GUIHandles.RunButton, 'cdata', BpodSystem.Graphics.PauseButton, 'TooltipString', 'Press to pause session');
+   BpodSystem.BeingUsed = 1;
+end
+BpodSystem.ProtocolStartTime = now*100000;
 run(ProtocolPath);
 end

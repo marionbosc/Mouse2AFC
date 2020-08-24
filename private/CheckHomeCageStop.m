@@ -1,6 +1,6 @@
 function CheckHomeCageStop(BpodSystem)
 if BpodSystem.Data.Custom.IsHomeCage
-  if BpodSystem.BeingUsed
+  if BpodBeingUsed(BpodSystem)
     RunDur = seconds(posixtime(datetime('now'))) - ...
                             seconds(BpodSystem.ProtocolSettings.StartTime);
     MaxDur = seconds(BpodSystem.ProtocolSettings.HomeCage.MaxDuration);
@@ -30,14 +30,14 @@ if BpodSystem.Data.Custom.IsHomeCage
     end
     if ShouldStop
       BpodSystem.ProtocolSettings.HomeCage.setFinishMsg(sprintf(...
-        'Stopping %s - Reason: %s %s', BpodSystem.GUIData.SubjectName,...
+        'Stopping %s - Reason: %s %s', SubjectName(BpodSystem),...
         DurMsg, RewMsg));
       RunProtocol('Stop');
     end
   else
       BpodSystem.ProtocolSettings.HomeCage.setFinishMsg(sprintf(...
          'Session stopped externally (probably by user?) for %s ', ...
-         BpodSystem.GUIData.SubjectName));
+         SubjectName(BpodSystem)));
   end
 end
 end
