@@ -435,7 +435,9 @@ def main(out, input, mini_df, interactive):
   pandas dataframe.
 
   Example:
+
     python mat_reader.py -o AnimalName -i "*_Thy[1-3]*.mat" -i "*WT[1-9]_*.mat" -i "N[1-4]_Mouse2AFC_[Ja,Fe,Ma,Ap,Ma,Ju,Ju]*.mat" --full-df
+
     DATA1="../BpodUser/Data/"; DATA2="/Mouse2AFC/Session Data/"; python mat_reader.py -o RDK_conf_evd_accum_2019_11_20 -i "${DATA1}/*RDK_Thy2/${DATA2}*.mat" -i"${DATA1}/*RDK_WT [1,4,6]/${DATA2}*.mat" -i "${DATA1}/wfThy*/${DATA2}*.mat"
   '''
   import time
