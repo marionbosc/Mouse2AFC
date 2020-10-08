@@ -4,6 +4,7 @@ from collections import defaultdict, deque
 import datetime as dt
 import glob
 import itertools as it
+import ntpath
 import numpy as np
 from scipy.io import loadmat
 import pandas as pd
@@ -16,7 +17,6 @@ MIN_DF_COLS_DROP = ["States","drawParams","rDots", "visual", "Subject", "File",
 
 _months_3chars = list(calendar.month_abbr)
 def decomposeFilePathInfo(filepath):
-  import ntpath
   filename = ntpath.basename(filepath)
   # Check the file is not a repeated file from one-drive
   # Good name e.g: M5_Mouse2AFC_Oct30_2018_Session1.mat
@@ -109,7 +109,20 @@ def _extractGUI(data, max_trials, is_mini_df):
     gui_dict[key] = gui_dict[key][:max_trials]
   return gui_dict, diff_arrs
 
-def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
+def _loadOrCreateDf(append_df):
+  if append_df:
+    df = pd.read_pickle(append_df)
+    # https://stackoverflow.com/a/47545241/11996983
+    cols = ["Name", "Date", "SessionNum"]
+    skip_sessions = df.groupby(cols).size().reset_index()[cols].to_numpy()
+    skip_sessions = frozenset(map(lambda el: tuple(el), skip_sessions))
+  else:
+    df = pd.DataFrame()
+    skip_sessions = set()
+  return df, skip_sessions
+
+def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False,
+              append_df=None):
     if type(files_patterns) == str:
         files_patterns = [files_patterns]
     else:
@@ -119,8 +132,8 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
         except:
             raise Exception("File patterns argument must be an iterable of " +
                             "strings, not " + str(type(files_patterns)))
-    df = pd.DataFrame()
 
+    df, skip_sessions = _loadOrCreateDf(append_df)
     count=1
     bad_filenames=[]
     bad_files_structure=[]
@@ -130,11 +143,17 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
     #print("File patterns:", files_patterns)
     #chained_globs=list(chained_globs); print("Globs:", chained_globs)
     for fp in chained_globs:
-        print("Processing: " + fp)
         decomposed_name = decomposeFilePathInfo(fp)
         if not decomposed_name:
             print("Skipping badly formatted filename:", fp)
             bad_filenames.append(fp)
+            continue
+
+        mouse_name, protocol, (year, month, day), session_num = decomposed_name
+        unique_sess_id = (mouse_name, dt.date(year=year, month=month, day=day),
+                          session_num)
+        if unique_sess_id in skip_sessions:
+            print("Already existing in dataframe:", fp)
             continue
         # decomposed_name will be used far down in the end again
         mat = loadmat(fp, struct_as_record=False, squeeze_me=True)
@@ -143,6 +162,7 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
             if isinstance(data.Custom.ChoiceLeft, (int, float, complex)) or \
                len(data.Custom.ChoiceLeft) <= 10:
                 continue
+            print("Processing", fp)
             max_trials = np.uint16(len(data.Custom.ChoiceLeft))
             new_dict = {}
             filter_vals=["PulsePalParamStimulus","PulsePalParamFeedback",
@@ -298,9 +318,8 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
             # data.Filename didn't match filepath. Probably due to human error
             # while handling OneDrive sync conflicts
             if hasattr(data, "Filename"):
-              decomposed_name = decomposeFilePathInfo(data.Filename)
-            mouse_name, protocol, (year, month, day), session_num = \
-                                                                 decomposed_name
+              mouse_name, protocol, (year, month, day), session_num = \
+                                            decomposeFilePathInfo(data.Filename)
             # data.Custom.Subject can incorrectly computed (e.g name, vgat2.1 is
             # computed as just vgat2). We compute it from fileame instead.
             new_dict["Name"] = mouse_name
@@ -431,10 +450,18 @@ def reduceTypes(df, debug=False):
               help="filepath or filepath pattern of the sessions matlab files")
 @click.option("--mini-df/--full-df", default=True,
               help="Whether to produce a stripped down dataframe")
+@click.option("--append-df", type=click.Path(exists=True),
+              help="If specified, should point to an existing dataframe. The "
+                   "dataframe will be loaded and checked for the existing "
+                   "sessions. Filenames in --input will be scanned and "
+                   "compared to existing sessions in the dataframe. Only the "
+                   "new sessions will be loaded. If --output argument is "
+                   "specified, then the dataframe will written to a new "
+                   "--output file, otherwise it will be saved in-place")
 @click.option("--interactive", is_flag=True,
               help="After computing the pandas dataframe, don't save and " +
-                    "drop instead into interactive prompt")
-def main(out, input, mini_df, interactive):
+                   "drop instead into interactive prompt")
+def main(out, input, mini_df, append_df, interactive):
   '''Convert one or multiple Mouse2AFC matlab session data files into a single
   pandas dataframe.
 
@@ -445,10 +472,19 @@ def main(out, input, mini_df, interactive):
     DATA1="../BpodUser/Data/"; DATA2="/Mouse2AFC/Session Data/"; python mat_reader.py -o RDK_conf_evd_accum_2019_11_20 -i "${DATA1}/*RDK_Thy2/${DATA2}*.mat" -i"${DATA1}/*RDK_WT [1,4,6]/${DATA2}*.mat" -i "${DATA1}/wfThy*/${DATA2}*.mat"
   '''
   import time
-  name = out + time.strftime("_%Y_%m_%d.dump")
-  print("Potential Resulting name:", name)
-  df = loadFiles(input, mini_df=mini_df)
-  name = out + df.Date.min().strftime("_%Y_%m_%d_to_") + df.Date.max().strftime("%Y_%m_%d.dump")
+  if not append_df:
+    name = out + time.strftime("_%Y_%m_%d.dump")
+    print("Potential Resulting name:", name)
+  df = loadFiles(input, mini_df=mini_df, append_df=append_df)
+  if not len(df):
+    print("Empty dataframe - probably wrong file path")
+    sys.exit(-1)
+
+  if not out and append_df:
+    name = out
+  else:
+    name = out + df.Date.min().strftime("_%Y_%m_%d_to_") + df.Date.max().strftime("%Y_%m_%d.dump")
+
   if not interactive:
     print("Final name:", name)
     df.to_pickle(name)
