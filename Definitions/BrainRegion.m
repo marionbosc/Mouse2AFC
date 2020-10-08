@@ -6,6 +6,12 @@ classdef BrainRegion
         M2_L = 4;
         M2_R = 5;
         M2_Bi = 6;
+        PPC_L = 7;
+        PPC_R = 8;
+        PPC_Bi = 9;
+        POR_L = 10;
+        POR_R = 11;
+        POR_Bi = 12;
     end
     methods(Static)
         function string = String()
