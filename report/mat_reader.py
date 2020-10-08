@@ -110,9 +110,13 @@ def _extractGUI(data, max_trials, is_mini_df):
 def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
     if type(files_patterns) == str:
         files_patterns = [files_patterns]
-    elif type(files_patterns) != list:
-        raise Exception("File patterns argument must be of type list of " +
-                        "strings, not " + str(type(files_patterns)))
+    else:
+        try:
+            if not all(isinstance(elem, str) for elem in files_patterns):
+                raise Exception()
+        except:
+            raise Exception("File patterns argument must be an iterable of " +
+                            "strings, not " + str(type(files_patterns)))
     df = pd.DataFrame()
 
     count=1
