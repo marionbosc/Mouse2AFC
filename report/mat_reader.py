@@ -12,6 +12,46 @@ import sys
 MIN_DF_COLS_DROP = ["States","drawParams","rDots", "visual", "Subject", "File",
                     "Protocol", ]
 
+_months_3chars = list(calendar.month_abbr)
+def decomposeFilePathInfo(filepath):
+  import ntpath
+  filename = ntpath.basename(filepath)
+  # Check the file is not a repeated file from one-drive
+  # Good name e.g: M5_Mouse2AFC_Oct30_2018_Session1.mat
+  filename = filename.rstrip(".mat")
+  try:
+    if "session" not in filename.lower():
+      raise ValueError()
+    mouse_name, protocol, month_day, year, session_num = filename.rsplit("_", 4)
+    is_ver2 = False
+  except ValueError:
+    # Maybe it's a version 2 filename?
+    # Good name e.g: Dummy Subject_Mouse2AFC_20200818_150459
+    try:
+      mouse_name, protocol, date, time = filename.rsplit("_", 3)
+      is_ver2 = True
+    except ValueError:
+      return None
+  if not is_ver2:
+    if len(month_day) != 5: # e.g Oct30
+      return None
+    month, day = month_day[:-2], month_day[-2:]
+    try:
+      day = int(day)
+      month = _months_3chars.index(month)
+      year = int(year)
+      session_num = int(session_num.lower().lstrip("session")) # e.g: Session1
+    except ValueError:
+      return None
+  else:
+    try:
+      year, month, day = int(date[0:4]), int(date[4:6]), int(date[6:])
+      # TODO: Time is currently being treated as session num, fix it
+      session_num = time[:3]
+    except ValueError:
+      return None
+  return mouse_name, protocol, (year, month, day), session_num
+
 def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
     # GUI_OmegaTable is important but has an a special a treatment.
     # See the extractGUI() function for more details.
@@ -30,7 +70,6 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
                         "strings, not " + str(type(files_patterns)))
     df = pd.DataFrame()
 
-    months_3chars = list(calendar.month_abbr)
     count=1
     bad_files=[]
     import os
@@ -40,15 +79,12 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
     #chained_globs=list(chained_globs); print("Globs:", chained_globs)
     for fp in  chained_globs:
         print("Processing: " + fp)
-        # Check the file is not a repeated file from one-drive
-        # Good name e.g: M5_Mouse2AFC_Oct30_2018_Session1.mat
-        should_only_num = fp.rsplit(".",1)[0].rsplit("Session",1)[1]
-        try:
-            int(should_only_num)
-        except ValueError:
+        decomposed_name = decomposeFilePathInfo(fp)
+        if not decomposed_name:
             print("Skipping badly formatted filename:", fp)
             bad_files.append(fp)
             continue
+        # decomposed_name will be used far down in the end again
         mat = loadmat(fp, struct_as_record=False, squeeze_me=True)
         data = mat['SessionData']
         diff_arrs = {"Difficulty1": [], "Difficulty2":[], "Difficulty3":[],
@@ -247,23 +283,14 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
             # In couple of cases, I found some strange behavior where
             # data.Filename didn't match filepath. Probably due to human error
             # while handling OneDrive sync conflicts
-            if not hasattr(data, "Filename") or \
-              fp.rstrip(".mat").endswith(data.Filename):
-                data.Filename = \
-                           fp.rstrip("*.mat").replace('\\', '/').rsplit('/')[-1]
-                print("Filename:", data.Filename)
-            mouse, protocol, month_day, year, session_num = \
-                                                     data.Filename.rsplit("_",4)
+            if hasattr(data, "Filename"):
+              decomposed_name = decomposeFilePathInfo(data.Filename)
+            mouse_name, protocol, (year, month, day), session_num = \
+                                                                 decomposed_name
             # data.Custom.Subject can incorrectly computed (e.g name, vgat2.1 is
             # computed as just vgat2). We compute it from fileame instead.
-            new_dict["Name"] = mouse
-            month, day = month_day[:-2], int(month_day[-2:])
-            date = dt.date(int(year), months_3chars.index(month), day)
-            new_dict["Date"] = date
-            session_num = session_num.lower() # e.g: Session1
-            assert session_num.startswith("session")
-            session_num = session_num.lstrip("session")
-            assert session_num.isdigit()
+            new_dict["Name"] = mouse_name
+            new_dict["Date"] = dt.date(year, month, day)
             new_dict["SessionNum"] = np.uint8(session_num)
             if hasattr(data, "Protocol") and len(data.Protocol):
                 protocol = data.Protocol
