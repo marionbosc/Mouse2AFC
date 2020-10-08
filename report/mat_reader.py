@@ -244,7 +244,7 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False,
                     if np.isnan(reaction_start):
                       reaction_start = trial_states.BeepMinSampling[-1]
                     post_stim_out = center_outs[center_outs >= reaction_start]
-                    if len(post_stim_out) is 0:
+                    if len(post_stim_out) == 0:
                       if np.isnan(trial_states.timeOut_missed_choice[0]):
                         print("Unexpected states (2) found in Matlab trial: {} "
                               "- file: {}".format(idx+1, fp), file=sys.stderr)
