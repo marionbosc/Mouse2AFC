@@ -194,7 +194,11 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
                 movement_times = []
                 for idx, trial_states_events in enumerate(raw_events_li):
                   trial_states = trial_states_events.States
-                  trial_events = trial_states_events.Events
+                  try:
+                    trial_events = trial_states_events.Events
+                  except Exception as e:
+                    if idx != 0: # Happens sometimes at trial 0, not sure why
+                      raise e
                   # print("Matlab trial:", idx+1)
                   # Okay, ideally states and events should exist in certain
                   # sequences that we can even assert on. However, given enough
