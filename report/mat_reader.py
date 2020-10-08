@@ -52,17 +52,62 @@ def decomposeFilePathInfo(filepath):
       return None
   return mouse_name, protocol, (year, month, day), session_num
 
-def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
-    # GUI_OmegaTable is important but has an a special a treatment.
-    # See the extractGUI() function for more details.
-    IMP_GUI_COLS = ["GUI_ExperimentType", "GUI_StimAfterPokeOut",
-        "GUI_CatchError", "GUI_PercentCatch", "GUI_FeedbackDelayMax",
-        "GUI_MinSampleType", "GUI_MinSample", "GUI_MinSampleMin",
-        "GUI_MinSampleMax", "GUI_RewardAfterMinSampling", "GUI_StimulusTime",
-        "GUI_FeedbackDelaySelection", "GUI_CalcLeftBias", "GUI_MouseState",
-        "GUI_MouseWeight", "GUI_OptoBrainRegion", "GUI_OptoStartState1",
-        ]
+def _extractGUI(data, max_trials, is_mini_df):
+  # GUI_OmegaTable is important but has an a special a treatment.
+  # See processTrial() function for more details.
+  IMP_GUI_COLS = ["GUI_ExperimentType", "GUI_StimAfterPokeOut",
+    "GUI_CatchError", "GUI_PercentCatch", "GUI_FeedbackDelayMax",
+    "GUI_MinSampleType", "GUI_MinSample", "GUI_MinSampleMin",
+    "GUI_MinSampleMax", "GUI_RewardAfterMinSampling", "GUI_StimulusTime",
+    "GUI_FeedbackDelaySelection", "GUI_CalcLeftBias", "GUI_MouseState",
+    "GUI_MouseWeight", "GUI_OptoBrainRegion", "GUI_OptoStartState1",
+    # "GUI_OptoEndState1", "GUI_OptoEndState2",
+    # GUI_OptoMaxTime, GUI_OptoOr2P, GUI_OptoStartDelay
+    ]
 
+  diff_arrs = {"Difficulty1": [], "Difficulty2":[], "Difficulty3":[],
+               "Difficulty4": []}
+  def processTrial(trial_gui, gui_dict):
+    for param_name in dir(trial_gui.GUI):
+      if param_name.startswith("__") or "field_names" in param_name:
+        continue
+      if param_name == "OmegaTable":
+        table = getattr(trial_gui.GUI, param_name)
+        # Non-zero omega-probabilities the ones that user chose to activate
+        if trial_gui.GUI.ExperimentType == 4:
+          if hasattr(table, "RDK"):
+            src_table = table.RDK
+          else:
+            src_table = table.Omega
+            table.Omega = (table.Omega - 50)*2
+        else:
+          src_table = table.Omega
+        diffs = src_table[np.where(table.OmegaProb)[0]]
+        # Ensure it's sorted in descending order
+        diffs = -np.sort(-diffs)
+        for i in range(4): # 0 -> 3
+          diff_val = diffs[i] if i < len(diffs) else np.nan
+          diff_arrs["Difficulty{}".format(i+1)].append(diff_val)
+      if is_mini_df and ("GUI_" + param_name) not in IMP_GUI_COLS:
+        continue
+      else:
+        gui_dict["GUI_" + param_name].append(getattr(trial_gui.GUI, param_name))
+  gui_dict = defaultdict(list)
+  deque(map(lambda trial_gui: processTrial(trial_gui, gui_dict),
+            data.TrialSettings[:max_trials]))
+  #print("GUI dict:", gui_dict)
+  # print("Diff arrays:", diff_arrs)
+  #feedback_type = list(map(lambda param:param.GUI.FeedbackDelaySelection,
+  #                        data.TrialSettings))
+  #catch_error = list(map(lambda param:param.GUI.CatchError,
+  #                    data.TrialSettings))
+  # Modifying a dictionary while looping on it is dangerous, however
+  # hopefully it should be okay because we are just reassigning values
+  for key in gui_dict.keys():
+    gui_dict[key] = gui_dict[key][:max_trials]
+  return gui_dict, diff_arrs
+
+def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
     if type(files_patterns) == str:
         files_patterns = [files_patterns]
     elif type(files_patterns) != list:
@@ -88,51 +133,11 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
         # decomposed_name will be used far down in the end again
         mat = loadmat(fp, struct_as_record=False, squeeze_me=True)
         data = mat['SessionData']
-        diff_arrs = {"Difficulty1": [], "Difficulty2":[], "Difficulty3":[],
-                     "Difficulty4": []}
         try:
             if isinstance(data.Custom.ChoiceLeft, (int, float, complex)) or \
                len(data.Custom.ChoiceLeft) <= 10:
                 continue
             max_trials = np.uint16(len(data.Custom.ChoiceLeft))
-            gui_dict = defaultdict(list)
-            def extractGUI(trial_gui, gui_dict):
-                for param_name in dir(trial_gui.GUI):
-                    if param_name.startswith("__") or "field_names" in param_name:
-                        continue
-                    if param_name == "OmegaTable":
-                        table = getattr(trial_gui.GUI, param_name)
-                        # Non-zero omega-probailities entries are the ones that
-                        # user chose to activate
-                        if trial_gui.GUI.ExperimentType == 4:
-                            if hasattr(table, "RDK"):
-                                src_table = table.RDK
-                            else:
-                                src_table = table.Omega
-                                table.Omega = (table.Omega - 50)*2
-                        else:
-                            src_table = table.Omega
-                        diffs = src_table[np.where(table.OmegaProb)[0]]
-                        # Ensure it's sorted in descending order
-                        diffs = -np.sort(-diffs)
-                        for i in range(4): # 0 -> 3
-                            diff_val = diffs[i] if i < len(diffs) else np.nan
-                            diff_arrs["Difficulty{}".format(i+1)].append(
-                                                                       diff_val)
-                    if mini_df and ("GUI_" + param_name) not in IMP_GUI_COLS:
-                        continue
-                    else:
-                        gui_dict["GUI_" + param_name].append(
-                                             getattr(trial_gui.GUI, param_name))
-
-            deque(map(lambda trial_gui: extractGUI(trial_gui, gui_dict),
-                      data.TrialSettings[:max_trials]))
-            #print("GUI dict:", gui_dict)
-            #feedback_type = list(map(lambda param:param.GUI.FeedbackDelaySelection,
-            #                        data.TrialSettings))
-            #catch_error = list(map(lambda param:param.GUI.CatchError,
-            #                    data.TrialSettings))
-
             new_dict = {}
             filter_vals=["PulsePalParamStimulus","PulsePalParamFeedback",
                          "RewardMagnitude","_fieldnames","CatchCount",
@@ -155,10 +160,8 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
             #print("Found ReactionTime:", found_ReactionTime)
             new_dict["TrialStartTimestamp"] = \
                                            data.TrialStartTimestamp[:max_trials]
-            # Modifying a dictionary while looping on it is dangerous, however
-            # hopefully it should be okay because we are just reassigning values
-            for key in gui_dict.keys():
-                gui_dict[key] = gui_dict[key][:max_trials]
+            gui_dict, diff_arrs = _extractGUI(data, max_trials,
+                                              is_mini_df=mini_df)
             new_dict.update(gui_dict)
             new_dict.update(diff_arrs)
             #new_dict["CatchError"] = catch_error[:max_trials]
