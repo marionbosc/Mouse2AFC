@@ -71,7 +71,8 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
     df = pd.DataFrame()
 
     count=1
-    bad_files=[]
+    bad_filenames=[]
+    bad_files_structure=[]
     import os
     chained_globs=it.chain.from_iterable(
                               glob.iglob(pattern) for pattern in files_patterns)
@@ -82,7 +83,7 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
         decomposed_name = decomposeFilePathInfo(fp)
         if not decomposed_name:
             print("Skipping badly formatted filename:", fp)
-            bad_files.append(fp)
+            bad_filenames.append(fp)
             continue
         # decomposed_name will be used far down in the end again
         mat = loadmat(fp, struct_as_record=False, squeeze_me=True)
@@ -317,7 +318,7 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
             print("Didn't process " + fp + " due to: " + str(e))
             import traceback
             traceback.print_exc()
-            bad_files.append(fp)
+            bad_files_structure.append(fp)
             continue
 
         if len(df2) <= 5:
@@ -329,11 +330,13 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
         if count == stop_at:
             break
 
-    if len(bad_files):
-        print("Didn't processing the following files as they looked different:")
-        for fp in bad_files:
-            print("- ", fp)
-        print()
+    if len(bad_filenames):
+        print("didn't processing the following files as they looked different:")
+        [print("- ", fp) for fp in bad_filenames]
+    if len(bad_files_structure):
+        print("Found internal errors while processing the following files:")
+        [print("- ", fp) for fp in bad_files_structure]
+    print()
 
     df = reduceTypes(df)
     return df
