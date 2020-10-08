@@ -77,7 +77,7 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False):
                               glob.iglob(pattern) for pattern in files_patterns)
     #print("File patterns:", files_patterns)
     #chained_globs=list(chained_globs); print("Globs:", chained_globs)
-    for fp in  chained_globs:
+    for fp in chained_globs:
         print("Processing: " + fp)
         decomposed_name = decomposeFilePathInfo(fp)
         if not decomposed_name:
