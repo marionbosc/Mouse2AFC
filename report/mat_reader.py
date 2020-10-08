@@ -427,7 +427,10 @@ def reduceTypes(df, debug=False):
               help="filepath or filepath pattern of the sessions matlab files")
 @click.option("--mini-df/--full-df", default=True,
               help="Whether to produce a stripped down dataframe")
-def main(out, input, mini_df):
+@click.option("--interactive", is_flag=True,
+              help="After computing the pandas dataframe, don't save and " +
+                    "drop instead into interactive prompt")
+def main(out, input, mini_df, interactive):
   '''Convert one or multiple Mouse2AFC matlab session data files into a single
   pandas dataframe.
 
@@ -440,13 +443,13 @@ def main(out, input, mini_df):
   print("Potential Resulting name:", name)
   df = loadFiles(input, mini_df=mini_df)
   name = out + df.Date.min().strftime("_%Y_%m_%d_to_") + df.Date.max().strftime("%Y_%m_%d.dump")
-  print("Final name:", name)
-  df.to_pickle(name)
-
-if __name__ == "__main__":
-    main()
-    sys.exit(0)
-    #df.to_pickle("all_rdk_2019_08_06.dump")
+  if not interactive:
+    print("Final name:", name)
+    df.to_pickle(name)
+  else:
+    print("Loading interactive prompt")
+    print("Hint:")
+    print(f"   Use 'df.to_pickle(\"{name}\")' to save dataframe to disk")
     import code
     try:
         import readline
@@ -457,3 +460,6 @@ if __name__ == "__main__":
     readline.set_completer(rlcompleter.Completer(vars).complete)
     readline.parse_and_bind("tab: complete")
     code.InteractiveConsole(vars).interact()
+
+if __name__ == "__main__":
+    main()
