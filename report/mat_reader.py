@@ -1,3 +1,4 @@
+# requires: pip install click
 import calendar
 from collections import defaultdict, deque
 import datetime as dt
@@ -8,6 +9,7 @@ from scipy.io import loadmat
 import pandas as pd
 from states import States, StartEnd
 import sys
+import click
 
 MIN_DF_COLS_DROP = ["States","drawParams","rDots", "visual", "Subject", "File",
                     "Protocol", ]
@@ -419,18 +421,30 @@ def reduceTypes(df, debug=False):
             df[col_name] = df[col_name].astype(np.int16)
     return df
 
-if __name__ == "__main__":
-    import sys
-    import time
-    name = sys.argv[1] + time.strftime("_%Y_%m_%d.dump")
-    print("Potential Resulting name:", name)
-    # python mat_reader.py AnimalName "*_Thy[1-3]*.mat" "*WT[1-9]_*.mat" "N[1-4]_Mouse2AFC_[Ja,Fe,Ma,Ap,Ma,Ju,Ju]*.mat"
-    # DATA1="../BpodUser/Data/"; DATA2="/Mouse2AFC/Session Data/"; python mat_reader.py RDK_conf_evd_accum_2019_11_20 "${DATA1}/*RDK_Thy2/${DATA2}*.mat" "${DATA1}/*RDK_WT [1,4,6]/${DATA2}*.mat" "${DATA1}/wfThy*/${DATA2}*.mat
-    df = loadFiles(sys.argv[2:], mini_df=True)
+@click.command()
+@click.option('--out', '-o', help="output file path of the pandas datafile")
+@click.option('--input', '-i', multiple=True,
+              help="filepath or filepath pattern of the sessions matlab files")
+@click.option("--mini-df/--full-df", default=True,
+              help="Whether to produce a stripped down dataframe")
+def main(out, input, mini_df):
+  '''Convert one or multiple Mouse2AFC matlab session data files into a single
+  pandas dataframe.
 
-    name = sys.argv[1] + df.Date.min().strftime("_%Y_%m_%d_to_") + df.Date.max().strftime("%Y_%m_%d.dump")
-    print("Final name:", name)
-    df.to_pickle(name)
+  Example:
+    python mat_reader.py -o AnimalName -i "*_Thy[1-3]*.mat" -i "*WT[1-9]_*.mat" -i "N[1-4]_Mouse2AFC_[Ja,Fe,Ma,Ap,Ma,Ju,Ju]*.mat" --full-df
+    DATA1="../BpodUser/Data/"; DATA2="/Mouse2AFC/Session Data/"; python mat_reader.py -o RDK_conf_evd_accum_2019_11_20 -i "${DATA1}/*RDK_Thy2/${DATA2}*.mat" -i"${DATA1}/*RDK_WT [1,4,6]/${DATA2}*.mat" -i "${DATA1}/wfThy*/${DATA2}*.mat"
+  '''
+  import time
+  name = out + time.strftime("_%Y_%m_%d.dump")
+  print("Potential Resulting name:", name)
+  df = loadFiles(input, mini_df=mini_df)
+  name = out + df.Date.min().strftime("_%Y_%m_%d_to_") + df.Date.max().strftime("%Y_%m_%d.dump")
+  print("Final name:", name)
+  df.to_pickle(name)
+
+if __name__ == "__main__":
+    main()
     sys.exit(0)
     #df.to_pickle("all_rdk_2019_08_06.dump")
     import code
