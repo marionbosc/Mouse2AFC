@@ -414,6 +414,8 @@ if iTrial > numel(BpodSystem.Data.Custom.DV) - Const.PRE_GENERATE_TRIAL_CHECK
                 DV = CalcGratingOrientation(lastidx+a);
             case ExperimentType.RandomDots
                 DV = CalcDotsCoherence(lastidx+a);
+            case ExperimentType.SoundDiscrimination
+                DV = CalcSoundDiscrimination(lastidx+a);
             otherwise
                 assert(false, 'Unexpected ExperimentType');
         end
