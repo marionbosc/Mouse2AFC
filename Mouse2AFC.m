@@ -135,6 +135,8 @@ for a = 1:Const.NUM_EASY_TRIALS
             DV = CalcGratingOrientation(a);
         case ExperimentType.RandomDots
             DV = CalcDotsCoherence(a);
+        case ExperimentType.SoundDiscrimination
+            DV = CalcSoundDiscrimination(a);
         otherwise
             assert(false, 'Unexpected ExperimentType');
     end
