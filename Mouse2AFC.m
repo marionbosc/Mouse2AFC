@@ -87,6 +87,8 @@ BpodSystem.Data.Custom.RewardAfterMinSampling = false(0);
 BpodSystem.Data.Custom.PreStimCntrReward = [];
 BpodSystem.Data.Custom.LightIntensityLeft = [];
 BpodSystem.Data.Custom.LightIntensityRight = [];
+BpodSystem.Data.Custom.SoundLeft = [];
+BpodSystem.Data.Custom.SoundRight = [];
 BpodSystem.Data.Custom.GratingOrientation = [];
 % RewardMagnitude is an array of length 2
 % TODO: Use an array of 1 and just assign it to the rewarding port
