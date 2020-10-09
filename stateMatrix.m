@@ -25,6 +25,9 @@ CenterPWM = round((100-TaskParameters.GUI.CenterPokeAttenPrcnt) * 2.55);
 RightPWM = round((100-TaskParameters.GUI.RightPokeAttenPrcnt) * 2.55);
 LEDErrorRate = 0.1;
 
+LeftSoundPWM = round((100-TaskParameters.GUI.LeftSoundAttenPrcnt) * 2.55);
+RightSoundPWM = round((100-TaskParameters.GUI.RightSoundAttenPrcnt) * 2.55);
+
 IsLeftRewarded = BpodSystem.Data.Custom.LeftRewarded(iTrial);
 
 if TaskParameters.GUI.ExperimentType == ExperimentType.Auditory
