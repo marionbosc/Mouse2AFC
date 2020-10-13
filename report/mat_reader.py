@@ -496,6 +496,7 @@ def main(out, input, out_date_suffix, mini_df, append_df, interactive,
   pandas dataframe.
 
   Example:
+    DATA1="../../../Data/"; DATA2="/Mouse2AFC/Session Data/"; python mat_reader.py -i "${DATA1}/*/${DATA2}*.mat" --few-trials-load="few_trials_AnimalName.txt" --few-trials-save="few_trials_AnimalName.txt" -o AnimalName
 
     python mat_reader.py -o AnimalName -i "*_Thy[1-3]*.mat" -i "*WT[1-9]_*.mat" -i "N[1-4]_Mouse2AFC_[Ja,Fe,Ma,Ap,Ma,Ju,Ju]*.mat" --full-df
 
