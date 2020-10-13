@@ -449,7 +449,7 @@ def reduceTypes(df, debug=False):
               help="output file path of the pandas datafile")
 @click.option('--input', '-i', multiple=True, type=click.Path(),
               help="filepath or filepath pattern of the sessions matlab files")
-@click.option("--mini-df/--full-df", default=True,
+@click.option("--mini-df/--full-df", default=True, show_default=True,
               help="Whether to produce a stripped down dataframe")
 @click.option("--append-df", type=click.Path(exists=True),
               help="If specified, should point to an existing dataframe. The "
