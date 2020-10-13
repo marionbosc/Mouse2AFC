@@ -138,6 +138,7 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False,
                             "strings, not " + str(type(files_patterns)))
 
     df, skip_sessions = _loadOrCreateDf(append_df)
+    updated_df = False
     skip_few_sess_ids = frozenset(map(
         lambda fp:uniqueSessID(decomposeFilePathInfo(fp)), few_trials_sessions))
     count=1
@@ -370,6 +371,7 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False,
             continue
 
         df = pd.concat([df,df2],ignore_index=True,sort=False)
+        updated_df = True
         count+=1
         if count == stop_at:
             break
@@ -386,7 +388,7 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False,
     print()
 
     df = reduceTypes(df)
-    return df, few_trials_sessions + bad_files_few_trials
+    return df, few_trials_sessions + bad_files_few_trials, updated_df
 
 def reduceTypes(df, debug=False):
     for col_name in df.select_dtypes(include=['object']):
@@ -512,8 +514,9 @@ def main(out, input, out_date_suffix, mini_df, append_df, interactive,
     few_trials_fp = [f.strip() for f in few_trials_fp]
   else:
     few_trials_fp = []
-  df, few_trials_fp = loadFiles(input, mini_df=mini_df, append_df=append_df,
-                                few_trials_sessions=few_trials_fp)
+
+  df, few_trials_fp, is_updated_df = loadFiles(input, mini_df=mini_df,
+                         append_df=append_df, few_trials_sessions=few_trials_fp)
   if not len(df):
     print("Empty dataframe - probably wrong file path")
     sys.exit(-1)
@@ -536,7 +539,10 @@ def main(out, input, out_date_suffix, mini_df, append_df, interactive,
 
   if not interactive:
     print("Final name:", name)
-    df.to_pickle(name)
+    if is_updated_df:
+      df.to_pickle(name)
+    else:
+      print("Not saving as df hasn't changed")
     saveMetaFiles()
   else:
     saveMetaFiles()
