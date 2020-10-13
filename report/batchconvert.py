@@ -15,7 +15,18 @@ def spawnProcess(session_data_dir):
     return None
   mat_files = os.path.join(session_data_dir, "*.mat")
   print("Animal name:", animal_name, "- Match:", mat_files)
-  p = subprocess.Popen(args=["python", "mat_reader.py", animal_name, mat_files],
+  append_df_arg = []
+  for fp in glob.glob(f"{animal_name}*.dump"):
+    append_df_arg = ["--apend-df", fp]
+    break
+  few_trials_file = f"few_trials/{animal_name}.txt"
+  if ps.path.exists(few_trials_file):
+    few_trials_load_arg = ["--few-trials-load", few_trials_file]
+  else:
+    few_trials_load_arg = []
+  p = subprocess.Popen(args=["python", "mat_reader.py", "-o", animal_name,
+                       "-i", mat_files, "--few-trials-save", few_trials_file] +\
+                       few_trials_load_arg + append_df_arg,
                        shell=False)
   return p
 
