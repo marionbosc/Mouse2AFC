@@ -12,7 +12,7 @@ import time
 import traceback
 import matplotlib.pyplot as plt
 import analysis
-import mat_reader
+import mat_reader_core
 
 
 class PlotHandler():
@@ -191,7 +191,7 @@ def showAndSaveReport():
               #r"vgat4_Mouse2AFC_Dec09_2019_Session2.mat"
               #r"RDK_WT1_Mouse2AFC_Dec04_2019_Session1.mat"
 
-  session_df = mat_reader.loadFiles(data_flie)
+  session_df, _bad_ssns, _df_updated = mat_reader_core.loadFiles(data_flie)
   print("Session df length:", len(session_df))
   MakeAndSavePlots().run(session_df, save_dir)
 
