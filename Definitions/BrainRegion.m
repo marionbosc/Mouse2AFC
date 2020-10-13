@@ -12,6 +12,9 @@ classdef BrainRegion
         POR_L = 10;
         POR_R = 11;
         POR_Bi = 12;
+        RealM2_L = 13;
+        RealM2_R = 14;
+        RealM2_Bi = 15;
     end
     methods(Static)
         function string = String()
