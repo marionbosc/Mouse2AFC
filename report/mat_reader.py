@@ -311,8 +311,11 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False,
 
             new_dict["MaxTrial"] = max_trials
             if not mini_df:
+                # Extract trial_states anyhow as they calculate ReactionTime
                 trials_states = list(map(extractStates,
                                      data.RawEvents.Trial[:max_trials]))
+                # TODO: Change this to an assert, it should always be
+                # equal to max_trials
                 if len(trials_states) == max_trials + 1: # Needed for old files
                     trials_states = trials_states[:-1]
                 new_dict["States"] = trials_states
