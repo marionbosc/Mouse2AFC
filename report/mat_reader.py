@@ -449,6 +449,10 @@ def reduceTypes(df, debug=False):
               help="output file path of the pandas datafile")
 @click.option('--input', '-i', multiple=True, type=click.Path(),
               help="filepath or filepath pattern of the sessions matlab files")
+@click.option("--out-date-suffix/--no-date-suffix", default=False,
+              show_default=True,
+              help="Whether to append to output file name the start and end "
+                   "dates of first ad last sessions.")
 @click.option("--mini-df/--full-df", default=True, show_default=True,
               help="Whether to produce a stripped down dataframe")
 @click.option("--append-df", type=click.Path(exists=True),
@@ -462,7 +466,7 @@ def reduceTypes(df, debug=False):
 @click.option("--interactive", is_flag=True,
               help="After computing the pandas dataframe, don't save and " +
                    "drop instead into interactive prompt")
-def main(out, input, mini_df, append_df, interactive):
+def main(out, input, out_date_suffix, mini_df, append_df, interactive):
   '''Convert one or multiple Mouse2AFC matlab session data files into a single
   pandas dataframe.
 
@@ -473,8 +477,11 @@ def main(out, input, mini_df, append_df, interactive):
     DATA1="../BpodUser/Data/"; DATA2="/Mouse2AFC/Session Data/"; python mat_reader.py -o RDK_conf_evd_accum_2019_11_20 -i "${DATA1}/*RDK_Thy2/${DATA2}*.mat" -i"${DATA1}/*RDK_WT [1,4,6]/${DATA2}*.mat" -i "${DATA1}/wfThy*/${DATA2}*.mat"
   '''
   import time
+  suffix = time.strftime("_%Y_%m_%d") if out_date_suffix else ""
   if not append_df:
-    name = out + time.strftime("_%Y_%m_%d.dump")
+    if not out:
+      raise ValueError("Neither --out nor --append were specified")
+    name = f"{out}{suffix}.dump"
     print("Potential Resulting name:", name)
   df = loadFiles(input, mini_df=mini_df, append_df=append_df)
   if not len(df):
@@ -482,9 +489,14 @@ def main(out, input, mini_df, append_df, interactive):
     sys.exit(-1)
 
   if not out and append_df:
-    name = out
+    name = append_df
   else:
-    name = out + df.Date.min().strftime("_%Y_%m_%d_to_") + df.Date.max().strftime("%Y_%m_%d.dump")
+    if out_date_suffix:
+      suffix = f"{df.Date.min().strftime('_%Y_%m_%d')}_to_" + \
+               f"{df.Date.max().strftime('%Y_%m_%d')}"
+    else:
+      suffix = ""
+    name = f"{out}{suffix}.dump"
 
   if not interactive:
     print("Final name:", name)
