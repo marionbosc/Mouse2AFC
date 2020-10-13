@@ -4,6 +4,8 @@
 #define START_PIN 3
 #define STOP_PIN 4
 #define OUTPUT_PIN 8
+#define OPTO_FREQ 1000/40.0
+#define OPTO_DUTY_CYCLE_PRCNT 80.0
 
 #ifndef DEBUG_CHAR_INPUT
 #define FULL_MSG_BYTES_COUNT 8 // Two 4 bytes long
@@ -13,10 +15,16 @@
 char read_buf[READ_BUF_SIZE];
 size_t read_count;
 #endif
+const unsigned int OPTO_DUTY_ON_MILLIS = (OPTO_DUTY_CYCLE_PRCNT/100)*OPTO_FREQ;
+const unsigned int OPTO_DUTY_OFF_MILLIS = ((100-OPTO_DUTY_CYCLE_PRCNT)/100)*OPTO_FREQ;
+// Have the full duty time as int value to simplify the calculation, that should be almost
+// equal to OPTO_FREQ
+const unsigned int OPTO_FULL_DUTY_MILLIS = OPTO_DUTY_ON_MILLIS + OPTO_DUTY_OFF_MILLIS;
 enum State : byte {NOT_WORKING, COUNTING_OFFSET, WORKING};
 long cur_ttl_offset, new_ttl_offset;
 long cur_ttl_dur, new_ttl_dur;
 unsigned long start_time;
+int cur_freq_TTL_state, last_freq_TTL_state;
 volatile State should_state;
 State cur_state;
 
@@ -73,6 +81,9 @@ void loop() {
     cur_state = COUNTING_OFFSET;
     cur_ttl_offset = new_ttl_offset;
     cur_ttl_dur = new_ttl_dur;
+    cur_freq_TTL_state = HIGH;
+    // Assume last to be low intially, it should only cause 2 subsequent HIGH writes on with cur design
+    last_freq_TTL_state = LOW;
     #ifdef DEBUG
     Serial.println("Received start work TTL");
     #endif
@@ -96,13 +107,22 @@ void loop() {
     }
   }
 
-  if (cur_state == WORKING && (
-    should_state == NOT_WORKING || (unsigned long)(millis() - start_time) >= cur_ttl_offset + cur_ttl_dur)) {
-    digitalWrite(OUTPUT_PIN, LOW);
-    cur_state = should_state = NOT_WORKING;
-    #ifdef DEBUG
-    Serial.println("Stopping TTL output");
-    #endif
+  if (cur_state == WORKING) {
+    long time_active = (unsigned long)(millis() - start_time) + cur_ttl_offset;
+    cur_freq_TTL_state = (time_active % OPTO_FULL_DUTY_MILLIS) < OPTO_DUTY_ON_MILLIS  ? HIGH : LOW;
+    if (should_state == NOT_WORKING || time_active >= cur_ttl_dur) {
+      digitalWrite(OUTPUT_PIN, LOW);
+      digitalWrite(13, LOW);
+      cur_state = should_state = NOT_WORKING;
+      #ifdef DEBUG
+      Serial.println("Stopping TTL output");
+      #endif
+    }
+    else if (cur_freq_TTL_state != last_freq_TTL_state) {
+      digitalWrite(OUTPUT_PIN, cur_freq_TTL_state);
+      digitalWrite(13, cur_freq_TTL_state);
+      last_freq_TTL_state = cur_freq_TTL_state;
+    }
   }
 }
 
