@@ -54,6 +54,10 @@ def decomposeFilePathInfo(filepath):
       return None
   return mouse_name, protocol, (year, month, day), session_num
 
+def uniqueSessID(decomposed_name):
+  mouse_name, protocol, (year, month, day), session_num = decomposed_name
+  return (mouse_name, dt.date(year=year, month=month, day=day), session_num)
+
 def _extractGUI(data, max_trials, is_mini_df):
   # GUI_OmegaTable is important but has an a special a treatment.
   # See processTrial() function for more details.
@@ -122,7 +126,7 @@ def _loadOrCreateDf(append_df):
   return df, skip_sessions
 
 def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False,
-              append_df=None):
+              append_df=None, few_trials_sessions=[]):
     if type(files_patterns) == str:
         files_patterns = [files_patterns]
     else:
@@ -134,9 +138,12 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False,
                             "strings, not " + str(type(files_patterns)))
 
     df, skip_sessions = _loadOrCreateDf(append_df)
+    skip_few_sess_ids = frozenset(map(
+        lambda fp:uniqueSessID(decomposeFilePathInfo(fp)), few_trials_sessions))
     count=1
     bad_filenames=[]
     bad_files_structure=[]
+    bad_files_few_trials=[]
     import os
     chained_globs=it.chain.from_iterable(
                               glob.iglob(pattern) for pattern in files_patterns)
@@ -149,11 +156,12 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False,
             bad_filenames.append(fp)
             continue
 
-        mouse_name, protocol, (year, month, day), session_num = decomposed_name
-        unique_sess_id = (mouse_name, dt.date(year=year, month=month, day=day),
-                          session_num)
+        unique_sess_id = uniqueSessID(decomposed_name)
         if unique_sess_id in skip_sessions:
             print("Already existing in dataframe:", fp)
+            continue
+        elif unique_sess_id in skip_few_sess_ids:
+            print("Not loading already-known few trials sessions:", fp)
             continue
         # decomposed_name will be used far down in the end again
         mat = loadmat(fp, struct_as_record=False, squeeze_me=True)
@@ -161,6 +169,7 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False,
         try:
             if isinstance(data.Custom.ChoiceLeft, (int, float, complex)) or \
                len(data.Custom.ChoiceLeft) <= 10:
+                bad_files_few_trials.append(fp)
                 continue
             print("Processing", fp)
             max_trials = np.uint16(len(data.Custom.ChoiceLeft))
@@ -320,6 +329,9 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False,
             if hasattr(data, "Filename"):
               mouse_name, protocol, (year, month, day), session_num = \
                                             decomposeFilePathInfo(data.Filename)
+            else:
+              mouse_name, protocol, (year, month, day), session_num = \
+                                                                 decomposed_name
             # data.Custom.Subject can incorrectly computed (e.g name, vgat2.1 is
             # computed as just vgat2). We compute it from fileame instead.
             new_dict["Name"] = mouse_name
@@ -368,10 +380,13 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False,
     if len(bad_files_structure):
         print("Found internal errors while processing the following files:")
         [print("- ", fp) for fp in bad_files_structure]
+    if len(bad_files_few_trials):
+        print("DIdn't process files with zero or very few trials:")
+        [print("- ", fp) for fp in bad_files_few_trials]
     print()
 
     df = reduceTypes(df)
-    return df
+    return df, few_trials_sessions + bad_files_few_trials
 
 def reduceTypes(df, debug=False):
     for col_name in df.select_dtypes(include=['object']):
@@ -463,10 +478,18 @@ def reduceTypes(df, debug=False):
                    "new sessions will be loaded. If --output argument is "
                    "specified, then the dataframe will written to a new "
                    "--output file, otherwise it will be saved in-place")
+@click.option("--few-trials-save", type=click.Path(),
+              help="Specify the save location for the list containing sessions "
+                   "filenames that had few trials. Can be same as "
+                   "--few-trials-load")
+@click.option("--few-trials-load", type=click.Path(exists=True),
+              help="Specify the file path for the list containing sessions "
+                   "with very few trials. These sessions will be skipped.")
 @click.option("--interactive", is_flag=True,
               help="After computing the pandas dataframe, don't save and " +
                    "drop instead into interactive prompt")
-def main(out, input, out_date_suffix, mini_df, append_df, interactive):
+def main(out, input, out_date_suffix, mini_df, append_df, interactive,
+         few_trials_save, few_trials_load):
   '''Convert one or multiple Mouse2AFC matlab session data files into a single
   pandas dataframe.
 
@@ -483,7 +506,14 @@ def main(out, input, out_date_suffix, mini_df, append_df, interactive):
       raise ValueError("Neither --out nor --append were specified")
     name = f"{out}{suffix}.dump"
     print("Potential Resulting name:", name)
-  df = loadFiles(input, mini_df=mini_df, append_df=append_df)
+  if few_trials_load:
+    with open(few_trials_load) as f:
+      few_trials_fp = f.readlines()
+    few_trials_fp = [f.strip() for f in few_trials_fp]
+  else:
+    few_trials_fp = []
+  df, few_trials_fp = loadFiles(input, mini_df=mini_df, append_df=append_df,
+                                few_trials_sessions=few_trials_fp)
   if not len(df):
     print("Empty dataframe - probably wrong file path")
     sys.exit(-1)
@@ -498,10 +528,18 @@ def main(out, input, out_date_suffix, mini_df, append_df, interactive):
       suffix = ""
     name = f"{out}{suffix}.dump"
 
+  def saveMetaFiles():
+    if few_trials_save:
+      with open(few_trials_save, 'w') as f:
+        print("Saving few trials sessions into:", few_trials_save)
+        f.write('\n'.join(few_trials_fp))
+
   if not interactive:
     print("Final name:", name)
     df.to_pickle(name)
+    saveMetaFiles()
   else:
+    saveMetaFiles()
     print("Loading interactive prompt")
     print("Hint:")
     print(f"   Use 'df.to_pickle(\"{name}\")' to save dataframe to disk")
