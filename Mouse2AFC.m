@@ -12,7 +12,7 @@ BpodSystem.Data.Custom.IsHomeCage = isfield(BpodSystem.ProtocolSettings, 'HomeCa
 %% Task parameters
 global TaskParameters
 TaskParameters = BpodSystem.ProtocolSettings;
-GUICurVer = 30;
+GUICurVer = 31;
 if isempty(fieldnames(TaskParameters))
     TaskParameters = CreateTaskParameters(GUICurVer);
 elseif ~isfield(TaskParameters.GUI, 'GUIVer')
