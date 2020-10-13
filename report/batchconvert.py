@@ -82,10 +82,13 @@ def batchConvert(dir_path, is_root=True):
       time.sleep(1)
     concatDfs()
 
-if __name__ == "__main__":
-  if len(sys.argv) >= 2:
-    data_dir = sys.argv[1]
-  else:
-    data_dir = DEFAULT_DIR
+@click.command()
+@click.option('--dir', '-d', type=click.Path(exists=True), default=DEFAULT_DIR,
+              help="The directory containing the sessions files")
+def main(dir):
   #concatDfs()
   batchConvert(data_dir)
+  batchConvert(dir)
+
+if __name__ == "__main__":
+  main()
