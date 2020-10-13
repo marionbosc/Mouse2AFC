@@ -52,7 +52,7 @@ class PlotHandler():
     # otherwise the timer won't run
     self._timer = fig.canvas.new_timer(interval = auto_close_after_ms)
     self._timer.add_callback(self._closeWindow)
-    # self._timer.start() # Disable auto-close for now
+    self._timer.start()
     plt.show(block=False)
 
   def waitForCurFig(self):
@@ -87,7 +87,7 @@ class MakeAndSavePlots():
     plot_handler = PlotHandler()
     try:
       fig = self._mainPlot(session_df)
-      plot_handler.pltInBgnd(fig=fig, auto_close_after_ms=6000)
+      plot_handler.pltInBgnd(fig=fig, auto_close_after_ms=60000)
     except Exception as err:
       print("An exception occurred in main fig:\n", traceback.format_exc(),
             file=sys.stderr)
