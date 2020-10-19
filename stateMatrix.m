@@ -7,8 +7,11 @@ function MatStr = str(matrix_state)
 end
 function enc_trigger = EncTrig(trigger_id)
     % Provides V1 & V2 compitability
-    enc_trigger = iff(BpodSystem.SystemSettings.IsVer2, ...
-                      dec2bin(trigger_id, 3), trigger_id);
+    % The Bpod2 emulator requires some strange formatting compared to the
+    % actual real board running.
+    enc_trigger = ...
+        iff(BpodSystem.SystemSettings.IsVer2 && BpodSystem.EmulatorMode,...
+            dec2bin(trigger_id, 3), trigger_id);
 end
 
 %% Define ports
