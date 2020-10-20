@@ -15,6 +15,9 @@ classdef BrainRegion
         RealM2_L = 13;
         RealM2_R = 14;
         RealM2_Bi = 15;
+        RSP_L = 16;
+        RSP_R = 17;
+        RSP_Bi = 18;
     end
     methods(Static)
         function string = String()
