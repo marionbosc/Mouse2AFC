@@ -42,7 +42,7 @@ SettingStruct = load(SettingsPath);
 F = fieldnames(SettingStruct);
 FieldName = F{1};
 BpodSystem.ProtocolSettings = eval(['SettingStruct.' FieldName]);
-BpodSystem.ProtocolSettings.HomeCage = HomeCage;
+%BpodSystem.ProtocolSettings.HomeCage = HomeCage;
 BpodSystem.Data = struct;
 addpath(ProtocolPath);
 if BpodSystem.SystemSettings.IsVer2
