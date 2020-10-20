@@ -35,7 +35,7 @@ CenterPWM = round((100-TaskParameters.GUI.CenterPokeAttenPrcnt) * 2.55);
 RightPWM = round((100-TaskParameters.GUI.RightPokeAttenPrcnt) * 2.55);
 LEDErrorRate = 0.1;
 
-IsLeftRewarded = BpodSystem.Data.Custom.LeftRewarded(iTrial);
+IsLeftRewarded = BpodSystem.Data.Custom.Trials(iTrial).LeftRewarded;
 
 if TaskParameters.GUI.ExperimentType == ExperimentType.Auditory
     DeliverStimulus =  {'BNCState',1};
@@ -45,8 +45,8 @@ if TaskParameters.GUI.ExperimentType == ExperimentType.Auditory
     EWDStopStimulus = {'BNCState',0};
 elseif TaskParameters.GUI.ExperimentType == ExperimentType.LightIntensity
     % Divide Intensity by 100 to get fraction value
-    LeftPWMStim = round(BpodSystem.Data.Custom.LightIntensityLeft(iTrial)*LeftPWM/100);
-    RightPWMStim = round(BpodSystem.Data.Custom.LightIntensityRight(iTrial)*RightPWM/100);
+    LeftPWMStim = round(BpodSystem.Data.Custom.Trials(iTrial).LightIntensityLeft*LeftPWM/100);
+    RightPWMStim = round(BpodSystem.Data.Custom.Trials(iTrial).LightIntensityRight*RightPWM/100);
     DeliverStimulus = {strcat('PWM',num2str(LeftPort)),LeftPWMStim,...
                        strcat('PWM',num2str(RightPort)),RightPWMStim};
     ContDeliverStimulus = DeliverStimulus;
@@ -62,14 +62,14 @@ elseif TaskParameters.GUI.ExperimentType == ExperimentType.GratingOrientation
     % difficulties.
     ccw = iff(mod(rightPortAngle-leftPortAngle,360) < mod(leftPortAngle-rightPortAngle,360), true, false);
     if ccw
-        finalDV = BpodSystem.Data.Custom.DV(iTrial);
+        finalDV = BpodSystem.Data.Custom.Trials(iTrial).DV;
         if rightPortAngle < leftPortAngle
             rightPortAngle = rightPortAngle + 360;
         end
         angleDiff = rightPortAngle - leftPortAngle;
         minAngle = leftPortAngle;
     else
-        finalDV = -BpodSystem.Data.Custom.DV(iTrial);
+        finalDV = -BpodSystem.Data.Custom.Trials(iTrial).DV;
         if leftPortAngle < rightPortAngle
             leftPortAngle = leftPortAngle + 360;
         end
@@ -114,7 +114,7 @@ elseif TaskParameters.GUI.ExperimentType == ExperimentType.RandomDots
                            TaskParameters.GUI.VisualStimAnglePortRight)));
     BpodSystem.Data.Custom.drawParams.dotSpeed = TaskParameters.GUI.dotSpeedDegsPerSec;
     BpodSystem.Data.Custom.drawParams.dotLifetimeSecs = TaskParameters.GUI.dotLifetimeSecs;
-    BpodSystem.Data.Custom.drawParams.coherence = BpodSystem.Data.Custom.DotsCoherence(iTrial);
+    BpodSystem.Data.Custom.drawParams.coherence = BpodSystem.Data.Custom.Trials(iTrial).DotsCoherence;
     BpodSystem.Data.Custom.drawParams.screenWidthCm = TaskParameters.GUI.screenWidthCm;
     BpodSystem.Data.Custom.drawParams.screenDistCm = TaskParameters.GUI.screenDistCm;
     BpodSystem.Data.Custom.drawParams.dotSizeInDegs = TaskParameters.GUI.dotSizeInDegs;
@@ -140,9 +140,9 @@ RightValve = 2^(RightPort-1);
 AirSolenoidOn = 2^(AirSolenoid-1);
 AirSolenoidOff = 0;
 
-LeftValveTime  = GetValveTimes(BpodSystem.Data.Custom.RewardMagnitude(iTrial,1), LeftPort);
-CenterValveTime  = GetValveTimes(BpodSystem.Data.Custom.CenterPortRewAmount(iTrial), CenterPort);
-RightValveTime  = GetValveTimes(BpodSystem.Data.Custom.RewardMagnitude(iTrial,2), RightPort);
+LeftValveTime  = GetValveTimes(BpodSystem.Data.Custom.Trials(iTrial).RewardMagnitude(1), LeftPort);
+CenterValveTime  = GetValveTimes(BpodSystem.Data.Custom.Trials(iTrial).CenterPortRewAmount, CenterPort);
+RightValveTime  = GetValveTimes(BpodSystem.Data.Custom.Trials(iTrial).RewardMagnitude(2), RightPort);
 
 % iff() function takes first parameter as first condition, if the condition
 % is true then it returns the 2nd parameter, else it returns the 3rd one
@@ -202,7 +202,7 @@ Timer_CPRD = iff(TaskParameters.GUI.RewardAfterMinSampling, CenterValveTime, Tas
 ErrorFeedback = iff(TaskParameters.GUI.PlayNoiseforError, {'SoftCode',11}, {});
 
 % CatchTrial
-FeedbackDelayCorrect = iff(BpodSystem.Data.Custom.CatchTrial(iTrial), Const.FEEDBACK_CATCH_CORRECT_SEC, TaskParameters.GUI.FeedbackDelay);
+FeedbackDelayCorrect = iff(BpodSystem.Data.Custom.Trials(iTrial).CatchTrial, Const.FEEDBACK_CATCH_CORRECT_SEC, TaskParameters.GUI.FeedbackDelay);
 
 % GUI option CatchError
 FeedbackDelayError = iff(TaskParameters.GUI.CatchError, Const.FEEDBACK_CATCH_INCORRECT_SEC, TaskParameters.GUI.FeedbackDelay);
@@ -241,12 +241,12 @@ end
 
 %Wire1 settings
 Wire1OutError = iff(TaskParameters.GUI.Wire1VideoTrigger, {'WireState', 2^1}, {});
-Wire1OutCorrect = iff(TaskParameters.GUI.Wire1VideoTrigger && BpodSystem.Data.Custom.CatchTrial(iTrial), {'WireState', 2^1}, {});
+Wire1OutCorrect = iff(TaskParameters.GUI.Wire1VideoTrigger && BpodSystem.Data.Custom.Trials(iTrial).CatchTrial, {'WireState', 2^1}, {});
 
 % LED on the side lateral port to cue the rewarded side at the beginning of
 % the training. On auditory discrimination task, both lateral ports are
 % illuminated after end of stimulus delivery.
-if BpodSystem.Data.Custom.ForcedLEDTrial(iTrial)
+if BpodSystem.Data.Custom.Trials(iTrial).ForcedLEDTrial
     ExtendedStimulus = {strcat('PWM',num2str(RewardedPort)),RewardedPortPWM};
 elseif TaskParameters.GUI.ExperimentType == ExperimentType.Auditory
     ExtendedStimulus = {strcat('PWM',num2str(LeftPort)),LeftPWM,strcat('PWM',num2str(RightPort)),RightPWM};
@@ -404,7 +404,7 @@ sma = AddState(sma, 'Name', str(MatrixState.ext_ITI),...
 % output to the optogentics box and feed it as an input to Bpod input TTL,
 % e.g Wire1. This way, the optogentics signal gets written as part of your
 % data file. Don't forget to activate that input in the Bpod main config.
-if BpodSystem.Data.Custom.OptoEnabled(iTrial)
+if BpodSystem.Data.Custom.Trials(iTrial).OptoEnabled
     % Convert seconds to millis as we will send ints to Arduino
     OptoDelay = uint32(TaskParameters.GUI.OptoStartDelay*1000);
     OptoDelay = typecast(OptoDelay, 'int8');

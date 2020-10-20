@@ -71,31 +71,14 @@ TaskParameters.GUI.MouseWeight = nan;
 TaskParameters.GUI.ComputerName = computerName;
 BpodParameterGUI('init', TaskParameters);
 
-%% Initializing data (trial type) vectors
-BpodSystem.Data.Custom.ChoiceLeft = [];
-BpodSystem.Data.Custom.ChoiceCorrect = [];
-BpodSystem.Data.Custom.Feedback = false(0);
-BpodSystem.Data.Custom.FeedbackTime = [];
-BpodSystem.Data.Custom.FixBroke = false(0);
-BpodSystem.Data.Custom.EarlyWithdrawal = false(0);
-BpodSystem.Data.Custom.MissedChoice = false(0);
-BpodSystem.Data.Custom.FixDur = [];
-BpodSystem.Data.Custom.MT = [];
-BpodSystem.Data.Custom.CatchTrial = false;
-BpodSystem.Data.Custom.ST = [];
-BpodSystem.Data.Custom.OptoEnabled = false;
-BpodSystem.Data.Custom.Rewarded = false(0);
-BpodSystem.Data.Custom.RewardAfterMinSampling = false(0);
-BpodSystem.Data.Custom.PreStimCntrReward = [];
-BpodSystem.Data.Custom.LightIntensityLeft = [];
-BpodSystem.Data.Custom.LightIntensityRight = [];
-BpodSystem.Data.Custom.GratingOrientation = [];
-% RewardMagnitude is an array of length 2
-% TODO: Use an array of 1 and just assign it to the rewarding port
-BpodSystem.Data.Custom.RewardMagnitude = TaskParameters.GUI.RewardAmount*[1,1];
-BpodSystem.Data.Custom.CenterPortRewAmount =TaskParameters.GUI.CenterPortRewAmount;
-BpodSystem.Data.Custom.TrialNumber = [];
-BpodSystem.Data.Custom.ForcedLEDTrial = false;
+%% Initializing data vectors
+PREALLOC_TRIALS = 800;
+[BpodSystem.Data.Custom.Trials,...
+ BpodSystem.Data.TrialSettings,...
+ BpodSystem.Data.Timer] = CreateOrAppendDataArray(PREALLOC_TRIALS,...
+                                                  TaskParameters.GUI);
+
+BpodSystem.Data.Custom.DVsAlreadyGenerated = 0;
 BpodSystem.Data.Custom.CatchCount = zeros(1, 21);
 BpodSystem.Data.Custom.LastSuccessCatchTial = 1;
 % Setting StartTime to any value, it will be overwritten by the first poke
@@ -111,7 +94,7 @@ for a = 1:Const.NUM_EASY_TRIALS
         % This random value is between 0 and 1, the beta distribution
         % parameters makes it very likely to very close to zero or very
         % close to 1.
-        BpodSystem.Data.Custom.StimulusOmega(a) = betarnd(TaskParameters.GUI.BetaDistAlphaNBeta/4,TaskParameters.GUI.BetaDistAlphaNBeta/4,1,1);
+        BpodSystem.Data.Custom.Trials(a).StimulusOmega = betarnd(TaskParameters.GUI.BetaDistAlphaNBeta/4,TaskParameters.GUI.BetaDistAlphaNBeta/4,1,1);
     elseif TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.DiscretePairs
         index = find(TaskParameters.GUI.OmegaTable.OmegaProb > 0, 1);
         Intensity = TaskParameters.GUI.OmegaTable.Omega(index)/100;
@@ -126,7 +109,7 @@ for a = 1:Const.NUM_EASY_TRIALS
     if ~isLeftRewarded && Intensity >= 0.5
         Intensity = -Intensity + 1;
     end
-    BpodSystem.Data.Custom.StimulusOmega(a) = Intensity;
+    BpodSystem.Data.Custom.Trials(a).StimulusOmega = Intensity;
 
     switch TaskParameters.GUI.ExperimentType
         case ExperimentType.Auditory
@@ -141,14 +124,16 @@ for a = 1:Const.NUM_EASY_TRIALS
             assert(false, 'Unexpected ExperimentType');
     end
     if DV > 0
-        BpodSystem.Data.Custom.LeftRewarded(a) = 1;
+        BpodSystem.Data.Custom.Trials(a).LeftRewarded = 1;
     elseif DV < 0
-        BpodSystem.Data.Custom.LeftRewarded(a) = 0;
+        BpodSystem.Data.Custom.Trials(a).LeftRewarded = 0;
     else
-        BpodSystem.Data.Custom.LeftRewarded(a) = rand<0.5; % It's equal distribution
+        BpodSystem.Data.Custom.Trials(a).LeftRewarded = rand<0.5; % It's equal distribution
     end
     % cross-modality difficulty for plotting
-    BpodSystem.Data.Custom.DV(a) = DV;
+    BpodSystem.Data.Custom.Trials(a).DV = DV;
+    BpodSystem.Data.Custom.DVsAlreadyGenerated = ...
+                            BpodSystem.Data.Custom.DVsAlreadyGenerated + 1;
 end%for a+1:2
 % Bpod will provide feedback that we can useto trigger pulse pal
 
@@ -177,7 +162,7 @@ end
 
 
 % Set current stimulus for next trial - set between -100 to +100
-TaskParameters.GUI.CurrentStim = iff(BpodSystem.Data.Custom.DV(1) > 0, (BpodSystem.Data.Custom.DV(1) + 1)/0.02,(BpodSystem.Data.Custom.DV(1) - 1)/0.02);
+TaskParameters.GUI.CurrentStim = iff(BpodSystem.Data.Custom.Trials(1).DV > 0, (BpodSystem.Data.Custom.Trials(1).DV + 1)/0.02,(BpodSystem.Data.Custom.Trials(1).DV - 1)/0.02);
 
 %BpodNotebook('init');
 iTrial=0;
@@ -196,13 +181,13 @@ SettingsPath_ = SettingsPath(BpodSystem); % Needed later for unsaved changes
 % iterations before.
 tic;
 while true
-    BpodSystem.Data.Timer.startNewIter(iTrial) = toc; tic;
+    BpodSystem.Data.Timer(iTrial).startNewIter = toc; tic;
     TaskParameters = BpodParameterGUI('sync', TaskParameters);
-    BpodSystem.Data.Timer.SyncGUI(iTrial) = toc; tic;
+    BpodSystem.Data.Timer(iTrial).SyncGUI = toc; tic;
     sma = stateMatrix(iTrial);
-    BpodSystem.Data.Timer.BuildStateMatrix(iTrial) = toc; tic;
+    BpodSystem.Data.Timer(iTrial).BuildStateMatrix = toc; tic;
     SendStateMatrix(sma);
-    BpodSystem.Data.Timer.SendStateMatrix(iTrial) = toc;
+    BpodSystem.Data.Timer(iTrial).SendStateMatrix = toc;
     pauseTime = (trialEndTime + sleepDur) - clock();
     if pauseTime > 0
         pause(pauseTime);
@@ -217,7 +202,7 @@ while true
         tic;
         BpodSystem.Data = AddTrialEvents(BpodSystem.Data,RawEvents);
         BpodSystem.Data.TrialSettings(iTrial) = TaskParameters;
-        BpodSystem.Data.Timer.AppendData(iTrial) = toc; tic;
+        BpodSystem.Data.Timer(iTrial).AppendData = toc; tic;
     end
     CheckHomeCageStop(BpodSystem);
     if BpodBeingUsed(BpodSystem) == 0
@@ -240,12 +225,12 @@ while true
         return
     end
     HandlePauseCondition; % Checks to see if the protocol is paused. If so, waits until user resumes.
-    BpodSystem.Data.Timer.HandlePause(iTrial) = toc;
+    BpodSystem.Data.Timer(iTrial).HandlePause = toc;
     startTimer = tic;
     updateCustomDataFields(iTrial);
-    BpodSystem.Data.Timer.updateCustomDataFields(iTrial) = toc(startTimer); tic;
+    BpodSystem.Data.Timer(iTrial).updateCustomDataFields = toc(startTimer); tic;
     sendPlotData(mapped_file,iTrial,BpodSystem.Data.Custom,TaskParameters.GUI, BpodSystem.Data.TrialStartTimestamp);
-    BpodSystem.Data.Timer.sendPlotData(iTrial) = toc; tic;
+    BpodSystem.Data.Timer(iTrial).sendPlotData = toc; tic;
     % Saving takes a lot of time when the number of trial increases. To
     % keep the animal motivated, don't save if the animal got the last
     % trial correctly as they are usually eager to do more trials. Wait for
@@ -254,8 +239,8 @@ while true
     if mod(iTrial, SAVE_EVERY) == 0
         shouldSave = true;
     end
-    if shouldSave && ~BpodSystem.Data.Custom.Rewarded(iTrial) && ...
-       ~BpodSystem.Data.Custom.CatchTrial(iTrial)
+    if shouldSave && ~BpodSystem.Data.Custom.Trials(iTrial).Rewarded && ...
+       ~BpodSystem.Data.Custom.Trials(iTrial).CatchTrial
         try
             SaveBpodSessionData;
             shouldSave = false;
@@ -263,10 +248,10 @@ while true
             warning(datestr(datetime('now')) + ": Failed to save file: " + ME.message);
         end
     end
-    BpodSystem.Data.Timer.SaveData(iTrial) = toc; tic;
+    BpodSystem.Data.Timer(iTrial).SaveData = toc; tic;
     iTrial = iTrial + 1;
     if ~TaskParameters.GUI.PCTimeout
-        BpodSystem.Data.Timer.calculateTimeout(iTrial-1) = toc;
+        BpodSystem.Data.Timer(iTrial-1).calculateTimeout = toc;
         continue
     end
     sleepDur = 0;
@@ -295,7 +280,7 @@ while true
     if any(strcmp('ITI',statesThisTrial))
         sleepDur = sleepDur + TaskParameters.GUI.ITI;
     end
-    BpodSystem.Data.Timer.calculateTimeout(iTrial-1) = toc;
+    BpodSystem.Data.Timer(iTrial-1).calculateTimeout = toc;
 end
 sca;
 end
