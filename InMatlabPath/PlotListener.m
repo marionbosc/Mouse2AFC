@@ -16,9 +16,12 @@ while true
         else
             disp("Processing iTrial: " + string(iTrial));
         end
+        tic;
         [next_data_start, DataCustom] = loadSerializedData(m, 5);
         [next_data_start, TaskParametersGUI] = loadSerializedData(m, next_data_start);
         [next_data_start, TrialStartTimestamp] = loadSerializedData(m, next_data_start);
+        deserialize_dur = toc;
+        fprintf('Took %.3fs to deserialize string', deserialize_dur);
 
         if iTrial == 0 || ~initialized_before % First run
             % TODO: See if you need to disable the graphs again
