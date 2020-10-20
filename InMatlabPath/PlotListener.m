@@ -30,7 +30,8 @@ while true
             initialized_before = true;
             % if ~initialized_before and iTrial ~= 0, then the loop will
             % repeate again now and will go to the else part
-        else
+        end
+        if iTrial > 1
             GUIHandles.OutcomePlot = MainPlot2(GUIHandles.OutcomePlot,'update',DataCustom,TaskParametersGUI,TrialStartTimestamp,iTrial);
         end
         last_iTrial = iTrial;
