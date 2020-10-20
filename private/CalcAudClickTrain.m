@@ -5,8 +5,8 @@ global TaskParameters;
 % The click rate is mean click rate in Hz to be used to generate Poisson
 % click train.
 % The sum of LeftClickRate + RightClickRate should be = SumRates
-BpodSystem.Data.Custom.LeftClickRate(trialNum) = round(BpodSystem.Data.Custom.StimulusOmega(trialNum).*TaskParameters.GUI.SumRates);
-BpodSystem.Data.Custom.RightClickRate(trialNum) = round((1-BpodSystem.Data.Custom.StimulusOmega(trialNum)).*TaskParameters.GUI.SumRates);
+BpodSystem.Data.Custom.LeftClickRate(trialNum) = round(BpodSystem.Data.Custom.Trials(trialNum).StimulusOmega.*TaskParameters.GUI.SumRates);
+BpodSystem.Data.Custom.RightClickRate(trialNum) = round((1-BpodSystem.Data.Custom.Trials(trialNum).StimulusOmega).*TaskParameters.GUI.SumRates);
 % Generate an array of time points at which pulse pal will generate a tone.
 BpodSystem.Data.Custom.LeftClickTrain{trialNum} = GeneratePoissonClickTrain(BpodSystem.Data.Custom.LeftClickRate(trialNum), TaskParameters.GUI.StimulusTime);
 BpodSystem.Data.Custom.RightClickTrain{trialNum} = GeneratePoissonClickTrain(BpodSystem.Data.Custom.RightClickRate(trialNum), TaskParameters.GUI.StimulusTime);
