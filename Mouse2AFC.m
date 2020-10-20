@@ -201,7 +201,7 @@ while true
     if ~isempty(fieldnames(RawEvents))
         tic;
         BpodSystem.Data = AddTrialEvents(BpodSystem.Data,RawEvents);
-        BpodSystem.Data.TrialSettings(iTrial) = TaskParameters;
+        BpodSystem.Data.TrialSettings(iTrial) = TaskParameters.GUI;
         BpodSystem.Data.Timer(iTrial).AppendData = toc; tic;
     end
     CheckHomeCageStop(BpodSystem);
