@@ -190,7 +190,7 @@ while true
     BpodSystem.Data.Timer(iTrial).BuildStateMatrix = toc; tic;
     SendStateMatrix(sma);
     BpodSystem.Data.Timer(iTrial).SendStateMatrix = toc;
-    pauseTime = (trialEndTime + sleepDur) - clock();
+    pauseTime = sleepDur + seconds(datetime(trialEndTime) - datetime('now'));
     if pauseTime > 0
         pause(pauseTime);
     end
