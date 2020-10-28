@@ -56,7 +56,7 @@ def uniqueSessID(decomposed_name):
   mouse_name, protocol, (year, month, day), session_num = decomposed_name
   return (mouse_name, dt.date(year=year, month=month, day=day), session_num)
 
-def _extractGUI(data, max_trials, is_mini_df):
+def _extractGUI(data, max_trials, is_mini_df, new_data_format):
   # GUI_OmegaTable is important but has an a special a treatment.
   # See processTrial() function for more details.
   IMP_GUI_COLS = ["GUI_ExperimentType", "GUI_StimAfterPokeOut",
@@ -72,13 +72,15 @@ def _extractGUI(data, max_trials, is_mini_df):
   diff_arrs = {"Difficulty1": [], "Difficulty2":[], "Difficulty3":[],
                "Difficulty4": []}
   def processTrial(trial_gui, gui_dict):
-    for param_name in dir(trial_gui.GUI):
+    if not new_data_format:
+      trial_gui = trial_gui.GUI
+    for param_name in dir(trial_gui):
       if param_name.startswith("__") or "field_names" in param_name:
         continue
       if param_name == "OmegaTable":
-        table = getattr(trial_gui.GUI, param_name)
+        table = getattr(trial_gui, param_name)
         # Non-zero omega-probabilities the ones that user chose to activate
-        if trial_gui.GUI.ExperimentType == 4:
+        if trial_gui.ExperimentType == 4:
           if hasattr(table, "RDK"):
             src_table = table.RDK
           else:
@@ -95,15 +97,15 @@ def _extractGUI(data, max_trials, is_mini_df):
       if is_mini_df and ("GUI_" + param_name) not in IMP_GUI_COLS:
         continue
       else:
-        gui_dict["GUI_" + param_name].append(getattr(trial_gui.GUI, param_name))
+        gui_dict["GUI_" + param_name].append(getattr(trial_gui, param_name))
   gui_dict = defaultdict(list)
   deque(map(lambda trial_gui: processTrial(trial_gui, gui_dict),
             data.TrialSettings[:max_trials]))
   #print("GUI dict:", gui_dict)
   # print("Diff arrays:", diff_arrs)
-  #feedback_type = list(map(lambda param:param.GUI.FeedbackDelaySelection,
+  #feedback_type = list(map(lambda param:param.FeedbackDelaySelection,
   #                        data.TrialSettings))
-  #catch_error = list(map(lambda param:param.GUI.CatchError,
+  #catch_error = list(map(lambda param:param.CatchError,
   #                    data.TrialSettings))
   # Modifying a dictionary while looping on it is dangerous, however
   # hopefully it should be okay because we are just reassigning values
@@ -166,6 +168,15 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False,
         mat = loadmat(fp, struct_as_record=False, squeeze_me=True)
         data = mat['SessionData']
         try:
+            new_data_format=False
+            if hasattr(data.Custom, 'Trials'):
+              new_data_format=True
+              max_trials = len(data.RawEvents.Trial)
+              print(f"Max Trials: {max_trials}")
+              for field_name in data.Custom.Trials[0]._fieldnames:
+                field_val = np.array(deque(map(lambda t:getattr(t, field_name),
+                                              data.Custom.Trials[:max_trials])))
+                setattr(data.Custom, field_name, field_val)
             if isinstance(data.Custom.ChoiceLeft, (int, float, complex)) or \
                len(data.Custom.ChoiceLeft) <= 10:
                 bad_files_few_trials.append(fp)
@@ -195,7 +206,7 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False,
             new_dict["TrialStartTimestamp"] = \
                                            data.TrialStartTimestamp[:max_trials]
             gui_dict, diff_arrs = _extractGUI(data, max_trials,
-                                              is_mini_df=mini_df)
+                            is_mini_df=mini_df, new_data_format=new_data_format)
             new_dict.update(gui_dict)
             new_dict.update(diff_arrs)
             #new_dict["CatchError"] = catch_error[:max_trials]
@@ -234,7 +245,10 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False,
                   # port{in/out} never get registered. So asserts are treated
                   # as warnings instead with Matlab trial number and filename.
                   if not np.isnan(trial_states.WaitForChoice[0]):
-                    trial_ports = trials_settings[idx].GUI.Ports_LMRAir
+                    this_trial_settings = trials_settings[idx]
+                    if not new_data_format:
+                      this_trial_settings = this_trial_settings.GUI
+                    trial_ports = this_trial_settings.Ports_LMRAir
                     l_port = (trial_ports//1000) % 10
                     c_port = (trial_ports//100) % 10
                     r_port = (trial_ports//10) % 10
@@ -297,11 +311,11 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False,
 
             for perf_key, dest_key in [("AllPerformance", "SessionAllPerformance"),
                                        ("Performance", "SessionPerformance")]:
-                perf_exists = hasattr(data.TrialSettings[max_trials-1].GUI,
-                                      perf_key)
-                if perf_exists:
-                    perf_str = getattr(data.TrialSettings[max_trials-1].GUI,
-                                       perf_key)
+                last_trial_settings = data.TrialSettings[max_trials-1]
+                if not new_data_format:
+                  last_trial_settings = last_trial_settings.GUI
+                if hasattr(last_trial_settings, perf_key):
+                    perf_str = getattr(last_trial_settings, perf_key)
                     perf = float(perf_str.split('%')[0])
                 else:
                     perf = float('nan')
