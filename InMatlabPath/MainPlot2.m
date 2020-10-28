@@ -242,7 +242,7 @@ switch Action
         %% Trial rate
         if TaskParametersGUI.ShowTrialRate
             AxesHandles.TrialRate.XData = (TrialStartTimestamp-min(TrialStartTimestamp))/60;
-            AxesHandles.TrialRate.YData = 1:iTrial+1;
+            AxesHandles.TrialRate.YData = 1:numel(TrialStartTimestamp);
         end
         if TaskParametersGUI.ShowFix
             %% Stimulus delay

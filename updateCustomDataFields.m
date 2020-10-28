@@ -153,16 +153,16 @@ if any(strcmp(str(MatrixState.CenterPortRewardDelivery),statesThisTrial)) && Tas
         BpodSystem.Data.Custom.Trials(iTrial).RewardReceivedTotal + TaskParameters.GUI.CenterPortRewAmount;
 end
 if any(strcmp(str(MatrixState.WaitCenterPortOut),statesThisTrial))
-    BpodSystem.Data.Custom.ReactionTime(iTrial) = diff(eventsStatesThisTrial.WaitCenterPortOut);
+    BpodSystem.Data.Custom.Trials(iTrial).ReactionTime = diff(eventsStatesThisTrial.WaitCenterPortOut);
 else % Assign with -1 so we can differntiate it from nan trials where the
      % state potentially existed but we didn't calculate it
-    BpodSystem.Data.Custom.ReactionTime(iTrial) = -1;
+    BpodSystem.Data.Custom.Trials(iTrial).ReactionTime = -1;
 end
 %% State-independent fields
 BpodSystem.Data.Custom.Trials(iTrial).StimDelay = TaskParameters.GUI.StimDelay;
 BpodSystem.Data.Custom.Trials(iTrial).FeedbackDelay = TaskParameters.GUI.FeedbackDelay;
-BpodSystem.Data.Custom.MinSample(iTrial) = TaskParameters.GUI.MinSample;
-BpodSystem.Data.Custom.RewardMagnitude(iTrial+1,:) = TaskParameters.GUI.RewardAmount*[1,1];
+BpodSystem.Data.Custom.Trials(iTrial).MinSample = TaskParameters.GUI.MinSample;
+BpodSystem.Data.Custom.Trials(iTrial+1).RewardMagnitude = TaskParameters.GUI.RewardAmount*[1,1];
 BpodSystem.Data.Custom.Trials(iTrial+1).CenterPortRewAmount = TaskParameters.GUI.CenterPortRewAmount;
 BpodSystem.Data.Custom.Trials(iTrial+1).PreStimCntrReward = TaskParameters.GUI.PreStimuDelayCntrReward;
 BpodSystem.Data.Timer(iTrial).customExtractData = toc; tic;
@@ -201,14 +201,14 @@ if iTrial > TaskParameters.GUI.StartEasyTrials
             if ~BpodSystem.Data.Custom.Trials(iTrial).FixBroke
                 if BpodSystem.Data.Custom.Trials(iTrial).Rewarded
                     TaskParameters.GUI.MinSample = min(TaskParameters.GUI.MinSampleMax,...
-                        max(TaskParameters.GUI.MinSampleMin,BpodSystem.Data.Custom.MinSample(iTrial) + TaskParameters.GUI.MinSampleIncr));
+                        max(TaskParameters.GUI.MinSampleMin,BpodSystem.Data.Custom.Trials(iTrial).MinSample + TaskParameters.GUI.MinSampleIncr));
                 elseif BpodSystem.Data.Custom.Trials(iTrial).EarlyWithdrawal
                     TaskParameters.GUI.MinSample = max(TaskParameters.GUI.MinSampleMin,...
-                        min(TaskParameters.GUI.MinSampleMax,BpodSystem.Data.Custom.MinSample(iTrial) - TaskParameters.GUI.MinSampleDecr));
+                        min(TaskParameters.GUI.MinSampleMax,BpodSystem.Data.Custom.Trials(iTrial).MinSample - TaskParameters.GUI.MinSampleDecr));
                 end
             else % Read new updated GUI values
                 TaskParameters.GUI.MinSample = max(TaskParameters.GUI.MinSampleMin,...
-                    min(TaskParameters.GUI.MinSampleMax,BpodSystem.Data.Custom.MinSample(iTrial)));
+                    min(TaskParameters.GUI.MinSampleMax,BpodSystem.Data.Custom.Trials(iTrial).MinSample));
             end
         case MinSampleType.RandBetMinMax_DefIsMax
             use_rand = rand(1,1) < TaskParameters.GUI.MinSampleRandProb;

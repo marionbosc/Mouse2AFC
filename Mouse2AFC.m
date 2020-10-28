@@ -166,6 +166,7 @@ TaskParameters.GUI.CurrentStim = iff(BpodSystem.Data.Custom.Trials(1).DV > 0, (B
 
 %BpodNotebook('init');
 iTrial=0;
+dataPath = DataPath(BpodSystem);
 sendPlotData(mapped_file,iTrial,BpodSystem.Data.Custom,TaskParameters.GUI, [0]);
 
 %% Main loop
@@ -199,7 +200,7 @@ while true
                                % so we can bind trial later to imaging data.
     RawEvents = SessionData.RawEvents.Trial(iTrial); %RawEvents = RunStateMatrix;
     TrialTotalTime = clock();
-    BpodSystem.Data.Custom.TrialStartSysTime(iTrial) = posixtime(...
+    BpodSystem.Data.Custom.Trials(iTrial).TrialStartSysTime = posixtime(...
                                               datetime(TrialStartSysTime));
     trialEndTime = clock;
     if true%~isempty(fieldnames(RawEvents))
@@ -213,7 +214,11 @@ while true
         BpodSystem.Data.RawData.OriginalEventTimestamps(iTrial) = SessionData.RawData.OriginalEventTimestamps(iTrial);
         BpodSystem.Data.TrialStartTimestamp(iTrial) = SessionData.TrialStartTimestamp(iTrial);
         if iTrial == SessionData.nTrials - 1
-            BpodSystem.Status.BeingUsed = 0;
+            if BpodSystem.SystemSettings.IsVer2
+                BpodSystem.Status.BeingUsed = 0;
+            else
+                BpodSystem.BeingUsed = 0;
+            end
         end
         TaskParameters = SessionData.TrialSettings(iTrial);
         BpodSystem.Data.TrialSettings(iTrial) = TaskParameters.GUI;
@@ -236,7 +241,7 @@ while true
                 pause(.5);
             end
         end
-        SessionAnalysis(DataPath(BpodSystem));
+        SessionAnalysis(dataPath);
         return
     end
     HandlePauseCondition; % Checks to see if the protocol is paused. If so, waits until user resumes.
@@ -264,6 +269,14 @@ while true
         end
     end
     BpodSystem.Data.Timer(iTrial).SaveData = toc; tic;
+    if iTrial + 10 > size(BpodSystem.Data.Custom.Trials, 2) % We can use the value of pregen, but just in case
+        [Trials, TrialSettings, Timer] = CreateOrAppendDataArray(...
+                                      PREALLOC_TRIALS, TaskParameters.GUI);
+        BpodSystem.Data.Custom.Trials = [BpodSystem.Data.Custom.Trials, Trials];
+        BpodSystem.Data.TrialSettings = [BpodSystem.Data.TrialSettings, TrialSettings];
+        BpodSystem.Data.Timer = [BpodSystem.Data.Timer, Timer];
+        clear Trials TrialSettings Timer;
+    end
     iTrial = iTrial + 1;
     if ~TaskParameters.GUI.PCTimeout
         BpodSystem.Data.Timer(iTrial-1).calculateTimeout = toc;
