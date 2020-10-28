@@ -156,8 +156,10 @@ if TaskParameters.GUI.ExperimentType == ExperimentType.Auditory && ~BpodSystem.E
     SendCustomPulseTrain(2, BpodSystem.Data.Custom.LeftClickTrain{1}, ones(1,length(BpodSystem.Data.Custom.LeftClickTrain{1}))*5);
 elseif TaskParameters.GUI.ExperimentType == ExperimentType.RandomDots || ...
        TaskParameters.GUI.ExperimentType == ExperimentType.GratingOrientation
-        BpodSystem.Data.dotsMapped_file = createMMFile('c:\Bpoduser\', 'mmap_matlab_randomdot.dat', file_size);
-        BpodSystem.Data.dotsMapped_file.Data(1:4) = typecast(uint32(0), 'uint8');
+        BpodSystem.SystemSettings.dotsMapped_file =...
+            createMMFile('c:\Bpoduser\', 'mmap_matlab_randomdot.dat', file_size);
+        BpodSystem.SystemSettings.dotsMapped_file.Data(1:4) =...
+                                                    typecast(uint32(0), 'uint8');
 end
 
 
@@ -167,7 +169,8 @@ TaskParameters.GUI.CurrentStim = iff(BpodSystem.Data.Custom.Trials(1).DV > 0, (B
 %BpodNotebook('init');
 iTrial=0;
 dataPath = DataPath(BpodSystem);
-sendPlotData(mapped_file,iTrial,BpodSystem.Data.Custom,TaskParameters.GUI, [0]);
+%sendPlotData(mapped_file,iTrial,BpodSystem.Data.Custom,TaskParameters.GUI,...
+%[0], dataPath);
 
 %% Main loop
 SAVE_EVERY = 20;
@@ -249,7 +252,8 @@ while true
     startTimer = tic;
     updateCustomDataFields(iTrial);
     BpodSystem.Data.Timer(iTrial).updateCustomDataFields = toc(startTimer); tic;
-    sendPlotData(mapped_file,iTrial,BpodSystem.Data.Custom,TaskParameters.GUI, BpodSystem.Data.TrialStartTimestamp);
+    sendPlotData(mapped_file, iTrial, BpodSystem.Data,...
+                 BpodSystem.ProtocolSettings.StartTime, dataPath);
     BpodSystem.Data.Timer(iTrial).sendPlotData = toc; tic;
     % Saving takes a lot of time when the number of trial increases. To
     % keep the animal motivated, don't save if the animal got the last
@@ -262,7 +266,7 @@ while true
     if shouldSave && ~BpodSystem.Data.Custom.Trials(iTrial).Rewarded && ...
        ~BpodSystem.Data.Custom.Trials(iTrial).CatchTrial
         try
-            SaveBpodSessionData;
+            % SaveBpodSessionData;
             shouldSave = false;
         catch ME
             warning(datestr(datetime('now')) + ": Failed to save file: " + ME.message);

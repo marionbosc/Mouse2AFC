@@ -87,8 +87,10 @@ elseif TaskParameters.GUI.ExperimentType == ExperimentType.GratingOrientation
     BpodSystem.Data.Custom.drawParams.gaborSizeFactor = TaskParameters.GUI.gaborSizeFactor;
     BpodSystem.Data.Custom.drawParams.gaussianFilterRatio = TaskParameters.GUI.gaussianFilterRatio;
     % Start from the 5th byte
-    serializeAndWrite(BpodSystem.Data.dotsMapped_file, 5, BpodSystem.Data.Custom.drawParams);
-    BpodSystem.Data.dotsMapped_file.Data(1:4) = typecast(uint32(1), 'uint8');
+    serializeAndWrite(BpodSystem.SystemSettings.dotsMapped_file, 5,...
+                      BpodSystem.Data.Custom.drawParams);
+    BpodSystem.SystemSettings.dotsMapped_file.Data(1:4) =...
+                                                    typecast(uint32(1), 'uint8');
 
     DeliverStimulus = {'SoftCode',5};
     ContDeliverStimulus = {};
@@ -120,8 +122,11 @@ elseif TaskParameters.GUI.ExperimentType == ExperimentType.RandomDots
     BpodSystem.Data.Custom.drawParams.dotSizeInDegs = TaskParameters.GUI.dotSizeInDegs;
 
     % Start from the 5th byte
-    serializeAndWrite(BpodSystem.Data.dotsMapped_file, 5, BpodSystem.Data.Custom.drawParams);
-    BpodSystem.Data.dotsMapped_file.Data(1:4) = typecast(uint32(1), 'uint8');
+    wait_mmap_file = createMMFile(tempdir, 'mmap_matlab_dot_read.dat', 4);
+    serializeAndWrite(BpodSystem.SystemSettings.dotsMapped_file, 5,...
+                      BpodSystem.Data.Custom.drawParams, wait_mmap_file, 1);
+    BpodSystem.SystemSettings.dotsMapped_file.Data(1:4) =...
+                                                    typecast(uint32(1), 'uint8');
 
     DeliverStimulus = {'SoftCode',5};
     ContDeliverStimulus = {};
