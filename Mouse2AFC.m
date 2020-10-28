@@ -85,7 +85,7 @@ BpodSystem.Data.Custom.LastSuccessCatchTial = 1;
 % in if we are in homecage
 BpodSystem.ProtocolSettings.StartTime = posixtime(datetime('now'));
 
-file_size = 40*1024*1024; % 40 MB mem-mapped file
+file_size = 120*1024*1024; % 40 MB mem-mapped file
 mapped_file = createMMFile(tempdir, 'mmap_matlab_plot.dat', file_size);
 
 % make auditory stimuli for first trials
