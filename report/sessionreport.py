@@ -147,7 +147,9 @@ class MakeAndSavePlots():
                                              Plot.SamplingT,
                                              Plot.CatchWT,
                                              Plot.MaxFeedbackDelay])
-    analysis.trialRate(session_df, axs[1][0])
+
+    analysis.trialRate(session_df, ax=axs[1][0], max_sess_time_lim_bug=3600*10,
+                       IQR_filter=False, num_days_per_clr=None)
     return fig
 
   def _confidencePlot(self, session_df):
