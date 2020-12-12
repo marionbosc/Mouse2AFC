@@ -316,7 +316,7 @@ else
 end
 TaskParameters.GUI.CalcLeftBias = (PerfL-PerfR)/2 + 0.5;
 
-allTrialsChoices = BpodSystem.Data.Custom.Trials(1:iTrial).ChoiceCorrect;
+allTrialsChoices = [BpodSystem.Data.Custom.Trials(1:iTrial).ChoiceCorrect];
 choiceMadeTrials = allTrialsChoices(~isnan(allTrialsChoices));
 rewardedTrialsCount = sum([BpodSystem.Data.Custom.Trials(1:iTrial).Rewarded] == 1);
 lengthChoiceMadeTrials = length(choiceMadeTrials);
