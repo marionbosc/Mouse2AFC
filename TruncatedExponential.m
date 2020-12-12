@@ -12,6 +12,13 @@ function Exp = TruncatedExponential(varargin)
 % input values
 min_value = varargin{1};
 max_value = varargin{2};
+if min_value >= max_value
+    new_max_value = min_value + 0.01;
+    fprintf(2, ['min_value=%.2f is bigger than or equal to max_value=%.2f.'...
+        'max_value will been changed to %.2f\n'], min_value, max_value,...
+        new_max_value);
+    max_value = new_max_value;
+end
 tau = varargin{3};
 if length(varargin)>3
     m = varargin{4}(1);n = varargin{4}(2);
