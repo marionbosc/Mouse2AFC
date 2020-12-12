@@ -7,5 +7,9 @@ global BpodSystem
 LastName = strsplit(TaskParameterGUIName, '.');
 LastName = LastName(end);
 HandlerIdx = find(strcmp(BpodSystem.GUIData.ParameterGUI.ParamNames, LastName), 1);
-Handler = BpodSystem.GUIHandles.ParameterGUI.Params{HandlerIdx};
+if BpodSystem.SystemSettings.IsVer2
+    Handler = BpodSystem.GUIHandles.ParameterGUI.Params(HandlerIdx);
+else
+    Handler = BpodSystem.GUIHandles.ParameterGUI.Params{HandlerIdx};
+end
 end
