@@ -75,7 +75,7 @@ while true
             GUIHandles = initializeFigures();
             GUIHandles.OutcomePlot = MainPlot2(GUIHandles.OutcomePlot,'init',...
                 SessionData.Custom, SessionData.TrialSettings(iTrial),...
-                SessionData.TrialStartTimestamp(iTrial));
+                SessionData.TrialStartTimestamp(1:iTrial));
             should_initialize = false;
             SessionData.TrialSettings(iTrial+1:PREALLOC_TRIALS) =...
                                                SessionData.TrialSettings(iTrial);
@@ -85,7 +85,7 @@ while true
         
         GUIHandles.OutcomePlot = MainPlot2(GUIHandles.OutcomePlot,'update',...
             SessionData.Custom, SessionData.TrialSettings(iTrial),...
-            SessionData.TrialStartTimestamp(iTrial), iTrial);
+            SessionData.TrialStartTimestamp(1:iTrial), iTrial);
         drawnow;
         m_read.Data(17:20) = typecast(uint32(iTrial), 'uint8');
         fprintf('Last reported trial is %d at time %d\n', iTrial,...
@@ -94,7 +94,7 @@ while true
             fprintf('Saving at Trial #%d\n', iTrial);
             BpodSystem.Data = SessionData;
             % Assign twice for Bpod Gen1 & Gen2 save functions
-            BpodSystem.Datapath = SessionData.DataPath;
+            BpodSystem.DataPath = SessionData.DataPath;
             BpodSystem.Path.CurrentDataFile = SessionData.DataPath;
             BpodSystem.Data = rmfield(BpodSystem.Data,'startTrial');
             BpodSystem.Data = rmfield(BpodSystem.Data,'DataPath');
