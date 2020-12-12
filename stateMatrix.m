@@ -426,21 +426,41 @@ if BpodSystem.Data.Custom.Trials(iTrial).OptoEnabled
         fwrite(BpodSystem.PluginSerialPorts.OptoSerial, OptoDelay, 'int8');
         fwrite(BpodSystem.PluginSerialPorts.OptoSerial, OptoTime, 'int8');
     end
-    OptoStartTTLPin = 2.^(3-1);
-    OptoStopTTLPin = 2.^(4-1);
-    Tuple = {str(TaskParameters.GUI.OptoStartState1) OptoStartTTLPin;
-             str(TaskParameters.GUI.OptoEndState1)   OptoStopTTLPin;
-             str(TaskParameters.GUI.OptoEndState2)   OptoStopTTLPin;
-             str(MatrixState.ext_ITI)                OptoStopTTLPin};
-    % New few lines adaped from EditState.m
-    EventCode = strcmp('WireState', BpodSystem.OutputActionNames);
-    for i = 1:length(Tuple)
-        StateName = Tuple{i, 1};
-        TTLPin = Tuple{i, 2};
-        TrgtStateNum = strcmp(StateName, sma.StateNames);
-        OrigTTLVal = sma.OutputMatrix(TrgtStateNum, EventCode);
-        sma.OutputMatrix(TrgtStateNum, EventCode) = bitor(OrigTTLVal,...
-                                                          TTLPin);
+    OptoStartTTLPin = 3;
+    OptoStopTTLPin = 4;
+    % Next few lines are adaped from EditState.m
+    if BpodSystem.SystemSettings.IsVer2
+        OutputChannelNames = BpodSystem.StateMachineInfo.OutputChannelNames;
+        OptoStartEventIdx = ...
+            strcmp(strcat('Wire', num2str(OptoStartTTLPin)), OutputChannelNames);
+        OptoStopEventIdx = ...
+             strcmp(strcat('Wire', num2str(OptoStopTTLPin)), OutputChannelNames);
+        Tuple = {str(TaskParameters.GUI.OptoStartState1) OptoStartEventIdx;
+                 str(TaskParameters.GUI.OptoEndState1)   OptoStopEventIdx;
+                 str(TaskParameters.GUI.OptoEndState2)   OptoStopEventIdx;
+                 str(MatrixState.ext_ITI)                OptoStopEventIdx};
+        for i = 1:length(Tuple)
+            StateName = Tuple{i, 1};
+            EventCode = Tuple{i, 2};
+            TrgtStateNum = strcmp(StateName, sma.StateNames);
+            sma.OutputMatrix(TrgtStateNum, EventCode) = 1;
+        end
+    else
+        OptoStartTTLPin = 2.^(OptoStartTTLPin-1);
+        OptoStopTTLPin = 2.^(OptoStopTTLPin-1);
+        Tuple = {str(TaskParameters.GUI.OptoStartState1) OptoStartTTLPin;
+                 str(TaskParameters.GUI.OptoEndState1)   OptoStopTTLPin;
+                 str(TaskParameters.GUI.OptoEndState2)   OptoStopTTLPin;
+                 str(MatrixState.ext_ITI)                OptoStopTTLPin};
+        EventCode = strcmp('WireState', BpodSystem.OutputActionNames);
+        for i = 1:length(Tuple)
+            StateName = Tuple{i, 1};
+            TTLPin = Tuple{i, 2};
+            TrgtStateNum = strcmp(StateName, sma.StateNames);
+            OrigTTLVal = sma.OutputMatrix(TrgtStateNum, EventCode);
+            sma.OutputMatrix(TrgtStateNum, EventCode) = bitor(OrigTTLVal,...
+                                                              TTLPin);
+        end
     end
 end
 end
