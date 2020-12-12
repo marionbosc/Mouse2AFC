@@ -285,34 +285,34 @@ BpodSystem.Data.Timer(iTrial).customFeedbackDelay = toc; tic;
 %else
 %	indicesRwd = 1;
 %end
-LAST_TRIALS=20;
+LAST_TRIALS=10;
 startTrialBiasCalc = iff(iTrial > LAST_TRIALS, iTrial - LAST_TRIALS, 1);
 %ndxRewd = BpodSystem.Data.Custom.Trials(indicesRwd:iTrial).Rewarded;
 allBiasTrials = [BpodSystem.Data.Custom.Trials(startTrialBiasCalc:iTrial).ChoiceLeft];
-choiceBiasTrialsIdxs = find(~isnan(allBiasTrials)) + startTrialBiasCalc;
-%TODO: Check if we need to add an offset to the indices
-leftChoiceBiasTrials = find([BpodSystem.Data.Custom.Trials(...
-              choiceBiasTrialsIdxs).ChoiceLeft] == 1) + startTrialBiasCalc;
-rightChoiceBiasTrials = find([BpodSystem.Data.Custom.Trials(...
-              choiceBiasTrialsIdxs).ChoiceLeft] == 0) + startTrialBiasCalc;
-
-ndxLeftRewd = [BpodSystem.Data.Custom.Trials(leftChoiceBiasTrials).ChoiceCorrect] == 1;
-ndxLeftRewDone = [BpodSystem.Data.Custom.Trials(choiceBiasTrialsIdxs).LeftRewarded] == 1;
-ndxRightRewd = [BpodSystem.Data.Custom.Trials(rightChoiceBiasTrials).ChoiceCorrect] == 1;
-ndxRightRewDone = [BpodSystem.Data.Custom.Trials(choiceBiasTrialsIdxs).LeftRewarded] == 0;
-if sum(ndxLeftRewDone) == 0    
-    % SInce we don't have trials on this side, then measuer by how good
+choiceBiasTrialsIdxs = find(~isnan(allBiasTrials)) + startTrialBiasCalc - 1;
+leftRewarded = sum([...
+         BpodSystem.Data.Custom.Trials(choiceBiasTrialsIdxs).LeftRewarded] == 1);
+rightRewarded = sum([...
+         BpodSystem.Data.Custom.Trials(choiceBiasTrialsIdxs).LeftRewarded] == 0);
+leftChoiceBiasTrials = choiceBiasTrialsIdxs([BpodSystem.Data.Custom.Trials(...
+                                         choiceBiasTrialsIdxs).ChoiceLeft] == 1);
+rightChoiceBiasTrials = setdiff(choiceBiasTrialsIdxs, leftChoiceBiasTrials);
+nLeftChoiceCorrect = sum([BpodSystem.Data.Custom.Trials(leftChoiceBiasTrials).ChoiceCorrect] == 1);
+nRightChoiceCorrect = sum([BpodSystem.Data.Custom.Trials(rightChoiceBiasTrials).ChoiceCorrect] == 1);
+PerfL = nLeftChoiceCorrect/leftRewarded;
+PerfR = nRightChoiceCorrect/rightRewarded;
+if isnan(PerfL)
+    % SInce we don't have trials on this side, then measuere by how good
     % the animals was performing on the other side. If it did bad on the
     % side then then consider this side performance to be good so it'd
-    % still get more trials on the other side.
-    PerfL = 1 - (sum(ndxRightRewd)/(LAST_TRIALS*2));
-else
-    PerfL = sum(ndxLeftRewd)/sum(ndxLeftRewDone);
+    % still get more trials on the other side. Multiply by 2 to dilute its
+    % effect.
+    denominator = iff(rightRewarded, rightRewarded*2, 1);
+    PerfL = 1 - nRightChoiceCorrect/denominator;
 end
-if sum(ndxRightRewDone) == 0
-    PerfR = 1 - (sum(ndxLeftRewd)/(LAST_TRIALS*2));
-else
-    PerfR = sum(ndxRightRewd)/sum(ndxRightRewDone);
+if isnan(PerfR) % Same as above
+    denominator = iff(leftRewarded, leftRewarded*2, 1);
+    PerfR = 1 - nLeftChoiceCorrect/denominator;
 end
 TaskParameters.GUI.CalcLeftBias = (PerfL-PerfR)/2 + 0.5;
 
