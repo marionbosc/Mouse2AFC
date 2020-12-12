@@ -23,13 +23,14 @@ TaskParameters.GUI.Percent50Fifty = 0;
 TaskParameters.GUI.PercentCatch = 0;
 TaskParameters.GUI.CatchError = false;
 TaskParameters.GUIMeta.CatchError.Style = 'checkbox';
-TaskParameters.GUI.Ports_LMRAir = 1238;
+TaskParameters.GUI.Ports_LMRAudLRAir = 123568;
 TaskParameters.GUI.Wire1VideoTrigger = false;
 TaskParameters.GUIMeta.Wire1VideoTrigger.Style = 'checkbox';
 TaskParameters.GUIPanels.General = {'ExperimentType','ITI','RewardAmount','ChoiceDeadLine',...
     'TimeOutIncorrectChoice','TimeOutBrokeFixation','TimeOutEarlyWithdrawal','TimeOutMissedChoice',...
     'TimeOutSkippedFeedback','HabituateIgnoreIncorrect','PlayNoiseforError','PCTimeout',...
-    'StartEasyTrials','Percent50Fifty','PercentCatch','CatchError','Ports_LMRAir','Wire1VideoTrigger'};
+    'StartEasyTrials','Percent50Fifty','PercentCatch','CatchError','Ports_LMRAudLRAir',...
+    'Wire1VideoTrigger'};
 %% StimDelay
 TaskParameters.GUI.StimDelayAutoincrement = 0;
 TaskParameters.GUIMeta.StimDelayAutoincrement.Style = 'checkbox';
@@ -133,12 +134,15 @@ TaskParameters.GUI.SumRates = 100;
 TaskParameters.GUI.LeftPokeAttenPrcnt = 73;
 TaskParameters.GUI.CenterPokeAttenPrcnt = 95;
 TaskParameters.GUI.RightPokeAttenPrcnt = 73;
+TaskParameters.GUI.LeftSpeakerAttenPrcnt = 80;
+TaskParameters.GUI.RightSpeakerAttenPrcnt = 80;
 TaskParameters.GUI.StimAfterPokeOut = false;
 TaskParameters.GUIMeta.StimAfterPokeOut.Style = 'checkbox';
 TaskParameters.GUI.BeepAfterMinSampling = false;
 TaskParameters.GUIMeta.BeepAfterMinSampling.Style = 'checkbox';
 TaskParameters.GUIPanels.Auditory = {'SumRates'};
 TaskParameters.GUIPanels.LightIntensity = {'LeftPokeAttenPrcnt','CenterPokeAttenPrcnt','RightPokeAttenPrcnt','StimAfterPokeOut', 'BeepAfterMinSampling'};
+TaskParameters.GUIPanels.SoundIntensity = {'LeftSpeakerAttenPrcnt','RightSpeakerAttenPrcnt'};
 TaskParameters.GUIPanels.StimulusSelection = {'OmegaTable','TableNote','BetaDistAlphaNBeta','StimulusSelectionCriteria','LeftBias','LeftBiasVal','CorrectBias'};
 TaskParameters.GUIPanels.Sampling = {'RewardAfterMinSampling','CenterPortRewAmount','MinSampleMin',...
                                      'MinSampleMax','MinSampleType','MinSampleIncr','MinSampleDecr','MinSampleNumInterval','MinSampleRandProb',...
@@ -248,7 +252,7 @@ TaskParameters.GUIPanels.Optogenetics = {'OptoProb', 'OptoOr2P',...
 TaskParameters.GUI = orderfields(TaskParameters.GUI);
 %% Tabs
 TaskParameters.GUITabs.General = {'CurrentTrial','AirControl','General','FeedbackDelay','StimDelay'};
-TaskParameters.GUITabs.Sampling = {'CurrentTrial','LightIntensity','Auditory','Sampling','StimulusSelection'};
+TaskParameters.GUITabs.Sampling = {'CurrentTrial','LightIntensity','Auditory','SoundIntensity','Sampling','StimulusSelection'};
 TaskParameters.GUITabs.Visual = {'CurrentTrial','Grating','RandomDots','VisualGeneral'};
 TaskParameters.GUITabs.Opto = {'Optogenetics'};
 TaskParameters.GUITabs.Plots = {'ShowPlots','Vevaiometric'};

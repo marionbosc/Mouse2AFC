@@ -22,7 +22,7 @@ end
 %% Task parameters
 global TaskParameters
 TaskParameters = BpodSystem.ProtocolSettings;
-GUICurVer = 32;
+GUICurVer = 33;
 if isempty(fieldnames(TaskParameters))
     TaskParameters = CreateTaskParameters(GUICurVer);
 elseif ~isfield(TaskParameters.GUI, 'GUIVer')
@@ -126,6 +126,8 @@ for a = 1:Const.NUM_EASY_TRIALS
             DV = CalcAudClickTrain(a);
         case ExperimentType.LightIntensity
             DV = CalcLightIntensity(a);
+        case ExperimentType.SoundIntensity
+            DV = CalcSoundIntensity(a);
         case ExperimentType.GratingOrientation
             DV = CalcGratingOrientation(a);
         case ExperimentType.RandomDots

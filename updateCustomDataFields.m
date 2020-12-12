@@ -424,6 +424,8 @@ if iTrial > BpodSystem.Data.Custom.DVsAlreadyGenerated - Const.PRE_GENERATE_TRIA
                 DV = CalcAudClickTrain(lastidx+a);
             case ExperimentType.LightIntensity
                 DV = CalcLightIntensity(lastidx+a);
+            case ExperimentType.SoundIntensity
+                DV = CalcSoundIntensity(lastidx+a);
             case ExperimentType.GratingOrientation
                 DV = CalcGratingOrientation(lastidx+a);
             case ExperimentType.RandomDots
