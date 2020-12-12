@@ -181,8 +181,6 @@ dataPath = DataPath(BpodSystem);
 %[0], dataPath);
 
 %% Main loop
-SAVE_EVERY = 20;
-shouldSave = false;
 RunSession = true;
 iTrial = 1;
 sleepDur = 0;
@@ -263,24 +261,6 @@ while true
     sendPlotData(mapped_file, iTrial, BpodSystem.Data,...
                  BpodSystem.ProtocolSettings.StartTime, dataPath);
     BpodSystem.Data.Timer(iTrial).sendPlotData = toc; tic;
-    % Saving takes a lot of time when the number of trial increases. To
-    % keep the animal motivated, don't save if the animal got the last
-    % trial correctly as they are usually eager to do more trials. Wait for
-    % the first mistake where there will be probably a timeout punishment
-    % and save.
-    if mod(iTrial, SAVE_EVERY) == 0
-        shouldSave = true;
-    end
-    if shouldSave && ~BpodSystem.Data.Custom.Trials(iTrial).Rewarded && ...
-       ~BpodSystem.Data.Custom.Trials(iTrial).CatchTrial
-        try
-            % SaveBpodSessionData;
-            shouldSave = false;
-        catch ME
-            warning(datestr(datetime('now')) + ": Failed to save file: " + ME.message);
-        end
-    end
-    BpodSystem.Data.Timer(iTrial).SaveData = toc; tic;
     if iTrial + 10 > size(BpodSystem.Data.Custom.Trials, 2) % We can use the value of pregen, but just in case
         [Trials, TrialSettings, Timer] = CreateOrAppendDataArray(...
                                       PREALLOC_TRIALS, TaskParameters.GUI);
