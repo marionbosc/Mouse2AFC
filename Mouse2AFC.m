@@ -9,6 +9,7 @@ addpath('Definitions');
 BpodSystem.SystemSettings.IsVer2 = isprop(BpodSystem, 'FirmwareVersion');
 % Check before overriding TaskParameters
 BpodSystem.Data.Custom.IsHomeCage = isfield(BpodSystem.ProtocolSettings, 'HomeCage');
+
 % Temp hack to deply 2 versions of Mouse2AFC (the second protocol nameis
 % Mouse2AFC2)
 if BpodSystem.SystemSettings.IsVer2
@@ -17,6 +18,7 @@ if BpodSystem.SystemSettings.IsVer2
 else
     BpodSystem.DataPath = strrep(BpodSystem.DataPath, 'Mouse2AFC2', 'Mouse2AFC');
 end
+
 %% Task parameters
 global TaskParameters
 TaskParameters = BpodSystem.ProtocolSettings;
