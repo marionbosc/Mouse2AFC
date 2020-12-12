@@ -108,7 +108,7 @@ void loop() {
   }
 
   if (cur_state == WORKING) {
-    long time_active = (unsigned long)(millis() - start_time) + cur_ttl_offset;
+    long time_active = (unsigned long)(millis() - start_time) - cur_ttl_offset;
     cur_freq_TTL_state = (time_active % OPTO_FULL_DUTY_MILLIS) < OPTO_DUTY_ON_MILLIS  ? HIGH : LOW;
     if (should_state == NOT_WORKING || time_active >= cur_ttl_dur) {
       digitalWrite(OUTPUT_PIN, LOW);
