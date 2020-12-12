@@ -31,6 +31,7 @@ State cur_state;
 void setup() {
   cur_state = should_state = NOT_WORKING;
   Serial.begin(115200);
+  SerialUSB.begin(115200);
   pinMode(START_PIN, INPUT_PULLUP);
   pinMode(STOP_PIN, INPUT_PULLUP);
   pinMode(OUTPUT_PIN, OUTPUT);
@@ -69,10 +70,10 @@ void loop() {
     #endif
     should_state = NOT_WORKING;
     #ifdef DEBUG
-    Serial.print("Received New TTL Offset: ");
-    Serial.print(new_ttl_offset);
-    Serial.print(" - and duration: ");
-    Serial.println(new_ttl_dur);
+    SerialUSB.print("Received New TTL Offset: ");
+    SerialUSB.print(new_ttl_offset);
+    SerialUSB.print(" - and duration: ");
+    SerialUSB.println(new_ttl_dur);
     #endif
   }
 
@@ -85,7 +86,7 @@ void loop() {
     // Assume last to be low intially, it should only cause 2 subsequent HIGH writes on with cur design
     last_freq_TTL_state = LOW;
     #ifdef DEBUG
-    Serial.println("Received start work TTL");
+    SerialUSB.println("Received start work TTL");
     #endif
   }
   else if (cur_state == COUNTING_OFFSET) {
@@ -94,7 +95,7 @@ void loop() {
       digitalWrite(13, LOW);
       cur_state = NOT_WORKING;
       #ifdef DEBUG
-      Serial.println("Received stop work TTL");
+      SerialUSB.println("Received stop work TTL");
       #endif
     }
     else if ((unsigned long)(millis() - start_time) >= cur_ttl_offset) {
@@ -102,7 +103,7 @@ void loop() {
       digitalWrite(13, HIGH);
       cur_state = should_state = WORKING;
       #ifdef DEBUG
-      Serial.println("Starting TTL output");
+      SerialUSB.println("Starting TTL output");
       #endif
     }
   }
@@ -115,7 +116,7 @@ void loop() {
       digitalWrite(13, LOW);
       cur_state = should_state = NOT_WORKING;
       #ifdef DEBUG
-      Serial.println("Stopping TTL output");
+      SerialUSB.println("Stopping TTL output");
       #endif
     }
     else if (cur_freq_TTL_state != last_freq_TTL_state) {
