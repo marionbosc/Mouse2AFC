@@ -11,7 +11,7 @@ function sendPlotData (mappedFile, iTrial, bpodData, sessStartTime, dataPath)
 % byte j + 4 -> j + 4 + z: serialized TrialStartTimestamp array
     mappedFile.Data(1:8) = typecast(sessStartTime, 'uint8');
 
-    waitMmapFile = createMMFile(tempdir, 'mmap_matlab_plot_read.dat', 8+4+4);
+    waitMmapFile = createMMFile(tempdir, 'mmap_matlab_plot_read.dat', 8+8+4+4);
     lastCheck = typecast(waitMmapFile.Data(1:8),'double');
     if (isnan(lastCheck) || (posixtime(datetime('now')) - lastCheck > 10))...
        && iTrial ~= 1
