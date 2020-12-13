@@ -47,6 +47,12 @@ end
 winsRect = curWinRect;
 
 disp('Setting up screen(s): ' + string(toc));
+[minSmoothPointSize, maxSmoothPointSize, minAliasedPointSize,...
+    maxAliasedPointSize] = Screen('DrawDots', winsPtrs(1));
+fprintf('minSmoothPointSize: %d, maxSmoothPointSize: %d, ',...
+        minSmoothPointSize, maxSmoothPointSize)
+fprintf('minAliasedPointSize: %d, maxAliasedPointSize: %d\n',...
+        minAliasedPointSize, maxAliasedPointSize)
 tic;
 
 %[width, height]=Screen(?WindowSize?, windowPointerOrScreenNumber [, realFBSize=0]);
@@ -141,6 +147,10 @@ while true
                 %        string(dotSizePx));
                 %   dotSizePx = 20;
                 %end
+                dot_type = 1;
+                if dotSizePx > maxSmoothPointSize
+                    dot_type = 3;
+                end
                 scaledDrawRatio = drawParams.drawRatio / dotSizePx;
                 nDots = round(circleArea * scaledDrawRatio);
 
@@ -336,7 +346,8 @@ while true
         yGoodDotsPix = pixpos.y(goodDots);
         for curWinPtr = winsPtrs
             Screen('DrawDots', curWinPtr, ...
-                [xGoodDotsPix; yGoodDotsPix], dotSizePx, WHITE_COLOR, [0,0], 1);
+                [xGoodDotsPix; yGoodDotsPix], dotSizePx, WHITE_COLOR, [0,0],...
+                dot_type);
         end
         %Screen('DrawingFinished', window);
         %disp('Drawing took: ' + string(toc));
