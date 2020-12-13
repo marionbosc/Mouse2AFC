@@ -15,41 +15,51 @@ tic;
 if nargin == 0
    % Set the screen number to the external secondary monitor if there is one
    % connected
-   screenNumber = max(Screen('Screens'));
+   screensNums = max(Screen('Screens'));
 else
-   screenNumber = str2double(varargin(1));
+   screensNums = str2double(varargin)
 end
 
 % Skip sync tests for demo purposes only
 Screen('Preference', 'SkipSyncTests', 1);
 
-BLACK_COLOR=BlackIndex(screenNumber);
-WHITE_COLOR=WhiteIndex(screenNumber);
+BLACK_COLOR=BlackIndex(screensNums(1));
+WHITE_COLOR=WhiteIndex(screensNums(1));
 GRAY_COLOR=round((WHITE_COLOR+BLACK_COLOR)/2);
 INC_GRAY=WHITE_COLOR-GRAY_COLOR;
 
-% Open the screen
-windowRect = [];%[0 0 600 600]; % []
-[windowPtr, windowRect] = PsychImaging('OpenWindow', screenNumber, ...
-    BLACK_COLOR, windowRect, 32, 2, [], [],  kPsychNeed32BPCFloat);
+winsPtrs = [];
+% Open the screens
+for curScrenNum = screensNums
+    curWinRect = [];%[0 0 600 600]; % []
+    fprintf("Opening screen %d", curScrenNum);
+    [curWinPtr, curWinRect] = PsychImaging('OpenWindow', curScrenNum, ...
+        BLACK_COLOR, curWinRect, 32, 2, [], [],  kPsychNeed32BPCFloat);
+    % Store a reference to the variables we need
+    %winsRects = [winsRects curWinRect];
+    winsPtrs = [winsPtrs curWinPtr];
+    % Disable alpha blending just in case it was still enabled by a previous
+    % run that crashed.
+    Screen('BlendFunction', curWinPtr, GL_ONE, GL_ZERO);
+end
+% Again, for verbosity, the same windows rect is valid for all screens as all
+% the screens should have the same resolution
+winsRect = curWinRect;
 
-% Disable alpha blending just in case it was still enabled by a previous
-% run that crashed.
-Screen('BlendFunction', windowPtr, GL_ONE, GL_ZERO);
-
-% Query maximum useable priorityLevel on this system:
-priorityLevel = MaxPriority(windowPtr) %#ok<NASGU>
-
-disp('Setting up screen: ' + string(toc));
+disp('Setting up screen(s): ' + string(toc));
 tic;
 
-disp(windowRect)
 %[width, height]=Screen(?WindowSize?, windowPointerOrScreenNumber [, realFBSize=0]);
 
-%photoDiodeBox = [windowRect(3)-2, 0, windowRect(3), 20];
-photoDiodeBox = [(windowRect(3)-(windowRect(3)/15)) 0 windowRect(3) windowRect(4)/15]
+% For the next parts, we assume that all the screens has the same dimension, so
+% just use curWinRect and curWinPtr as they should hold the sane values.
 
-ifi = Screen('GetFlipInterval', windowPtr)
+% Query maximum useable priorityLevel on this system:
+priorityLevel = MaxPriority(curScrenNum(1))
+
+photoDiodeBox = [(curWinRect(3)-(curWinRect(3)/15)) 0 curWinRect(3) curWinRect(4)/15]
+
+ifi = Screen('GetFlipInterval', curWinPtr);
 frameRate = 1/ifi;
 
 % Create all the directions that we have
@@ -88,7 +98,11 @@ while true
         % in the right second.
         % tic
         %disp('Next frame remaining time: ' + string(next_frame_time2 - GetSecs()));
-        vbl = Screen('Flip', windowPtr, next_frame_time);
+        % Use the vbl from the first screen
+        vbl = Screen('Flip', winsPtrs(1), next_frame_time);
+        for curWinPtr = winsPtrs(2:end)
+            Screen('Flip', curWinPtr, next_frame_time);
+        end
         %next_frame_time2 = GetSecs() + ifi;
         % disp('Flipping took: ' + string(toc));
         alreadyCleared=false;
@@ -104,9 +118,11 @@ while true
                 else
                     backGroundColor = GRAY_COLOR;
                 end
-                Screen('FillRect', windowPtr, backGroundColor);
-                Screen('FillRect', windowPtr, BLACK_COLOR, photoDiodeBox);
-                Screen('Flip', windowPtr, 0, 0, DONT_SYNC);
+                for curWinPtr = winsPtrs
+                    Screen('FillRect', curWinPtr, backGroundColor);
+                    Screen('FillRect', curWinPtr, BLACK_COLOR, photoDiodeBox);
+                    Screen('Flip', curWinPtr, 0, 0, DONT_SYNC);
+                end
                 alreadyCleared = true;
             end
             % tic;
@@ -118,7 +134,7 @@ while true
                 circleArea = (pi*((drawParams.apertureSizeWidth/2).^2));
                 % Calculate the size of a dot in pixel
                 dotSizePx = angle2pix(drawParams.screenWidthCm, ...
-                    windowRect(3),drawParams.screenDistCm, ...
+                    winsRect(3),drawParams.screenDistCm, ...
                     drawParams.dotSizeInDegs);
                 %if dotSizePx > 20
                 %   disp('Reducing point size to max supported 20 from: ' + ...
@@ -176,7 +192,7 @@ while true
                  gratingOrientation = drawParams.gratingOrientation;
                  % Dimension of the region where will draw the grating in pixels
                  % TODO: Calculate in degrees
-                 gratingDimPix = windowRect(3) * drawParams.gaborSizeFactor;
+                 gratingDimPix = winsRect(3) * drawParams.gaborSizeFactor;
                  if mod(gratingDimPix,2) == 0 % Convert to odd number
                      gratingDimPix = gratingDimPix + 1;
                  end
@@ -203,7 +219,8 @@ while true
                  % Compute actual cosine grating:
                  grating = GRAY_COLOR + INC_GRAY*cos(freqCyclesPerPixRadians*gratingLine);
                  % Store 1-D single row grating in texture:
-                 gratingTex = Screen('MakeTexture', windowPtr, grating);
+                 % Assume all the screens are the same here, use the last one
+                 gratingTex = Screen('MakeTexture', curWinPtr, grating);
                  % Create a single gaussian transparency mask and store it to a texture:
                  % The mask must have the same size as the visible size of the grating
                  % to fully cover it. Here we must define it in 2 dimensions and can't
@@ -218,8 +235,10 @@ while true
                         % Enable alpha blending for proper combination of
                         % the gaussian aperture with the drifting sine grating:
                         disp('Setting alpha blend...')
-                        Screen('BlendFunction', windowPtr,...
-                               GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                        for curWinPtr = winsPtrs
+                            Screen('BlendFunction', curWinPtr,...
+                                GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                        end
                         alphaBlendUsedLast = true;
                     end
                     mask = ones(gratingDimPix, gratingDimPix, 2) * GRAY_COLOR;
@@ -230,14 +249,16 @@ while true
                     mask(:,:,2) = round(WHITE_COLOR * (1 - exp(...
                            -((xMask*drawParams.gaussianFilterRatio).^2)...
                            -((yMask*drawParams.gaussianFilterRatio).^2))));
-                    maskTex = Screen('MakeTexture', windowPtr, mask);
+                    % Again for simplicity (and our use case) assume all the
+                    % screens are identical and can use the same values
+                    maskTex = Screen('MakeTexture', curWinPtr, mask);
                     alphaBlendUsed = true;
                  end
                  % Definition of the drawn rectangle on the screen:
                  % Compute it to  be the visible size of the grating, centered on the
                  % screen:
                  dstRect = [0 0 gratingDimPix gratingDimPix];
-                 dstRect = CenterRect(dstRect, windowRect);
+                 dstRect = CenterRect(dstRect, winsRect);
                  % Recompute p, this time without the ceil() operation from above.
                  % Otherwise we will get wrong drift speed due to rounding errors!
                  pixelPerCycle = 1/freqCyclesPerPix;
@@ -259,11 +280,15 @@ while true
             % disp('Setting up took: ' + string(toc));
             if alphaBlendUsedLast && ~alphaBlendUsed
                 disp('Disabling alpha blend...')
-                Screen('BlendFunction', windowPtr, GL_ONE, GL_ZERO);
+                for curWinPtr = winsPtrs
+                    Screen('BlendFunction', curWinPtr, GL_ONE, GL_ZERO);
+                end
                 alphaBlendUsedLast = false;
             end
             lastStimType = stimType;
-            Screen('FillRect', windowPtr, WHITE_COLOR, photoDiodeBox);
+            for curWinPtr = winsPtrs
+                Screen('FillRect', curWinPtr, WHITE_COLOR, photoDiodeBox);
+            end
         else
             pause(0.005); % Wait for the run command
             continue;
@@ -272,14 +297,16 @@ while true
         if ~alreadyStopped
             alreadyStopped = true;
             alreadyLoaded = false;
-            % Clear first any previously drawn buffer by drawing a rect
-            Screen('FillRect', windowPtr, backGroundColor);
-            Screen('FillRect', windowPtr, BLACK_COLOR, photoDiodeBox);
-            % The screen might have something pre-drawn on it with 'DrawFInished'
-            % passed. Flip to clear it.
-            Screen('Flip', windowPtr, 0, 0, DONT_SYNC);
+            for curWinPtr = winsPtrs
+                % Clear first any previously drawn buffer by drawing a rect
+                Screen('FillRect', curWinPtr, backGroundColor);
+                Screen('FillRect', curWinPtr, BLACK_COLOR, photoDiodeBox);
+                % The screen might have something pre-drawn on it with
+                % 'DrawFInished' passed. Flip to clear it.
+                Screen('Flip', curWinPtr, 0, 0, DONT_SYNC);
+            end
             % Re-evaluate refresh rate in case it got slower
-            ifi = Screen('GetFlipInterval', windowPtr);
+            ifi = Screen('GetFlipInterval', curWinPtr);
             frameRate = 1/ifi;
             %Priority(0);
             alreadyCleared = true;
@@ -299,18 +326,18 @@ while true
             (y-drawParams.centerY).^2/(drawParams.apertureSizeHeight/2)^2 < 1;
 
         %convert from degrees to screen pixels
-        pixpos.x = angle2pix(drawParams.screenWidthCm, windowRect(3), ...
-                             drawParams.screenDistCm, x) + ...
-                   windowRect(3)/2;
-        pixpos.y = angle2pix(drawParams.screenWidthCm, windowRect(3), ...
-                             drawParams.screenDistCm, y) + ...
-                   windowRect(4)/2;
-
+        pixpos.x = angle2pix(drawParams.screenWidthCm, winsRect(3), ...
+                             drawParams.screenDistCm, x) + winsRect(3)/2;
+        pixpos.y = angle2pix(drawParams.screenWidthCm, winsRect(3), ...
+                             drawParams.screenDistCm, y) + winsRect(4)/2;
         % disp('Pre-drawing took: ' + string(toc));
         % tic;
-        Screen('DrawDots', windowPtr, ...
-            [pixpos.x(goodDots);pixpos.y(goodDots)], dotSizePx, ...
-            WHITE_COLOR, [0,0], 1);
+        xGoodDotsPix = pixpos.x(goodDots);
+        yGoodDotsPix = pixpos.y(goodDots);
+        for curWinPtr = winsPtrs
+            Screen('DrawDots', curWinPtr, ...
+                [xGoodDotsPix; yGoodDotsPix], dotSizePx, WHITE_COLOR, [0,0], 1);
+        end
         %Screen('DrawingFinished', window);
         %disp('Drawing took: ' + string(toc));
         % tic;
@@ -367,16 +394,21 @@ while true
         % storage space here, as our 2-D grating is essentially only
         % defined in 1-D:
         srcRect = [xOffset 0 (xOffset+gratingDimPix) gratingDimPix];
-        % Draw grating texture, rotated by "orientation":
-        Screen('DrawTexture', windowPtr, gratingTex, srcRect, dstRect,...
-               gratingOrientation);
-        if drawParams.gaussianFilterRatio > 0
-            % Draw gaussian mask over grating:
-            Screen('DrawTexture', windowPtr, maskTex,...
-                   [0 0 gratingDimPix gratingDimPix], dstRect, gratingOrientation);
+        for curWinPtr = winsPtrs
+            % Draw grating texture, rotated by "orientation":
+            Screen('DrawTexture', curWinPtr, gratingTex, srcRect, dstRect,...
+                gratingOrientation);
+            if drawParams.gaussianFilterRatio > 0
+                % Draw gaussian mask over grating:
+                Screen('DrawTexture', curWinPtr, maskTex,...
+                    [0 0 gratingDimPix gratingDimPix], dstRect,...
+                    gratingOrientation);
+            end
         end
     end
-    Screen('FillRect', windowPtr, WHITE_COLOR, photoDiodeBox);
+    for curWinPtr = winsPtrs
+        Screen('FillRect', curWinPtr, WHITE_COLOR, photoDiodeBox);
+    end
     next_frame_time = vbl + (0.5*ifi);
     %disp('Post draw took: ' + string(toc));
 end
