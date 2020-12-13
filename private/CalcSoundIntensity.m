@@ -1,8 +1,8 @@
-function DV = CalcSoundIntensity(trialNum)
+function DV = CalcSoundIntensity(trialNum, StimulusOmega)
 global BpodSystem;
 
-BpodSystem.Data.Custom.Trials(trialNum).SoundIntensityLeft = round(BpodSystem.Data.Custom.Trials(trialNum).StimulusOmega * 100);
-BpodSystem.Data.Custom.Trials(trialNum).SoundIntensityRight = round((1-BpodSystem.Data.Custom.Trials(trialNum).StimulusOmega) * 100);
+BpodSystem.Data.Custom.Trials(trialNum).SoundIntensityLeft = round(StimulusOmega * 100);
+BpodSystem.Data.Custom.Trials(trialNum).SoundIntensityRight = round((1-StimulusOmega) * 100);
 
-DV = (BpodSystem.Data.Custom.Trials(trialNum).StimulusOmega * 2) - 1;
+DV = (StimulusOmega * 2) - 1;
 end

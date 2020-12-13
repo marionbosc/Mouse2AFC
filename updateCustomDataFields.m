@@ -167,9 +167,12 @@ BpodSystem.Data.Custom.Trials(iTrial+1).CenterPortRewAmount = TaskParameters.GUI
 BpodSystem.Data.Custom.Trials(iTrial+1).PreStimCntrReward = TaskParameters.GUI.PreStimuDelayCntrReward;
 BpodSystem.Data.Timer(iTrial).customExtractData = toc; tic;
 
-% IF we are running grating experiments, add the grating orientation that was used
-if TaskParameters.GUI.ExperimentType == ExperimentType.GratingOrientation
-    BpodSystem.Data.Custom.Trials(iTrial).GratingOrientation = BpodSystem.Data.Custom.drawParams.gratingOrientation;
+% If we are running grating experiments, add the grating orientation that was
+% finally used. If grating should have been instructed to be used, then it
+% shouldn't be nan.
+if ~isnan(BpodSystem.Data.Custom.Trials(iTrial).GratingOrientation)
+    BpodSystem.Data.Custom.Trials(iTrial).GratingOrientation =...
+                            BpodSystem.Data.Custom.drawParams.gratingOrientation;
 end
 
 %% Updating Delays
@@ -391,21 +394,21 @@ if iTrial > BpodSystem.Data.Custom.DVsAlreadyGenerated - Const.PRE_GENERATE_TRIA
     for a = 1:Const.PRE_GENERATE_TRIAL_COUNT
         % If it's a fifty-fifty trial, then place stimulus in the middle
         if rand(1,1) < TaskParameters.GUI.Percent50Fifty && (lastidx+a) > TaskParameters.GUI.StartEasyTrials % 50Fifty trials
-            BpodSystem.Data.Custom.Trials(lastidx+a).StimulusOmega = 0.5;
+            StimulusOmega = 0.5;
         else
             if TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.BetaDistribution
                 % Divide beta by 4 if we are in an easy trial
                 BetaDiv = iff((lastidx+a) <= TaskParameters.GUI.StartEasyTrials, 4, 1);
-                Intensity = betarnd(TaskParameters.GUI.BetaDistAlphaNBeta/BetaDiv,TaskParameters.GUI.BetaDistAlphaNBeta/BetaDiv,1,1);
-                Intensity = iff(Intensity < 0.1, 0.1, Intensity); %prevent extreme values
-                Intensity = iff(Intensity > 0.9, 0.9, Intensity); %prevent extreme values
+                StimulusOmega = betarnd(TaskParameters.GUI.BetaDistAlphaNBeta/BetaDiv,TaskParameters.GUI.BetaDistAlphaNBeta/BetaDiv,1,1);
+                StimulusOmega = iff(Intensity < 0.1, 0.1, Intensity); %prevent extreme values
+                StimulusOmega = iff(Intensity > 0.9, 0.9, Intensity); %prevent extreme values
             elseif TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.DiscretePairs
                 if (lastidx+a) <= TaskParameters.GUI.StartEasyTrials;
                     index = find(TaskParameters.GUI.OmegaTable.OmegaProb > 0, 1);
-                    Intensity = TaskParameters.GUI.OmegaTable.Omega(index)/100;
+                    StimulusOmega = TaskParameters.GUI.OmegaTable.Omega(index)/100;
                 else
                     % Choose a value randomly given the each value probability
-                    Intensity = randsample(TaskParameters.GUI.OmegaTable.Omega,1,1,TaskParameters.GUI.OmegaTable.OmegaProb)/100;
+                    StimulusOmega = randsample(TaskParameters.GUI.OmegaTable.Omega,1,1,TaskParameters.GUI.OmegaTable.OmegaProb)/100;
                 end
             else
                 assert(false, 'Unexpected StimulusSelectionCriteria');
@@ -413,23 +416,23 @@ if iTrial > BpodSystem.Data.Custom.DVsAlreadyGenerated - Const.PRE_GENERATE_TRIA
             % In case of beta distribution, our distribution is symmetric,
             % so prob < 0.5 is == prob > 0.5, so we can just pick the value
             % that corrects the bias
-            if (IsLeftRewarded(a) && Intensity < 0.5) || (~IsLeftRewarded(a) && Intensity >= 0.5)
-                Intensity = -Intensity + 1;
+            if (IsLeftRewarded(a) && StimulusOmega < 0.5) || (~IsLeftRewarded(a) && StimulusOmega >= 0.5)
+                StimulusOmega = -StimulusOmega + 1;
             end
-            BpodSystem.Data.Custom.Trials(lastidx+a).StimulusOmega = Intensity;
         end
 
+        BpodSystem.Data.Custom.Trials(lastidx+a).StimulusOmega = StimulusOmega;
         switch TaskParameters.GUI.ExperimentType
             case ExperimentType.Auditory
-                DV = CalcAudClickTrain(lastidx+a);
+                DV = CalcAudClickTrain(lastidx+a, StimulusOmega);
             case ExperimentType.LightIntensity
-                DV = CalcLightIntensity(lastidx+a);
+                DV = CalcLightIntensity(lastidx+a, StimulusOmega);
             case ExperimentType.SoundIntensity
-                DV = CalcSoundIntensity(lastidx+a);
+                DV = CalcSoundIntensity(lastidx+a, StimulusOmega);
             case ExperimentType.GratingOrientation
-                DV = CalcGratingOrientation(lastidx+a);
+                DV = CalcGratingOrientation(lastidx+a, StimulusOmega);
             case ExperimentType.RandomDots
-                DV = CalcDotsCoherence(lastidx+a);
+                DV = CalcDotsCoherence(lastidx+a, StimulusOmega);
             otherwise
                 assert(false, 'Unexpected ExperimentType');
         end

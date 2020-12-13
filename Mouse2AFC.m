@@ -104,10 +104,11 @@ for a = 1:Const.NUM_EASY_TRIALS
         % This random value is between 0 and 1, the beta distribution
         % parameters makes it very likely to very close to zero or very
         % close to 1.
-        BpodSystem.Data.Custom.Trials(a).StimulusOmega = betarnd(TaskParameters.GUI.BetaDistAlphaNBeta/4,TaskParameters.GUI.BetaDistAlphaNBeta/4,1,1);
+        StimulusOmega = betarnd(TaskParameters.GUI.BetaDistAlphaNBeta/4,...
+                                TaskParameters.GUI.BetaDistAlphaNBeta/4, 1, 1);
     elseif TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.DiscretePairs
         index = find(TaskParameters.GUI.OmegaTable.OmegaProb > 0, 1);
-        Intensity = TaskParameters.GUI.OmegaTable.Omega(index)/100;
+        StimulusOmega = TaskParameters.GUI.OmegaTable.Omega(index)/100;
     else
         assert(false, 'Unexpected StimulusSelectionCriteria');
     end
@@ -116,22 +117,22 @@ for a = 1:Const.NUM_EASY_TRIALS
     % In case of beta distribution, our distribution is symmetric,
     % so prob < 0.5 is == prob > 0.5, so we can just pick the value
     % that corrects the bias
-    if ~isLeftRewarded && Intensity >= 0.5
-        Intensity = -Intensity + 1;
+    if ~isLeftRewarded && StimulusOmega >= 0.5
+        StimulusOmega = -StimulusOmega + 1;
     end
-    BpodSystem.Data.Custom.Trials(a).StimulusOmega = Intensity;
+    BpodSystem.Data.Custom.Trials(a).StimulusOmega = StimulusOmega;
 
     switch TaskParameters.GUI.ExperimentType
         case ExperimentType.Auditory
-            DV = CalcAudClickTrain(a);
+            DV = CalcAudClickTrain(a, StimulusOmega);
         case ExperimentType.LightIntensity
-            DV = CalcLightIntensity(a);
+            DV = CalcLightIntensity(a, StimulusOmega);
         case ExperimentType.SoundIntensity
-            DV = CalcSoundIntensity(a);
+            DV = CalcSoundIntensity(a, StimulusOmega);
         case ExperimentType.GratingOrientation
-            DV = CalcGratingOrientation(a);
+            DV = CalcGratingOrientation(a, StimulusOmega);
         case ExperimentType.RandomDots
-            DV = CalcDotsCoherence(a);
+            DV = CalcDotsCoherence(a, StimulusOmega);
         otherwise
             assert(false, 'Unexpected ExperimentType');
     end
