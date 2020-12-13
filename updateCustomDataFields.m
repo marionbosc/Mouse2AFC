@@ -422,20 +422,8 @@ if iTrial > BpodSystem.Data.Custom.DVsAlreadyGenerated - Const.PRE_GENERATE_TRIA
         end
 
         BpodSystem.Data.Custom.Trials(lastidx+a).StimulusOmega = StimulusOmega;
-        switch TaskParameters.GUI.ExperimentType
-            case ExperimentType.Auditory
-                DV = CalcAudClickTrain(lastidx+a, StimulusOmega);
-            case ExperimentType.LightIntensity
-                DV = CalcLightIntensity(lastidx+a, StimulusOmega);
-            case ExperimentType.SoundIntensity
-                DV = CalcSoundIntensity(lastidx+a, StimulusOmega);
-            case ExperimentType.GratingOrientation
-                DV = CalcGratingOrientation(lastidx+a, StimulusOmega);
-            case ExperimentType.RandomDots
-                DV = CalcDotsCoherence(lastidx+a, StimulusOmega);
-            otherwise
-                assert(false, 'Unexpected ExperimentType');
-        end
+        DV = CalcTrialDV(lastidx+a, TaskParameters.GUI.ExperimentType,...
+                         StimulusOmega);
         if DV > 0
             BpodSystem.Data.Custom.Trials(lastidx+a).LeftRewarded = 1;
         elseif DV < 0

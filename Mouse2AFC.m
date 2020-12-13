@@ -122,20 +122,7 @@ for a = 1:Const.NUM_EASY_TRIALS
     end
     BpodSystem.Data.Custom.Trials(a).StimulusOmega = StimulusOmega;
 
-    switch TaskParameters.GUI.ExperimentType
-        case ExperimentType.Auditory
-            DV = CalcAudClickTrain(a, StimulusOmega);
-        case ExperimentType.LightIntensity
-            DV = CalcLightIntensity(a, StimulusOmega);
-        case ExperimentType.SoundIntensity
-            DV = CalcSoundIntensity(a, StimulusOmega);
-        case ExperimentType.GratingOrientation
-            DV = CalcGratingOrientation(a, StimulusOmega);
-        case ExperimentType.RandomDots
-            DV = CalcDotsCoherence(a, StimulusOmega);
-        otherwise
-            assert(false, 'Unexpected ExperimentType');
-    end
+    DV = CalcTrialDV(a, TaskParameters.GUI.ExperimentType, StimulusOmega);
     if DV > 0
         BpodSystem.Data.Custom.Trials(a).LeftRewarded = 1;
     elseif DV < 0
