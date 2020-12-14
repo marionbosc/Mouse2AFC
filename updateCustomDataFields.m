@@ -400,8 +400,8 @@ if iTrial > BpodSystem.Data.Custom.DVsAlreadyGenerated - Const.PRE_GENERATE_TRIA
                 % Divide beta by 4 if we are in an easy trial
                 BetaDiv = iff((lastidx+a) <= TaskParameters.GUI.StartEasyTrials, 4, 1);
                 StimulusOmega = betarnd(TaskParameters.GUI.BetaDistAlphaNBeta/BetaDiv,TaskParameters.GUI.BetaDistAlphaNBeta/BetaDiv,1,1);
-                StimulusOmega = iff(Intensity < 0.1, 0.1, Intensity); %prevent extreme values
-                StimulusOmega = iff(Intensity > 0.9, 0.9, Intensity); %prevent extreme values
+                StimulusOmega = iff(StimulusOmega < 0.1, 0.1, StimulusOmega); %prevent extreme values
+                StimulusOmega = iff(StimulusOmega > 0.9, 0.9, StimulusOmega); %prevent extreme values
             elseif TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.DiscretePairs
                 if (lastidx+a) <= TaskParameters.GUI.StartEasyTrials;
                     index = find(TaskParameters.GUI.OmegaTable.OmegaProb > 0, 1);
