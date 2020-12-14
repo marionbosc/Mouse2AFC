@@ -446,6 +446,19 @@ else
     BpodSystem.Data.Timer(iTrial).customGenNewTrials = 0;
 end%if trial > - 5
 tic;
+% Secondary Experiment DV can be none or another value.
+if rand(1,1) < TaskParameters.GUI.SecExpUseProb
+    BpodSystem.Data.Custom.Trials(iTrial+1).SecDV =...
+        GenSecExp(TaskParameters.GUI.SecExperimentType,...
+                  TaskParameters.GUI.SecExpStimIntensity,...
+                  TaskParameters.GUI.SecExpStimDir, iTrial+1,...
+                  TaskParameters.GUI.OmegaTable,...
+                  BpodSystem.Data.Custom.Trials(iTrial+1).StimulusOmega,...
+                  BpodSystem.Data.Custom.Trials(iTrial+1).LeftRewarded);
+else
+    BpodSystem.Data.Custom.Trials(iTrial+1).SecDV = NaN;
+end
+BpodSystem.Data.Timer(iTrial).customSecDV = toc; tic;
 
 % send auditory stimuli to PulsePal for next trial
 if TaskParameters.GUI.ExperimentType == ExperimentType.Auditory && ~BpodSystem.EmulatorMode
@@ -453,19 +466,16 @@ if TaskParameters.GUI.ExperimentType == ExperimentType.Auditory && ~BpodSystem.E
     SendCustomPulseTrain(2, BpodSystem.Data.Custom.LeftClickTrain{iTrial+1}, ones(1,length(BpodSystem.Data.Custom.LeftClickTrain{iTrial+1}))*5);
 end
 
+
 % Update RDK GUI
 TaskParameters.GUI.OmegaTable.RDK = (TaskParameters.GUI.OmegaTable.Omega - 50)*2;
+
 % Set current stimulus for next trial
-DV = BpodSystem.Data.Custom.Trials(iTrial+1).DV;
-if TaskParameters.GUI.ExperimentType == ExperimentType.RandomDots
-    TaskParameters.GUI.CurrentStim = strcat(...
-        num2str(abs(DV/0.01)), iff(DV < 0, '% R cohr.', '% L cohr.'));
-else
-    % Set between -100 to +100
-    StimIntensity = num2str(iff(DV > 0, (DV+1)/0.02, (DV-1)/-0.02));
-    TaskParameters.GUI.CurrentStim = strcat(StimIntensity,...
-        iff(DV < 0, '% R', '% L'));
-end
+TaskParameters.GUI.CurrentStim = PerfStr(...
+    TaskParameters.GUI.ExperimentType,...
+    BpodSystem.Data.Custom.Trials(iTrial+1).DV,...
+    TaskParameters.GUI.SecExperimentType,...
+    BpodSystem.Data.Custom.Trials(iTrial+1).SecDV);
 
 %%update hidden TaskParameter fields
 TaskParameters.Figures.ParameterGUI.Position = BpodSystem.ProtocolFigures.ParameterGUI.Position;

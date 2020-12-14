@@ -22,7 +22,7 @@ end
 %% Task parameters
 global TaskParameters
 TaskParameters = BpodSystem.ProtocolSettings;
-GUICurVer = 33;
+GUICurVer = 34;
 if isempty(fieldnames(TaskParameters))
     TaskParameters = CreateTaskParameters(GUICurVer);
 elseif ~isfield(TaskParameters.GUI, 'GUIVer')
@@ -97,6 +97,13 @@ BpodSystem.ProtocolSettings.StartTime = posixtime(datetime('now'));
 
 file_size = 120*1024*1024; % 40 MB mem-mapped file
 mapped_file = createMMFile(tempdir, 'mmap_matlab_plot.dat', file_size);
+% Setup the memory mapped file anyway for visual stimulus, even if it's not the
+% primary stimulus, the user might set it up as the secondary stimulus later
+BpodSystem.SystemSettings.dotsMapped_file =...
+            createMMFile('c:\Bpoduser\', 'mmap_matlab_randomdot.dat', file_size);
+% Should we always force initilization of screen to zero as we have here?
+BpodSystem.SystemSettings.dotsMapped_file.Data(1:4) = typecast(uint32(0),...
+                                                               'uint8');
 
 % make auditory stimuli for first trials
 for a = 1:Const.NUM_EASY_TRIALS
@@ -154,12 +161,6 @@ if TaskParameters.GUI.ExperimentType == ExperimentType.Auditory && ~BpodSystem.E
     ProgramPulsePal(BpodSystem.Data.Custom.PulsePalParamStimulus);
     SendCustomPulseTrain(1, BpodSystem.Data.Custom.RightClickTrain{1}, ones(1,length(BpodSystem.Data.Custom.RightClickTrain{1}))*5);
     SendCustomPulseTrain(2, BpodSystem.Data.Custom.LeftClickTrain{1}, ones(1,length(BpodSystem.Data.Custom.LeftClickTrain{1}))*5);
-elseif TaskParameters.GUI.ExperimentType == ExperimentType.RandomDots || ...
-       TaskParameters.GUI.ExperimentType == ExperimentType.GratingOrientation
-        BpodSystem.SystemSettings.dotsMapped_file =...
-            createMMFile('c:\Bpoduser\', 'mmap_matlab_randomdot.dat', file_size);
-        BpodSystem.SystemSettings.dotsMapped_file.Data(1:4) =...
-                                                    typecast(uint32(0), 'uint8');
 end
 
 

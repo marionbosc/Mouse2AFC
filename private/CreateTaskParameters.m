@@ -1,9 +1,22 @@
 function TaskParameters = CreateTaskParameters(GUICurVer)
 TaskParameters = struct;
-%% General
+%% Experiment
 TaskParameters.GUI.ExperimentType = ExperimentType.LightIntensity;
 TaskParameters.GUIMeta.ExperimentType.Style = 'popupmenu';
 TaskParameters.GUIMeta.ExperimentType.String = ExperimentType.String;
+TaskParameters.GUI.SecExperimentType = ExperimentType.SoundIntensity;
+TaskParameters.GUIMeta.SecExperimentType.Style = 'popupmenu';
+TaskParameters.GUIMeta.SecExperimentType.String = ExperimentType.String;
+TaskParameters.GUI.SecExpUseProb = 0;
+TaskParameters.GUI.SecExpStimDir = SecExpStimDir.SameAsPrimay;
+TaskParameters.GUIMeta.SecExpStimDir.Style = 'popupmenu';
+TaskParameters.GUIMeta.SecExpStimDir.String = SecExpStimDir.String;
+TaskParameters.GUI.SecExpStimIntensity = SecExpStimIntensity.HundredPercent;
+TaskParameters.GUIMeta.SecExpStimIntensity.Style = 'popupmenu';
+TaskParameters.GUIMeta.SecExpStimIntensity.String = SecExpStimIntensity.String;
+TaskParameters.GUIPanels.Experiment = {'ExperimentType','SecExperimentType',...
+    'SecExpUseProb','SecExpStimDir','SecExpStimIntensity'};
+%% General
 TaskParameters.GUI.ITI = 0; % (s)
 TaskParameters.GUI.RewardAmount = 5;
 TaskParameters.GUI.ChoiceDeadLine = 20;
@@ -26,11 +39,10 @@ TaskParameters.GUIMeta.CatchError.Style = 'checkbox';
 TaskParameters.GUI.Ports_LMRAudLRAir = 123568;
 TaskParameters.GUI.Wire1VideoTrigger = false;
 TaskParameters.GUIMeta.Wire1VideoTrigger.Style = 'checkbox';
-TaskParameters.GUIPanels.General = {'ExperimentType','ITI','RewardAmount','ChoiceDeadLine',...
-    'TimeOutIncorrectChoice','TimeOutBrokeFixation','TimeOutEarlyWithdrawal','TimeOutMissedChoice',...
-    'TimeOutSkippedFeedback','HabituateIgnoreIncorrect','PlayNoiseforError','PCTimeout',...
-    'StartEasyTrials','Percent50Fifty','PercentCatch','CatchError','Ports_LMRAudLRAir',...
-    'Wire1VideoTrigger'};
+TaskParameters.GUIPanels.General = {'ITI','RewardAmount','ChoiceDeadLine','TimeOutIncorrectChoice',...
+    'TimeOutBrokeFixation','TimeOutEarlyWithdrawal','TimeOutMissedChoice','TimeOutSkippedFeedback',...
+    'HabituateIgnoreIncorrect','PlayNoiseforError','PCTimeout','StartEasyTrials',...
+    'Percent50Fifty','PercentCatch','CatchError','Ports_LMRAudLRAir','Wire1VideoTrigger'};
 %% StimDelay
 TaskParameters.GUI.StimDelayAutoincrement = 0;
 TaskParameters.GUIMeta.StimDelayAutoincrement.Style = 'checkbox';
@@ -251,10 +263,10 @@ TaskParameters.GUIPanels.Optogenetics = {'OptoProb', 'OptoOr2P',...
 %%
 TaskParameters.GUI = orderfields(TaskParameters.GUI);
 %% Tabs
-TaskParameters.GUITabs.General = {'CurrentTrial','AirControl','General','FeedbackDelay','StimDelay'};
+TaskParameters.GUITabs.General = {'CurrentTrial','Experiment','General','FeedbackDelay','StimDelay'};
 TaskParameters.GUITabs.Sampling = {'CurrentTrial','LightIntensity','Auditory','SoundIntensity','Sampling','StimulusSelection'};
 TaskParameters.GUITabs.Visual = {'CurrentTrial','Grating','RandomDots','VisualGeneral'};
-TaskParameters.GUITabs.Opto = {'Optogenetics'};
+TaskParameters.GUITabs.Triggers = {'Optogenetics','AirControl'};
 TaskParameters.GUITabs.Plots = {'ShowPlots','Vevaiometric'};
 %%Non-GUI Parameters (but saved)
 TaskParameters.Figures.OutcomePlot.Position = [200, 200, 1000, 400];

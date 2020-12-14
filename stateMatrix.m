@@ -37,119 +37,12 @@ LEDErrorRate = 0.1;
 
 IsLeftRewarded = BpodSystem.Data.Custom.Trials(iTrial).LeftRewarded;
 
-if TaskParameters.GUI.ExperimentType == ExperimentType.Auditory
-    DeliverStimulus =  {'BNCState',1};
-    ContDeliverStimulus = {};
-    StopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut, {}, {'BNCState',0});
-    ChoiceStopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut, {'BNCState',0}, {});
-    EWDStopStimulus = {'BNCState',0};
-elseif TaskParameters.GUI.ExperimentType == ExperimentType.LightIntensity
-    % Divide Intensity by 100 to get fraction value
-    LeftPWMStim = round(BpodSystem.Data.Custom.Trials(iTrial).LightIntensityLeft*LeftPWM/100);
-    RightPWMStim = round(BpodSystem.Data.Custom.Trials(iTrial).LightIntensityRight*RightPWM/100);
-    DeliverStimulus = {strcat('PWM',num2str(LeftPort)),LeftPWMStim,...
-                       strcat('PWM',num2str(RightPort)),RightPWMStim};
-    ContDeliverStimulus = DeliverStimulus;
-    StopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut, DeliverStimulus, {});
-    ChoiceStopStimulus = {};
-    EWDStopStimulus = {};
-elseif TaskParameters.GUI.ExperimentType == ExperimentType.SoundIntensity
-    LeftSoundPort = floor(mod(TaskParameters.GUI.Ports_LMRAudLRAir/100,10));
-    RightSoundPort = floor(mod(TaskParameters.GUI.Ports_LMRAudLRAir/10,10));
-    LeftSoundPWM = round((100-TaskParameters.GUI.LeftSpeakerAttenPrcnt) * 2.55);
-    RightSoundPWM = round((100-TaskParameters.GUI.RightSpeakerAttenPrcnt) * 2.55);
-    % Divide maxsound by 100 to get fraction value
-    LeftPWMSound = round(BpodSystem.Data.Custom.Trials(iTrial).SoundIntensityLeft*LeftSoundPWM/100);
-    RightPWMSound = round(BpodSystem.Data.Custom.Trials(iTrial).SoundIntensityRight*RightSoundPWM/100);
-    DeliverStimulus = {strcat('PWM',num2str(LeftSoundPort)),LeftPWMSound,...
-                       strcat('PWM',num2str(RightSoundPort)),RightPWMSound};
-    ContDeliverStimulus = DeliverStimulus;
-    StopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut, DeliverStimulus, {});
-    ChoiceStopStimulus = {};
-    EWDStopStimulus = {};
-elseif TaskParameters.GUI.ExperimentType == ExperimentType.GratingOrientation
-    rightPortAngle = VisualStimAngle.getDegrees(TaskParameters.GUI.VisualStimAnglePortRight);
-    leftPortAngle = VisualStimAngle.getDegrees(TaskParameters.GUI.VisualStimAnglePortLeft);
-    % Calculate the distance between right and left port angle to determine
-    % whether we should use the circle arc between the two values in the
-    % clock-wise or counter-clock-wise direction to calculate the different
-    % difficulties.
-    ccw = iff(mod(rightPortAngle-leftPortAngle,360) < mod(leftPortAngle-rightPortAngle,360), true, false);
-    if ccw
-        finalDV = BpodSystem.Data.Custom.Trials(iTrial).DV;
-        if rightPortAngle < leftPortAngle
-            rightPortAngle = rightPortAngle + 360;
-        end
-        angleDiff = rightPortAngle - leftPortAngle;
-        minAngle = leftPortAngle;
-    else
-        finalDV = -BpodSystem.Data.Custom.Trials(iTrial).DV;
-        if leftPortAngle < rightPortAngle
-            leftPortAngle = leftPortAngle + 360;
-        end
-        angleDiff = leftPortAngle - rightPortAngle;
-        minAngle = rightPortAngle;
-    end
-    % orientation = ((DVMax - DV)*(DVMAX-DVMin)*(MaxAngle - MinANgle)) + MinAngle
-    gratingOrientation = ((1 - finalDV)*angleDiff/2) + minAngle;
-    gratingOrientation = mod(gratingOrientation, 360);
-    BpodSystem.Data.Custom.drawParams.stimType = DrawStimType.StaticGratings;
-    BpodSystem.Data.Custom.drawParams.gratingOrientation = gratingOrientation;
-    BpodSystem.Data.Custom.drawParams.numCycles = TaskParameters.GUI.numCycles;
-    BpodSystem.Data.Custom.drawParams.cyclesPerSecondDrift = TaskParameters.GUI.cyclesPerSecondDrift;
-    BpodSystem.Data.Custom.drawParams.phase = TaskParameters.GUI.phase;
-    BpodSystem.Data.Custom.drawParams.gaborSizeFactor = TaskParameters.GUI.gaborSizeFactor;
-    BpodSystem.Data.Custom.drawParams.gaussianFilterRatio = TaskParameters.GUI.gaussianFilterRatio;
-    % Start from the 5th byte
-    serializeAndWrite(BpodSystem.SystemSettings.dotsMapped_file, 5,...
-                      BpodSystem.Data.Custom.drawParams);
-    BpodSystem.SystemSettings.dotsMapped_file.Data(1:4) =...
-                                                    typecast(uint32(1), 'uint8');
-
-    DeliverStimulus = {'SoftCode',5};
-    ContDeliverStimulus = {};
-    StopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut, {}, {'SoftCode',6});
-    ChoiceStopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut, {'SoftCode',6}, {});
-    EWDStopStimulus = {'SoftCode',6};
-elseif TaskParameters.GUI.ExperimentType == ExperimentType.RandomDots
-    % Setup the parameters
-    % Use 20% of the screen size. Assume apertureSize is the diameter
-    TaskParameters.GUI.circleArea = ...
-                        (pi*((TaskParameters.GUI.apertureSizeWidth/2).^2));
-    TaskParameters.GUI.nDots = ...
-       round(TaskParameters.GUI.circleArea * TaskParameters.GUI.drawRatio);
-
-    BpodSystem.Data.Custom.drawParams.stimType = DrawStimType.RDK;
-    BpodSystem.Data.Custom.drawParams.centerX = TaskParameters.GUI.centerX;
-    BpodSystem.Data.Custom.drawParams.centerY = TaskParameters.GUI.centerY;
-    BpodSystem.Data.Custom.drawParams.apertureSizeWidth = TaskParameters.GUI.apertureSizeWidth;
-    BpodSystem.Data.Custom.drawParams.apertureSizeHeight = TaskParameters.GUI.apertureSizeHeight;
-    BpodSystem.Data.Custom.drawParams.drawRatio = TaskParameters.GUI.drawRatio;
-    BpodSystem.Data.Custom.drawParams.mainDirection = floor(VisualStimAngle.getDegrees(...
-        iff(IsLeftRewarded,TaskParameters.GUI.VisualStimAnglePortLeft,...
-                           TaskParameters.GUI.VisualStimAnglePortRight)));
-    BpodSystem.Data.Custom.drawParams.dotSpeed = TaskParameters.GUI.dotSpeedDegsPerSec;
-    BpodSystem.Data.Custom.drawParams.dotLifetimeSecs = TaskParameters.GUI.dotLifetimeSecs;
-    BpodSystem.Data.Custom.drawParams.coherence = BpodSystem.Data.Custom.Trials(iTrial).DotsCoherence;
-    BpodSystem.Data.Custom.drawParams.screenWidthCm = TaskParameters.GUI.screenWidthCm;
-    BpodSystem.Data.Custom.drawParams.screenDistCm = TaskParameters.GUI.screenDistCm;
-    BpodSystem.Data.Custom.drawParams.dotSizeInDegs = TaskParameters.GUI.dotSizeInDegs;
-
-    % Start from the 5th byte
-    wait_mmap_file = createMMFile(tempdir, 'mmap_matlab_dot_read.dat', 4);
-    serializeAndWrite(BpodSystem.SystemSettings.dotsMapped_file, 5,...
-                      BpodSystem.Data.Custom.drawParams, wait_mmap_file, 1);
-    BpodSystem.SystemSettings.dotsMapped_file.Data(1:4) =...
-                                                    typecast(uint32(1), 'uint8');
-
-    DeliverStimulus = {'SoftCode',5};
-    ContDeliverStimulus = {};
-    StopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut, {}, {'SoftCode',6});
-    ChoiceStopStimulus = iff(TaskParameters.GUI.StimAfterPokeOut, {'SoftCode',6}, {});
-    EWDStopStimulus = {'SoftCode',6};
-else
-    assert(false, 'Unexpected ExperimentType');
-end
+[DeliverStimulus, ContDeliverStimulus, StopStimulus, ChoiceStopStimulus,...
+ EWDStopStimulus, TaskParameters.GUI, BpodSystem.Data.Custom.drawParams] =...
+    HandleStateMatrixStim(TaskParameters.GUI,...
+                          BpodSystem.Data.Custom.Trials(iTrial),...
+                          LeftPort, LeftPWM, RightPort, RightPWM,...
+                          BpodSystem.SystemSettings.dotsMapped_file);
 
 % Valve opening is a bitmap. Open each valve separately by raising 2 to
 % the power of port number - 1
