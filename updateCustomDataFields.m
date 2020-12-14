@@ -87,7 +87,7 @@ end
 if any(strcmp(str(MatrixState.WaitForChoice),statesThisTrial)) && ~any(strcmp(str(MatrixState.timeOut_missed_choice),statesThisTrial))
     % We might have more than multiple WaitForChoice if
     % HabituateIgnoreIncorrect is enabeld
-    BpodSystem.Data.Custom.Trials(end).MT = diff(eventsStatesThisTrial.WaitForChoice(1:2));
+    CurTrial.MT = diff(eventsStatesThisTrial.WaitForChoice(1:2));
 end
 
 % Extract trial outcome. Check first if it's a wrong choice or a
