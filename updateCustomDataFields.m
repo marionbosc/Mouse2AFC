@@ -7,75 +7,79 @@ function MatStr = str(matrix_state)
     MatStr = MatrixState.String(matrix_state);
 end
 
+CurTrial = BpodSystem.Data.Custom.Trials(iTrial);
+NextTrial = BpodSystem.Data.Custom.Trials(iTrial+1);
+CurTimer = BpodSystem.Data.Timer(iTrial);
+GUI = TaskParameters.GUI;
 tic;
 %% Standard values
 % Stores which lateral port the animal poked into (if any)
-BpodSystem.Data.Custom.Trials(iTrial).ChoiceLeft = NaN;
+CurTrial.ChoiceLeft = NaN;
 % Stores whether the animal poked into the correct port (if any)
-BpodSystem.Data.Custom.Trials(iTrial).ChoiceCorrect = NaN;
+CurTrial.ChoiceCorrect = NaN;
 % Signals whether confidence was used in this trial. Set to false if
 % lateral ports choice timed-out (i.e, MissedChoice(i) is true), it also
 % should be set to false (but not due to a bug) if the animal poked the
 % a lateral port but didn't complete the feedback period (even with using
 % grace).
-BpodSystem.Data.Custom.Trials(iTrial).Feedback = true;
+CurTrial.Feedback = true;
 % How long the animal spent waiting for the reward (whether in correct or
 % in incorrect ports)
-BpodSystem.Data.Custom.Trials(iTrial).FeedbackTime = NaN;
+CurTrial.FeedbackTime = NaN;
 % Signals whether the animal broke fixation during stimulus delay state
-BpodSystem.Data.Custom.Trials(iTrial).FixBroke = false;
+CurTrial.FixBroke = false;
 % Signals whether the animal broke fixation during sampling but before
 % min-sampling ends
-BpodSystem.Data.Custom.Trials(iTrial).EarlyWithdrawal = false;
+CurTrial.EarlyWithdrawal = false;
 % Signals whether the animal correctly finished min-sampling but failed
 % to poke any of the lateral ports within ChoiceDeadLine period
-BpodSystem.Data.Custom.Trials(iTrial).MissedChoice = false;
+CurTrial.MissedChoice = false;
 % How long the animal remained fixated in center poke
-BpodSystem.Data.Custom.Trials(iTrial).FixDur = NaN;
+CurTrial.FixDur = NaN;
 % How long between sample end and making a choice (timeout-choice trials
 % are excluded)
-BpodSystem.Data.Custom.Trials(iTrial).MT = NaN;
+CurTrial.MT = NaN;
 % How long the animal sampled. If RewardAfterMinSampling is enabled and
 % animal completed min sampling, then it's equal to MinSample time,
 % otherwise it's how long the animal remained fixated in center-port until
 % it either poked-out or the max allowed sampling time was reached.
-BpodSystem.Data.Custom.Trials(iTrial).ST = NaN;
+CurTrial.ST = NaN;
 % Signals whether a reward was given to the animal (it also includes if the
 % animal poked into the correct reward port but poked out afterwards and
 % didn't receive a reward, due to 'RewardGrace' being counted as reward).
-BpodSystem.Data.Custom.Trials(iTrial).Rewarded = false;
+CurTrial.Rewarded = false;
 % Signals whether a center-port reward was given after min-sampling ends.
-BpodSystem.Data.Custom.Trials(iTrial).RewardAfterMinSampling = false;
+CurTrial.RewardAfterMinSampling = false;
 % Tracks the amount of water the animal received up tp this point
 % TODO: Check if RewardReceivedTotal is needed and calculate it using
 % CalcRewObtained() function.
-BpodSystem.Data.Custom.Trials(iTrial+1).RewardReceivedTotal = 0; % We will updated later
+NextTrial.RewardReceivedTotal = 0; % We will updated later
 
-BpodSystem.Data.Custom.Trials(iTrial).TrialNumber = iTrial;
+CurTrial.TrialNumber = iTrial;
 
-BpodSystem.Data.Timer(iTrial).customInitialize = toc; tic;
+CurTimer.customInitialize = toc; tic;
 
 %% Checking states and rewriting standard
 % Extract the states that were used in the last trial
 statesThisTrial = BpodSystem.Data.RawData.OriginalStateNamesByNumber{iTrial}(BpodSystem.Data.RawData.OriginalStateData{iTrial});
 eventsStatesThisTrial = BpodSystem.Data.RawEvents.Trial{end}.States;
 if any(strcmp(str(MatrixState.WaitForStimulus),statesThisTrial))
-    BpodSystem.Data.Custom.Trials(iTrial).FixDur = ...
+    CurTrial.FixDur = ...
      (eventsStatesThisTrial.WaitForStimulus(end,2) - eventsStatesThisTrial.WaitForStimulus(end,1)) + ...
      (eventsStatesThisTrial.TriggerWaitForStimulus(end,2) - eventsStatesThisTrial.TriggerWaitForStimulus(end,1));
 end
 if any(strcmp(str(MatrixState.stimulus_delivery),statesThisTrial))
-    if TaskParameters.GUI.RewardAfterMinSampling
-        BpodSystem.Data.Custom.Trials(iTrial).ST = diff(eventsStatesThisTrial.stimulus_delivery);
+    if GUI.RewardAfterMinSampling
+        CurTrial.ST = diff(eventsStatesThisTrial.stimulus_delivery);
     else
         % 'CenterPortRewardDelivery' state would exist even if no
         % 'RewardAfterMinSampling' is active, in such case it means that
         % min sampling is done and we are in the optional sampling stage.
-        if any(strcmp(str(MatrixState.CenterPortRewardDelivery),statesThisTrial)) && TaskParameters.GUI.StimulusTime > TaskParameters.GUI.MinSample
-            BpodSystem.Data.Custom.Trials(iTrial).ST = eventsStatesThisTrial.CenterPortRewardDelivery(1,2) - eventsStatesThisTrial.stimulus_delivery(1,1);
+        if any(strcmp(str(MatrixState.CenterPortRewardDelivery),statesThisTrial)) && GUI.StimulusTime > GUI.MinSample
+            CurTrial.ST = eventsStatesThisTrial.CenterPortRewardDelivery(1,2) - eventsStatesThisTrial.stimulus_delivery(1,1);
         else
             % This covers early_withdrawal.
-            BpodSystem.Data.Custom.Trials(iTrial).ST = diff(eventsStatesThisTrial.stimulus_delivery);
+            CurTrial.ST = diff(eventsStatesThisTrial.stimulus_delivery);
         end
     end
 end
@@ -89,41 +93,39 @@ end
 % Extract trial outcome. Check first if it's a wrong choice or a
 % HabituateIgnoreIncorrect but first choice was wrong choice
 if any(strcmp(str(MatrixState.WaitForPunishStart),statesThisTrial)) || any(strcmp(str(MatrixState.RegisterWrongWaitCorrect),statesThisTrial))
-    BpodSystem.Data.Custom.Trials(iTrial).ChoiceCorrect = 0;
-    if BpodSystem.Data.Custom.Trials(iTrial).LeftRewarded == 1 % Correct choice = left
-        BpodSystem.Data.Custom.Trials(iTrial).ChoiceLeft = 0; % Left not chosen
+    CurTrial.ChoiceCorrect = 0;
+    if CurTrial.LeftRewarded == 1 % Correct choice = left
+        CurTrial.ChoiceLeft = 0; % Left not chosen
     else
-        BpodSystem.Data.Custom.Trials(iTrial).ChoiceLeft = 1;
+        CurTrial.ChoiceLeft = 1;
     end
     if any(strcmp(str(MatrixState.WaitForPunish),statesThisTrial))  % Feedback waiting time
-        BpodSystem.Data.Custom.Trials(iTrial).FeedbackTime = eventsStatesThisTrial.WaitForPunish(end,end) - eventsStatesThisTrial.WaitForPunishStart(1,1);
+        CurTrial.FeedbackTime = eventsStatesThisTrial.WaitForPunish(end,end) - eventsStatesThisTrial.WaitForPunishStart(1,1);
     else % It was a  RegisterWrongWaitCorrect state
-        BpodSystem.Data.Custom.Trials(iTrial).FeedbackTime = nan;
+        CurTrial.FeedbackTime = nan;
     end
 elseif any(strcmp(str(MatrixState.WaitForRewardStart),statesThisTrial))  % CorrectChoice
-    BpodSystem.Data.Custom.Trials(iTrial).ChoiceCorrect = 1;
-    if BpodSystem.Data.Custom.Trials(iTrial).CatchTrial
-        catch_stim_idx = GetCatchStimIdx(...
-                             BpodSystem.Data.Custom.Trials(iTrial).StimulusOmega);
+    CurTrial.ChoiceCorrect = 1;
+    if CurTrial.CatchTrial
+        catch_stim_idx = GetCatchStimIdx(CurTrial.StimulusOmega);
         % Lookup the stimulus probability and increase by its 1/frequency.
-        stim_val = BpodSystem.Data.Custom.Trials(iTrial).StimulusOmega * 100;
+        stim_val = CurTrial.StimulusOmega * 100;
         if stim_val < 50
             stim_val = 100 - stim_val;
         end
-        stim_prob = TaskParameters.GUI.OmegaTable.OmegaProb(...
-                          TaskParameters.GUI.OmegaTable.Omega == stim_val);
-        sum_all_prob = sum(TaskParameters.GUI.OmegaTable.OmegaProb);
+        stim_prob = GUI.OmegaTable.OmegaProb(GUI.OmegaTable.Omega == stim_val);
+        sum_all_prob = sum(GUI.OmegaTable.OmegaProb);
         stim_prob = (1+sum_all_prob-stim_prob)/sum_all_prob;
         BpodSystem.Data.Custom.CatchCount(catch_stim_idx) = ...
              BpodSystem.Data.Custom.CatchCount(catch_stim_idx) + stim_prob;
         BpodSystem.Data.Custom.LastSuccessCatchTial = iTrial;
     end
     if any(strcmp(str(MatrixState.WaitForReward),statesThisTrial))  % Feedback waiting time
-        BpodSystem.Data.Custom.Trials(iTrial).FeedbackTime = eventsStatesThisTrial.WaitForReward(end,end) - eventsStatesThisTrial.WaitForRewardStart(1,1);
-        if BpodSystem.Data.Custom.Trials(iTrial).LeftRewarded == 1 % Correct choice = left
-            BpodSystem.Data.Custom.Trials(iTrial).ChoiceLeft = 1; % Left chosen
+        CurTrial.FeedbackTime = eventsStatesThisTrial.WaitForReward(end,end) - eventsStatesThisTrial.WaitForRewardStart(1,1);
+        if CurTrial.LeftRewarded == 1 % Correct choice = left
+            CurTrial.ChoiceLeft = 1; % Left chosen
         else
-            BpodSystem.Data.Custom.Trials(iTrial).ChoiceLeft = 0;
+            CurTrial.ChoiceLeft = 0;
         end
     else
         orig_warn = warning;
@@ -132,151 +134,152 @@ elseif any(strcmp(str(MatrixState.WaitForRewardStart),statesThisTrial))  % Corre
         warning(orig_warn); % Restore the original warning values
     end
 elseif any(strcmp(str(MatrixState.broke_fixation),statesThisTrial))
-    BpodSystem.Data.Custom.Trials(iTrial).FixBroke = true;
+    CurTrial.FixBroke = true;
 elseif any(strcmp(str(MatrixState.early_withdrawal),statesThisTrial))
-    BpodSystem.Data.Custom.Trials(iTrial).EarlyWithdrawal = true;
+    CurTrial.EarlyWithdrawal = true;
 elseif any(strcmp(str(MatrixState.timeOut_missed_choice),statesThisTrial))
-    BpodSystem.Data.Custom.Trials(iTrial).Feedback = false;
-    BpodSystem.Data.Custom.Trials(iTrial).MissedChoice = true;
+    CurTrial.Feedback = false;
+    CurTrial.MissedChoice = true;
 end
 if any(strcmp(str(MatrixState.timeOut_SkippedFeedback),statesThisTrial))
-    BpodSystem.Data.Custom.Trials(iTrial).Feedback = false;
+    CurTrial.Feedback = false;
 end
 if any(strcmp(str(MatrixState.Reward),statesThisTrial))
-    BpodSystem.Data.Custom.Trials(iTrial).Rewarded = true;
-    BpodSystem.Data.Custom.Trials(iTrial).RewardReceivedTotal = ...
-        BpodSystem.Data.Custom.Trials(iTrial).RewardReceivedTotal + TaskParameters.GUI.RewardAmount;
+    CurTrial.Rewarded = true;
+    CurTrial.RewardReceivedTotal = CurTrial.RewardReceivedTotal + GUI.RewardAmount;
 end
-if any(strcmp(str(MatrixState.CenterPortRewardDelivery),statesThisTrial)) && TaskParameters.GUI.RewardAfterMinSampling
-    BpodSystem.Data.Custom.Trials(iTrial).RewardAfterMinSampling = true;
-    BpodSystem.Data.Custom.Trials(iTrial).RewardReceivedTotal = ...
-        BpodSystem.Data.Custom.Trials(iTrial).RewardReceivedTotal + TaskParameters.GUI.CenterPortRewAmount;
+if any(strcmp(str(MatrixState.CenterPortRewardDelivery),statesThisTrial)) && GUI.RewardAfterMinSampling
+    CurTrial.RewardAfterMinSampling = true;
+    CurTrial.RewardReceivedTotal = CurTrial.RewardReceivedTotal + GUI.CenterPortRewAmount;
 end
 if any(strcmp(str(MatrixState.WaitCenterPortOut),statesThisTrial))
-    BpodSystem.Data.Custom.Trials(iTrial).ReactionTime = diff(eventsStatesThisTrial.WaitCenterPortOut);
+    CurTrial.ReactionTime = diff(eventsStatesThisTrial.WaitCenterPortOut);
 else % Assign with -1 so we can differntiate it from nan trials where the
      % state potentially existed but we didn't calculate it
-    BpodSystem.Data.Custom.Trials(iTrial).ReactionTime = -1;
+    CurTrial.ReactionTime = -1;
 end
 %% State-independent fields
-BpodSystem.Data.Custom.Trials(iTrial).StimDelay = TaskParameters.GUI.StimDelay;
-BpodSystem.Data.Custom.Trials(iTrial).FeedbackDelay = TaskParameters.GUI.FeedbackDelay;
-BpodSystem.Data.Custom.Trials(iTrial).MinSample = TaskParameters.GUI.MinSample;
-BpodSystem.Data.Custom.Trials(iTrial+1).RewardMagnitude = TaskParameters.GUI.RewardAmount*[1,1];
-BpodSystem.Data.Custom.Trials(iTrial+1).CenterPortRewAmount = TaskParameters.GUI.CenterPortRewAmount;
-BpodSystem.Data.Custom.Trials(iTrial+1).PreStimCntrReward = TaskParameters.GUI.PreStimuDelayCntrReward;
-BpodSystem.Data.Timer(iTrial).customExtractData = toc; tic;
+CurTrial.StimDelay = GUI.StimDelay;
+CurTrial.FeedbackDelay = GUI.FeedbackDelay;
+CurTrial.MinSample = GUI.MinSample;
+NextTrial.RewardMagnitude = GUI.RewardAmount*[1,1];
+NextTrial.CenterPortRewAmount = GUI.CenterPortRewAmount;
+NextTrial.PreStimCntrReward = GUI.PreStimuDelayCntrReward;
+CurTimer.customExtractData = toc; tic;
 
 % If we are running grating experiments, add the grating orientation that was
 % finally used. If grating should have been instructed to be used, then it
 % shouldn't be nan.
-if ~isnan(BpodSystem.Data.Custom.Trials(iTrial).GratingOrientation)
-    BpodSystem.Data.Custom.Trials(iTrial).GratingOrientation =...
+if ~isnan(CurTrial.GratingOrientation)
+    CurTrial.GratingOrientation =...
                             BpodSystem.Data.Custom.drawParams.gratingOrientation;
 end
 
 %% Updating Delays
 %stimulus delay
-if TaskParameters.GUI.StimDelayAutoincrement
-    if BpodSystem.Data.Custom.Trials(iTrial).FixBroke
-        TaskParameters.GUI.StimDelay = max(TaskParameters.GUI.StimDelayMin,...
-            min(TaskParameters.GUI.StimDelayMax,BpodSystem.Data.Custom.Trials(iTrial).StimDelay-TaskParameters.GUI.StimDelayDecr));
+if GUI.StimDelayAutoincrement
+    if CurTrial.FixBroke
+        GUI.StimDelay = max(GUI.StimDelayMin,...
+            min(GUI.StimDelayMax,CurTrial.StimDelay-GUI.StimDelayDecr));
     else
-        TaskParameters.GUI.StimDelay = min(TaskParameters.GUI.StimDelayMax,...
-            max(TaskParameters.GUI.StimDelayMin,BpodSystem.Data.Custom.Trials(iTrial).StimDelay+TaskParameters.GUI.StimDelayIncr));
+        GUI.StimDelay = min(GUI.StimDelayMax,...
+            max(GUI.StimDelayMin,CurTrial.StimDelay+GUI.StimDelayIncr));
     end
 else
-    if ~BpodSystem.Data.Custom.Trials(iTrial).FixBroke
-        TaskParameters.GUI.StimDelay = random('unif',TaskParameters.GUI.StimDelayMin,TaskParameters.GUI.StimDelayMax);
+    if ~CurTrial.FixBroke
+        GUI.StimDelay = random('unif',GUI.StimDelayMin,GUI.StimDelayMax);
     else
-        TaskParameters.GUI.StimDelay = BpodSystem.Data.Custom.Trials(iTrial).StimDelay;
+        GUI.StimDelay = CurTrial.StimDelay;
     end
 end
-BpodSystem.Data.Timer(iTrial).customStimDelay = toc; tic;
+CurTimer.customStimDelay = toc; tic;
 
 %min sampling time
-if iTrial > TaskParameters.GUI.StartEasyTrials
-    switch TaskParameters.GUI.MinSampleType
+if iTrial > GUI.StartEasyTrials
+    switch GUI.MinSampleType
         case MinSampleType.FixMin
-            TaskParameters.GUI.MinSample = TaskParameters.GUI.MinSampleMin;
+            GUI.MinSample = GUI.MinSampleMin;
         case MinSampleType.AutoIncr
             % Check if animal completed pre-stimulus delay successfully
-            if ~BpodSystem.Data.Custom.Trials(iTrial).FixBroke
-                if BpodSystem.Data.Custom.Trials(iTrial).Rewarded
-                    TaskParameters.GUI.MinSample = min(TaskParameters.GUI.MinSampleMax,...
-                        max(TaskParameters.GUI.MinSampleMin,BpodSystem.Data.Custom.Trials(iTrial).MinSample + TaskParameters.GUI.MinSampleIncr));
-                elseif BpodSystem.Data.Custom.Trials(iTrial).EarlyWithdrawal
-                    TaskParameters.GUI.MinSample = max(TaskParameters.GUI.MinSampleMin,...
-                        min(TaskParameters.GUI.MinSampleMax,BpodSystem.Data.Custom.Trials(iTrial).MinSample - TaskParameters.GUI.MinSampleDecr));
+            if ~CurTrial.FixBroke
+                if CurTrial.Rewarded
+                    GUI.MinSample = min(GUI.MinSampleMax,...
+                        max(GUI.MinSampleMin,CurTrial.MinSample + GUI.MinSampleIncr));
+                elseif CurTrial.EarlyWithdrawal
+                    GUI.MinSample = max(GUI.MinSampleMin,...
+                        min(GUI.MinSampleMax,CurTrial.MinSample - GUI.MinSampleDecr));
                 end
             else % Read new updated GUI values
-                TaskParameters.GUI.MinSample = max(TaskParameters.GUI.MinSampleMin,...
-                    min(TaskParameters.GUI.MinSampleMax,BpodSystem.Data.Custom.Trials(iTrial).MinSample));
+                GUI.MinSample = max(GUI.MinSampleMin,...
+                    min(GUI.MinSampleMax,CurTrial.MinSample));
             end
         case MinSampleType.RandBetMinMax_DefIsMax
-            use_rand = rand(1,1) < TaskParameters.GUI.MinSampleRandProb;
+            use_rand = rand(1,1) < GUI.MinSampleRandProb;
             if ~use_rand
-                TaskParameters.GUI.MinSample = TaskParameters.GUI.MinSampleMax;
+                GUI.MinSample = GUI.MinSampleMax;
             else
-                TaskParameters.GUI.MinSample = (TaskParameters.GUI.MinSampleMax-TaskParameters.GUI.MinSampleMin).*rand(1,1) + TaskParameters.GUI.MinSampleMin;
+                GUI.MinSample = (GUI.MinSampleMax-GUI.MinSampleMin).*rand(1,1) + GUI.MinSampleMin;
             end
         case MinSampleType.RandNumIntervalsMinMax_DefIsMax
-            use_rand = rand(1,1) < TaskParameters.GUI.MinSampleRandProb;
+            use_rand = rand(1,1) < GUI.MinSampleRandProb;
             if ~use_rand
-                TaskParameters.GUI.MinSample = TaskParameters.GUI.MinSampleMax;
+                GUI.MinSample = GUI.MinSampleMax;
             else
-                TaskParameters.GUI.MinSampleNumInterval = round(TaskParameters.GUI.MinSampleNumInterval);
-                if TaskParameters.GUI.MinSampleNumInterval == 0 || TaskParameters.GUI.MinSampleNumInterval == 1
-                    TaskParameters.GUI.MinSample = TaskParameters.GUI.MinSampleMin;
+                GUI.MinSampleNumInterval = round(GUI.MinSampleNumInterval);
+                if GUI.MinSampleNumInterval == 0 || GUI.MinSampleNumInterval == 1
+                    GUI.MinSample = GUI.MinSampleMin;
                 else
-                    step = (TaskParameters.GUI.MinSampleMax - TaskParameters.GUI.MinSampleMin)/(TaskParameters.GUI.MinSampleNumInterval-1);
-                    intervals = [TaskParameters.GUI.MinSampleMin:step:TaskParameters.GUI.MinSampleMax];
-                    intervals_idx = randi([1 TaskParameters.GUI.MinSampleNumInterval],1,1);
+                    step = (GUI.MinSampleMax - GUI.MinSampleMin)/(GUI.MinSampleNumInterval-1);
+                    intervals = [GUI.MinSampleMin:step:GUI.MinSampleMax];
+                    intervals_idx = randi([1 GUI.MinSampleNumInterval],1,1);
                     disp("Intervals:");
                     disp(intervals)
-                    TaskParameters.GUI.MinSample = intervals(intervals_idx);
+                    GUI.MinSample = intervals(intervals_idx);
                 end
             end
         otherwise
             assert(false, 'Unexpected MinSampleType value');
     end
 end
-BpodSystem.Data.Timer(iTrial).customMinSampling = toc; tic;
+CurTimer.customMinSampling = toc; tic;
 
 %feedback delay
-switch TaskParameters.GUI.FeedbackDelaySelection
+switch GUI.FeedbackDelaySelection
     case FeedbackDelaySelection.None
-        TaskParameters.GUI.FeedbackDelay = 0;
+        GUI.FeedbackDelay = 0;
     case FeedbackDelaySelection.AutoIncr
         % if no feedback was not completed then use the last value unless
         % then decrement the feedback.
         % Do we consider the case where 'broke_fixation' or
         % 'early_withdrawal' terminated early the trial?
-        if ~BpodSystem.Data.Custom.Trials(iTrial).Feedback
-            TaskParameters.GUI.FeedbackDelay = max(TaskParameters.GUI.FeedbackDelayMin,...
-                min(TaskParameters.GUI.FeedbackDelayMax,BpodSystem.Data.Custom.Trials(iTrial).FeedbackDelay-TaskParameters.GUI.FeedbackDelayDecr));
+        if ~CurTrial.Feedback
+            GUI.FeedbackDelay = max(GUI.FeedbackDelayMin,...
+                                    min(GUI.FeedbackDelayMax,...
+                                        CurTrial.FeedbackDelay-GUI.FeedbackDelayDecr));
         else
             % Increase the feedback if the feedback was successfully
             % completed in the last trial, or use the the GUI value that
             % the user updated if needed.
             % Do we also here consider the case where 'broke_fixation' or
             % 'early_withdrawal' terminated early the trial?
-            TaskParameters.GUI.FeedbackDelay = min(TaskParameters.GUI.FeedbackDelayMax,...
-                max(TaskParameters.GUI.FeedbackDelayMin,BpodSystem.Data.Custom.Trials(iTrial).FeedbackDelay+TaskParameters.GUI.FeedbackDelayIncr));
+            GUI.FeedbackDelay = min(GUI.FeedbackDelayMax,...
+                                    max(GUI.FeedbackDelayMin,...
+                                        CurTrial.FeedbackDelay+GUI.FeedbackDelayIncr));
         end
     case FeedbackDelaySelection.TruncExp
-        TaskParameters.GUI.FeedbackDelay = TruncatedExponential(TaskParameters.GUI.FeedbackDelayMin,...
-            TaskParameters.GUI.FeedbackDelayMax,TaskParameters.GUI.FeedbackDelayTau);
+        GUI.FeedbackDelay = TruncatedExponential(GUI.FeedbackDelayMin,...
+                                                 GUI.FeedbackDelayMax,...
+                                                 GUI.FeedbackDelayTau);
     case FeedbackDelaySelection.Fix
         %     ATTEMPT TO GRAY OUT FIELDS
-        %     if ~strcmp('edit',TaskParameters.GUIMeta.FeedbackDelay.Style)
-        %         TaskParameters.GUIMeta.FeedbackDelay.Style = 'edit';
+        %     if ~strcmp('edit',GUIMeta.FeedbackDelay.Style)
+        %         GUIMeta.FeedbackDelay.Style = 'edit';
         %     end
-        TaskParameters.GUI.FeedbackDelay = TaskParameters.GUI.FeedbackDelayMax;
+        GUI.FeedbackDelay = GUI.FeedbackDelayMax;
     otherwise
         assert(false, 'Unexpected FeedbackDelaySelection value');
 end
-BpodSystem.Data.Timer(iTrial).customFeedbackDelay = toc; tic;
+CurTimer.customFeedbackDelay = toc; tic;
 
 %% Drawing future trials
 
@@ -317,7 +320,7 @@ if isnan(PerfR) % Same as above
     denominator = iff(leftRewarded, leftRewarded*2, 1);
     PerfR = 1 - nLeftChoiceCorrect/denominator;
 end
-TaskParameters.GUI.CalcLeftBias = (PerfL-PerfR)/2 + 0.5;
+GUI.CalcLeftBias = (PerfL-PerfR)/2 + 0.5;
 
 allTrialsChoices = [BpodSystem.Data.Custom.Trials(1:iTrial).ChoiceCorrect];
 choiceMadeTrials = allTrialsChoices(~isnan(allTrialsChoices));
@@ -325,11 +328,9 @@ rewardedTrialsCount = sum([BpodSystem.Data.Custom.Trials(1:iTrial).Rewarded] == 
 lengthChoiceMadeTrials = length(choiceMadeTrials);
 if lengthChoiceMadeTrials >= 1
     performance = rewardedTrialsCount/lengthChoiceMadeTrials;
-    TaskParameters.GUI.Performance = [num2str(performance*100,'%.2f'),...
-        '%/', num2str(lengthChoiceMadeTrials), 'T'];
+    GUI.Performance = [num2str(performance*100,'%.2f'),'%/',num2str(lengthChoiceMadeTrials), 'T'];
     performance = rewardedTrialsCount/iTrial;
-    TaskParameters.GUI.AllPerformance = [...
-        num2str(performance*100,'%.2f'), '%/', num2str(iTrial), 'T'];
+    GUI.AllPerformance = [num2str(performance*100,'%.2f'),'%/',num2str(iTrial),'T'];
     NUM_LAST_TRIALS=20;
     if iTrial > NUM_LAST_TRIALS
         if lengthChoiceMadeTrials > NUM_LAST_TRIALS
@@ -337,29 +338,27 @@ if lengthChoiceMadeTrials >= 1
                 lengthChoiceMadeTrials-NUM_LAST_TRIALS + 1 :...
                 lengthChoiceMadeTrials);
             performance = sum(rewardedTrials_ == true)/NUM_LAST_TRIALS;
-            TaskParameters.GUI.Performance = [...
-                TaskParameters.GUI.Performance, ...
-                ' - ', num2str(performance*100,'%.2f'), '%/',...
-                num2str(NUM_LAST_TRIALS) ,'T'];
+            GUI.Performance = [GUI.Performance,' - ',...
+                               num2str(performance*100,'%.2f'), '%/',num2str(NUM_LAST_TRIALS) ,'T'];
         end
         rewardedTrialsCount = sum(...
             [BpodSystem.Data.Custom.Trials(...
                           iTrial-NUM_LAST_TRIALS+1:iTrial).Rewarded] == 1);
         performance = rewardedTrialsCount/NUM_LAST_TRIALS;
-        TaskParameters.GUI.AllPerformance = [...
-            TaskParameters.GUI.AllPerformance, ...
-            ' - ', num2str(performance*100,'%.2f'), '%/',...
-            num2str(NUM_LAST_TRIALS), 'T'];
+        GUI.AllPerformance = [GUI.AllPerformance,' - ',...
+                              num2str(performance*100,'%.2f'),'%/',num2str(NUM_LAST_TRIALS), 'T'];
     end
 end
-BpodSystem.Data.Timer(iTrial).customCalcBias = toc; tic;
+CurTimer.customCalcBias = toc; tic;
 
 %create future trials
 % Check if its time to generate more future trials
+% We need first to assign next trial before processing future trials
+BpodSystem.Data.Custom.Trials(iTrial+1) = NextTrial;
 if iTrial > BpodSystem.Data.Custom.DVsAlreadyGenerated - Const.PRE_GENERATE_TRIAL_CHECK
     % Do bias correction only if we have enough trials
-    if TaskParameters.GUI.CorrectBias && iTrial > 7  %sum(ndxRewd) > Const.BIAS_CORRECT_MIN_RWD_TRIALS
-        LeftBias = TaskParameters.GUI.CalcLeftBias;
+    if GUI.CorrectBias && iTrial > 7 %sum(ndxRewd) > Const.BIAS_CORRECT_MIN_RWD_TRIALS
+        LeftBias = GUI.CalcLeftBias;
         %if LeftBias < 0.2 || LeftBias > 0.8 % Bias is too much, swing it all the way to the other side
         %LeftBias = round(LeftBias);
         %else
@@ -371,18 +370,18 @@ if iTrial > BpodSystem.Data.Custom.DVsAlreadyGenerated - Const.PRE_GENERATE_TRIA
 			LeftBias = 0.5;
 		end
     else
-        LeftBias = TaskParameters.GUI.LeftBias;
+        LeftBias = GUI.LeftBias;
     end
-    BpodSystem.Data.Timer(iTrial).customAdjustBias = toc; tic;
+    CurTimer.customAdjustBias = toc; tic;
 
     % Adjustment of P(Omega) to make sure that sum(P(Omega))=1
-    if ~TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.BetaDistribution
-        if sum(TaskParameters.GUI.OmegaTable.OmegaProb) == 0 % Avoid having no probability and avoid dividing by zero
-            TaskParameters.GUI.OmegaTable.OmegaProb = ones(size(TaskParameters.GUI.OmegaTable.OmegaProb));
+    if ~GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.BetaDistribution
+        if sum(GUI.OmegaTable.OmegaProb) == 0 % Avoid having no probability and avoid dividing by zero
+            GUI.OmegaTable.OmegaProb = ones(size(GUI.OmegaTable.OmegaProb));
         end
-        TaskParameters.GUI.OmegaTable.OmegaProb = TaskParameters.GUI.OmegaTable.OmegaProb/sum(TaskParameters.GUI.OmegaTable.OmegaProb);
+        GUI.OmegaTable.OmegaProb = GUI.OmegaTable.OmegaProb/sum(GUI.OmegaTable.OmegaProb);
     end
-    BpodSystem.Data.Timer(iTrial).customCalcOmega = toc; tic;
+    CurTimer.customCalcOmega = toc; tic;
 
     % make future trials
     lastidx = BpodSystem.Data.Custom.DVsAlreadyGenerated;
@@ -390,25 +389,25 @@ if iTrial > BpodSystem.Data.Custom.DVsAlreadyGenerated - Const.PRE_GENERATE_TRIA
     IsLeftRewarded = [zeros(1, round(Const.PRE_GENERATE_TRIAL_COUNT*LeftBias)) ones(1, round(Const.PRE_GENERATE_TRIAL_COUNT*(1-LeftBias)))];
     % Shuffle array and convert it
     IsLeftRewarded = IsLeftRewarded(randperm(numel(IsLeftRewarded))) > LeftBias;
-    BpodSystem.Data.Timer(iTrial).customPrepNewTrials = toc; tic;
+    CurTimer.customPrepNewTrials = toc; tic;
     for a = 1:Const.PRE_GENERATE_TRIAL_COUNT
         % If it's a fifty-fifty trial, then place stimulus in the middle
-        if rand(1,1) < TaskParameters.GUI.Percent50Fifty && (lastidx+a) > TaskParameters.GUI.StartEasyTrials % 50Fifty trials
+        if rand(1,1) < GUI.Percent50Fifty && (lastidx+a) > GUI.StartEasyTrials % 50Fifty trials
             StimulusOmega = 0.5;
         else
-            if TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.BetaDistribution
+            if GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.BetaDistribution
                 % Divide beta by 4 if we are in an easy trial
-                BetaDiv = iff((lastidx+a) <= TaskParameters.GUI.StartEasyTrials, 4, 1);
-                StimulusOmega = betarnd(TaskParameters.GUI.BetaDistAlphaNBeta/BetaDiv,TaskParameters.GUI.BetaDistAlphaNBeta/BetaDiv,1,1);
+                BetaDiv = iff((lastidx+a) <= GUI.StartEasyTrials, 4, 1);
+                StimulusOmega = betarnd(GUI.BetaDistAlphaNBeta/BetaDiv,GUI.BetaDistAlphaNBeta/BetaDiv,1,1);
                 StimulusOmega = iff(StimulusOmega < 0.1, 0.1, StimulusOmega); %prevent extreme values
                 StimulusOmega = iff(StimulusOmega > 0.9, 0.9, StimulusOmega); %prevent extreme values
-            elseif TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.DiscretePairs
-                if (lastidx+a) <= TaskParameters.GUI.StartEasyTrials;
-                    index = find(TaskParameters.GUI.OmegaTable.OmegaProb > 0, 1);
-                    StimulusOmega = TaskParameters.GUI.OmegaTable.Omega(index)/100;
+            elseif GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.DiscretePairs
+                if (lastidx+a) <= GUI.StartEasyTrials
+                    index = find(GUI.OmegaTable.OmegaProb > 0, 1);
+                    StimulusOmega = GUI.OmegaTable.Omega(index)/100;
                 else
                     % Choose a value randomly given the each value probability
-                    StimulusOmega = randsample(TaskParameters.GUI.OmegaTable.Omega,1,1,TaskParameters.GUI.OmegaTable.OmegaProb)/100;
+                    StimulusOmega = randsample(GUI.OmegaTable.Omega,1,1,GUI.OmegaTable.OmegaProb)/100;
                 end
             else
                 assert(false, 'Unexpected StimulusSelectionCriteria');
@@ -422,8 +421,7 @@ if iTrial > BpodSystem.Data.Custom.DVsAlreadyGenerated - Const.PRE_GENERATE_TRIA
         end
 
         BpodSystem.Data.Custom.Trials(lastidx+a).StimulusOmega = StimulusOmega;
-        DV = CalcTrialDV(lastidx+a, TaskParameters.GUI.ExperimentType,...
-                         StimulusOmega);
+        DV = CalcTrialDV(lastidx+a, GUI.ExperimentType, StimulusOmega);
         if DV > 0
             BpodSystem.Data.Custom.Trials(lastidx+a).LeftRewarded = 1;
         elseif DV < 0
@@ -438,99 +436,90 @@ if iTrial > BpodSystem.Data.Custom.DVsAlreadyGenerated - Const.PRE_GENERATE_TRIA
     BpodSystem.Data.Custom.DVsAlreadyGenerated = ...
                             BpodSystem.Data.Custom.DVsAlreadyGenerated +...
                             Const.PRE_GENERATE_TRIAL_COUNT;
-    BpodSystem.Data.Timer(iTrial).customGenNewTrials = toc;
+    CurTimer.customGenNewTrials = toc;
 else
-    BpodSystem.Data.Timer(iTrial).customAdjustBias = 0;
-    BpodSystem.Data.Timer(iTrial).customCalcOmega = 0;
-    BpodSystem.Data.Timer(iTrial).customPrepNewTrials = 0;
-    BpodSystem.Data.Timer(iTrial).customGenNewTrials = 0;
+    CurTimer.customAdjustBias = 0;
+    CurTimer.customCalcOmega = 0;
+    CurTimer.customPrepNewTrials = 0;
+    CurTimer.customGenNewTrials = 0;
 end%if trial > - 5
+NextTrial = BpodSystem.Data.Custom.Trials(iTrial+1);
 tic;
 % Secondary Experiment DV can be none or another value.
-if rand(1,1) < TaskParameters.GUI.SecExpUseProb
-    BpodSystem.Data.Custom.Trials(iTrial+1).SecDV =...
-        GenSecExp(TaskParameters.GUI.SecExperimentType,...
-                  TaskParameters.GUI.SecExpStimIntensity,...
-                  TaskParameters.GUI.SecExpStimDir, iTrial+1,...
-                  TaskParameters.GUI.OmegaTable,...
-                  BpodSystem.Data.Custom.Trials(iTrial+1).StimulusOmega,...
-                  BpodSystem.Data.Custom.Trials(iTrial+1).LeftRewarded);
+if rand(1,1) < GUI.SecExpUseProb
+    NextTrial.SecDV = GenSecExp(GUI.SecExperimentType, GUI.SecExpStimIntensity,...
+                                GUI.SecExpStimDir, iTrial+1, GUI.OmegaTable,...
+                                NextTrial.StimulusOmega, NextTrial.LeftRewarded);
 else
-    BpodSystem.Data.Custom.Trials(iTrial+1).SecDV = NaN;
+    NextTrial.SecDV = NaN;
 end
-BpodSystem.Data.Timer(iTrial).customSecDV = toc; tic;
+CurTimer.customSecDV = toc; tic;
 
 % send auditory stimuli to PulsePal for next trial
-if TaskParameters.GUI.ExperimentType == ExperimentType.Auditory && ~BpodSystem.EmulatorMode
+if GUI.ExperimentType == ExperimentType.Auditory && ~BpodSystem.EmulatorMode
     SendCustomPulseTrain(1, BpodSystem.Data.Custom.RightClickTrain{iTrial+1}, ones(1,length(BpodSystem.Data.Custom.RightClickTrain{iTrial+1}))*5);
     SendCustomPulseTrain(2, BpodSystem.Data.Custom.LeftClickTrain{iTrial+1}, ones(1,length(BpodSystem.Data.Custom.LeftClickTrain{iTrial+1}))*5);
 end
 
 
 % Update RDK GUI
-TaskParameters.GUI.OmegaTable.RDK = (TaskParameters.GUI.OmegaTable.Omega - 50)*2;
+GUI.OmegaTable.RDK = (GUI.OmegaTable.Omega - 50)*2;
 
 % Set current stimulus for next trial
-TaskParameters.GUI.CurrentStim = PerfStr(...
-    TaskParameters.GUI.ExperimentType,...
-    BpodSystem.Data.Custom.Trials(iTrial+1).DV,...
-    TaskParameters.GUI.SecExperimentType,...
-    BpodSystem.Data.Custom.Trials(iTrial+1).SecDV);
+GUI.CurrentStim = PerfStr(GUI.ExperimentType, NextTrial.DV,...
+                          GUI.SecExperimentType, NextTrial.SecDV);
 
 %%update hidden TaskParameter fields
 TaskParameters.Figures.ParameterGUI.Position = BpodSystem.ProtocolFigures.ParameterGUI.Position;
-BpodSystem.Data.Timer(iTrial).customFinializeUpdate = toc; tic;
+CurTimer.customFinializeUpdate = toc; tic;
 
 %determine if optogentics trial
-OptoEnabled = rand(1,1) <  TaskParameters.GUI.OptoProb;
-if iTrial < TaskParameters.GUI.StartEasyTrials
+OptoEnabled = rand(1,1) <  GUI.OptoProb;
+if iTrial < GUI.StartEasyTrials
     OptoEnabled = false;
 end
-BpodSystem.Data.Custom.Trials(iTrial+1).OptoEnabled = OptoEnabled;
-TaskParameters.GUI.IsOptoTrial = iff(OptoEnabled, 'true', 'false');
+NextTrial.OptoEnabled = OptoEnabled;
+GUI.IsOptoTrial = iff(OptoEnabled, 'true', 'false');
 
 % determine if catch trial
-if iTrial < TaskParameters.GUI.StartEasyTrials || ...
-   TaskParameters.GUI.PercentCatch == 0
-    BpodSystem.Data.Custom.Trials(iTrial+1).CatchTrial = false;
+if iTrial < GUI.StartEasyTrials || GUI.PercentCatch == 0
+    NextTrial.CatchTrial = false;
 else
-    every_n_trials = round(1/TaskParameters.GUI.PercentCatch);
+    every_n_trials = round(1/GUI.PercentCatch);
     limit = round(every_n_trials*0.2);
     lower_limit = every_n_trials - limit;
     upper_limit = every_n_trials + limit;
-    if ~BpodSystem.Data.Custom.Trials(iTrial).Rewarded ||...
+    if ~CurTrial.Rewarded ||...
      iTrial + 1 < BpodSystem.Data.Custom.LastSuccessCatchTial + lower_limit
-        BpodSystem.Data.Custom.Trials(iTrial+1).CatchTrial = false;
+        NextTrial.CatchTrial = false;
     elseif iTrial + 1 < BpodSystem.Data.Custom.LastSuccessCatchTial + upper_limit
         %TODO: If OmegaProb changed since last time, then redo it
-        non_zero_prob = TaskParameters.GUI.OmegaTable.Omega(...
-                              TaskParameters.GUI.OmegaTable.OmegaProb > 0);
+        non_zero_prob = GUI.OmegaTable.Omega(GUI.OmegaTable.OmegaProb > 0);
         non_zero_prob = [1-(non_zero_prob'/100), flip(non_zero_prob'/100)];
         active_stim_idxs = GetCatchStimIdx(non_zero_prob);
-        cur_stim_idx = GetCatchStimIdx(...
-                           BpodSystem.Data.Custom.Trials(iTrial+1).StimulusOmega);
+        cur_stim_idx = GetCatchStimIdx(NextTrial.StimulusOmega);
         min_catch_counts = min(...
                       BpodSystem.Data.Custom.CatchCount(active_stim_idxs));
         min_catch_idxs = intersect(active_stim_idxs,find(...
             floor(BpodSystem.Data.Custom.CatchCount) == min_catch_counts));
         if any(min_catch_idxs == cur_stim_idx)
-            BpodSystem.Data.Custom.Trials(iTrial+1).CatchTrial = true;
+            NextTrial.CatchTrial = true;
         else
-            BpodSystem.Data.Custom.Trials(iTrial+1).CatchTrial = false;
+            NextTrial.CatchTrial = false;
         end
     else
-        BpodSystem.Data.Custom.Trials(iTrial+1).CatchTrial = true;
+        NextTrial.CatchTrial = true;
     end
 end
 % Create as char vector rather than string so that GUI sync doesn't complain
-TaskParameters.GUI.IsCatch = iff(BpodSystem.Data.Custom.Trials(iTrial+1).CatchTrial, 'true', 'false');
+GUI.IsCatch = iff(NextTrial.CatchTrial, 'true', 'false');
 % Determine if Forced LED trial:
-if TaskParameters.GUI.PortLEDtoCueReward
-    BpodSystem.Data.Custom.Trials(iTrial+1).ForcedLEDTrial = rand(1,1) < TaskParameters.GUI.PercentForcedLEDTrial;
+if GUI.PortLEDtoCueReward
+    NextTrial.ForcedLEDTrial = rand(1,1) < GUI.PercentForcedLEDTrial;
 else
-    BpodSystem.Data.Custom.Trials(iTrial+1).ForcedLEDTrial = false;
+    NextTrial.ForcedLEDTrial = false;
 end
-BpodSystem.Data.Timer(iTrial).customCatchNForceLed = toc; %tic;
+CurTimer.customCatchNForceLed = toc; %tic;
 
 
 if iTrial == 3
@@ -546,6 +535,10 @@ end
     %SendTrialStatusToServer(script,BpodSystem.Data.Custom.Rig,outcome,BpodSystem.Data.Custom.Subject,BpodSystem.CurrentProtocolName);
 %catch
 %end
-%BpodSystem.Data.Timer(iTrial).customSendPhp = toc;
+%CurTimer.customSendPhp = toc;
 
+BpodSystem.Data.Custom.Trials(iTrial) = CurTrial;
+BpodSystem.Data.Custom.Trials(iTrial+1) = NextTrial;
+BpodSystem.Data.Timer(iTrial) = CurTimer;
+TaskParameters.GUI = GUI;
 end

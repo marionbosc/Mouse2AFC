@@ -14,6 +14,7 @@ function enc_trigger = EncTrig(trigger_id)
             dec2bin(trigger_id, 3), trigger_id);
 end
 
+CurTrial = BpodSystem.Data.Custom.Trials(iTrial);
 %% Define ports
 LeftPort = floor(mod(TaskParameters.GUI.Ports_LMRAudLRAir/100000,10));
 CenterPort = floor(mod(TaskParameters.GUI.Ports_LMRAudLRAir/10000,10));
@@ -35,13 +36,12 @@ CenterPWM = round((100-TaskParameters.GUI.CenterPokeAttenPrcnt) * 2.55);
 RightPWM = round((100-TaskParameters.GUI.RightPokeAttenPrcnt) * 2.55);
 LEDErrorRate = 0.1;
 
-IsLeftRewarded = BpodSystem.Data.Custom.Trials(iTrial).LeftRewarded;
+IsLeftRewarded = CurTrial.LeftRewarded;
 
 [DeliverStimulus, ContDeliverStimulus, StopStimulus, ChoiceStopStimulus,...
  EWDStopStimulus, TaskParameters.GUI, BpodSystem.Data.Custom.drawParams] =...
-    HandleStateMatrixStim(TaskParameters.GUI,...
-                          BpodSystem.Data.Custom.Trials(iTrial),...
-                          LeftPort, LeftPWM, RightPort, RightPWM,...
+    HandleStateMatrixStim(TaskParameters.GUI, CurTrial, LeftPort, LeftPWM,...
+                          RightPort, RightPWM,...
                           BpodSystem.SystemSettings.dotsMapped_file);
 
 % Valve opening is a bitmap. Open each valve separately by raising 2 to
@@ -52,9 +52,9 @@ RightValve = 2^(RightPort-1);
 AirSolenoidOn = 2^(AirSolenoid-1);
 AirSolenoidOff = 0;
 
-LeftValveTime  = GetValveTimes(BpodSystem.Data.Custom.Trials(iTrial).RewardMagnitude(1), LeftPort);
-CenterValveTime  = GetValveTimes(BpodSystem.Data.Custom.Trials(iTrial).CenterPortRewAmount, CenterPort);
-RightValveTime  = GetValveTimes(BpodSystem.Data.Custom.Trials(iTrial).RewardMagnitude(2), RightPort);
+LeftValveTime  = GetValveTimes(CurTrial.RewardMagnitude(1), LeftPort);
+CenterValveTime  = GetValveTimes(CurTrial.CenterPortRewAmount, CenterPort);
+RightValveTime  = GetValveTimes(CurTrial.RewardMagnitude(2), RightPort);
 
 % iff() function takes first parameter as first condition, if the condition
 % is true then it returns the 2nd parameter, else it returns the 3rd one
@@ -114,7 +114,7 @@ Timer_CPRD = iff(TaskParameters.GUI.RewardAfterMinSampling, CenterValveTime, Tas
 ErrorFeedback = iff(TaskParameters.GUI.PlayNoiseforError, {'SoftCode',11}, {});
 
 % CatchTrial
-FeedbackDelayCorrect = iff(BpodSystem.Data.Custom.Trials(iTrial).CatchTrial, Const.FEEDBACK_CATCH_CORRECT_SEC, TaskParameters.GUI.FeedbackDelay);
+FeedbackDelayCorrect = iff(CurTrial.CatchTrial, Const.FEEDBACK_CATCH_CORRECT_SEC, TaskParameters.GUI.FeedbackDelay);
 
 % GUI option CatchError
 FeedbackDelayError = iff(TaskParameters.GUI.CatchError, Const.FEEDBACK_CATCH_INCORRECT_SEC, TaskParameters.GUI.FeedbackDelay);
@@ -153,12 +153,12 @@ end
 
 %Wire1 settings
 Wire1OutError = iff(TaskParameters.GUI.Wire1VideoTrigger, {'WireState', 2^1}, {});
-Wire1OutCorrect = iff(TaskParameters.GUI.Wire1VideoTrigger && BpodSystem.Data.Custom.Trials(iTrial).CatchTrial, {'WireState', 2^1}, {});
+Wire1OutCorrect = iff(TaskParameters.GUI.Wire1VideoTrigger && CurTrial.CatchTrial, {'WireState', 2^1}, {});
 
 % LED on the side lateral port to cue the rewarded side at the beginning of
 % the training. On auditory discrimination task, both lateral ports are
 % illuminated after end of stimulus delivery.
-if BpodSystem.Data.Custom.Trials(iTrial).ForcedLEDTrial
+if CurTrial.ForcedLEDTrial
     ExtendedStimulus = {strcat('PWM',num2str(RewardedPort)),RewardedPortPWM};
 elseif TaskParameters.GUI.ExperimentType == ExperimentType.Auditory
     ExtendedStimulus = {strcat('PWM',num2str(LeftPort)),LeftPWM,strcat('PWM',num2str(RightPort)),RightPWM};
@@ -322,7 +322,7 @@ sma = AddState(sma, 'Name', str(MatrixState.ext_ITI),...
 % output to the optogentics box and feed it as an input to Bpod input TTL,
 % e.g Wire1. This way, the optogentics signal gets written as part of your
 % data file. Don't forget to activate that input in the Bpod main config.
-if BpodSystem.Data.Custom.Trials(iTrial).OptoEnabled
+if CurTrial.OptoEnabled
     % Convert seconds to millis as we will send ints to Arduino
     OptoDelay = uint32(TaskParameters.GUI.OptoStartDelay*1000);
     OptoDelay = typecast(OptoDelay, 'int8');
