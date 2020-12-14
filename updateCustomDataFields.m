@@ -502,11 +502,7 @@ else
                       BpodSystem.Data.Custom.CatchCount(active_stim_idxs));
         min_catch_idxs = intersect(active_stim_idxs,find(...
             floor(BpodSystem.Data.Custom.CatchCount) == min_catch_counts));
-        if any(min_catch_idxs == cur_stim_idx)
-            NextTrial.CatchTrial = true;
-        else
-            NextTrial.CatchTrial = false;
-        end
+        NextTrial.CatchTrial = any(min_catch_idxs == cur_stim_idx);
     else
         NextTrial.CatchTrial = true;
     end
