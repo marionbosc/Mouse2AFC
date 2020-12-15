@@ -105,47 +105,13 @@ BpodSystem.SystemSettings.dotsMapped_file =...
 BpodSystem.SystemSettings.dotsMapped_file.Data(1:4) = typecast(uint32(0),...
                                                                'uint8');
 
-% make auditory stimuli for first trials
-for a = 1:Const.NUM_EASY_TRIALS
-    if TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.BetaDistribution
-        % This random value is between 0 and 1, the beta distribution
-        % parameters makes it very likely to very close to zero or very
-        % close to 1.
-        StimulusOmega = betarnd(TaskParameters.GUI.BetaDistAlphaNBeta/4,...
-                                TaskParameters.GUI.BetaDistAlphaNBeta/4, 1, 1);
-    elseif TaskParameters.GUI.StimulusSelectionCriteria == StimulusSelectionCriteria.DiscretePairs
-        index = find(TaskParameters.GUI.OmegaTable.OmegaProb > 0, 1);
-        StimulusOmega = TaskParameters.GUI.OmegaTable.Omega(index)/100;
-    else
-        assert(false, 'Unexpected StimulusSelectionCriteria');
-    end
-    % Randomly choose right or left
-    isLeftRewarded = rand(1, 1) >= 0.5;
-    % In case of beta distribution, our distribution is symmetric,
-    % so prob < 0.5 is == prob > 0.5, so we can just pick the value
-    % that corrects the bias
-    if ~isLeftRewarded && StimulusOmega >= 0.5
-        StimulusOmega = -StimulusOmega + 1;
-    end
-
-    Trial = BpodSystem.Data.Custom.Trials(a);
-    Trial.StimulusOmega = StimulusOmega;
-    [Trial, DV] = CalcTrialDV(Trial, TaskParameters.GUI.ExperimentType,...
-                              StimulusOmega);
-    if DV > 0
-        Trial.LeftRewarded = 1;
-    elseif DV < 0
-        Trial.LeftRewarded = 0;
-    else
-        Trial.LeftRewarded = rand<0.5; % It's equal distribution
-    end
-    % cross-modality difficulty for plotting
-    Trial.DV = DV;
-    BpodSystem.Data.Custom.Trials(a) = Trial;
-    BpodSystem.Data.Custom.DVsAlreadyGenerated = ...
-                            BpodSystem.Data.Custom.DVsAlreadyGenerated + 1;
-end%for a+1:2
-% Bpod will provide feedback that we can useto trigger pulse pal
+%CurTimer.customPrepNewTrials = toc; tic;
+LeftBias = 0.5; % Assume no initial LeftBias
+[BpodSystem.Data.Custom.Trials,...
+ BpodSystem.Data.Custom.DVsAlreadyGenerated] = AssignFutureTrials(...
+    BpodSystem.Data.Custom.Trials, TaskParameters.GUI,...
+    BpodSystem.Data.Custom.DVsAlreadyGenerated,...
+    Const.NUM_EASY_TRIALS, LeftBias);
 
 BpodSystem.SoftCodeHandlerFunction = 'SoftCodeHandler';
 
