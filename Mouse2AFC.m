@@ -127,18 +127,21 @@ for a = 1:Const.NUM_EASY_TRIALS
     if ~isLeftRewarded && StimulusOmega >= 0.5
         StimulusOmega = -StimulusOmega + 1;
     end
-    BpodSystem.Data.Custom.Trials(a).StimulusOmega = StimulusOmega;
 
-    DV = CalcTrialDV(a, TaskParameters.GUI.ExperimentType, StimulusOmega);
+    Trial = BpodSystem.Data.Custom.Trials(a);
+    Trial.StimulusOmega = StimulusOmega;
+    [Trial, DV] = CalcTrialDV(Trial, TaskParameters.GUI.ExperimentType,...
+                              StimulusOmega);
     if DV > 0
-        BpodSystem.Data.Custom.Trials(a).LeftRewarded = 1;
+        Trial.LeftRewarded = 1;
     elseif DV < 0
-        BpodSystem.Data.Custom.Trials(a).LeftRewarded = 0;
+        Trial.LeftRewarded = 0;
     else
-        BpodSystem.Data.Custom.Trials(a).LeftRewarded = rand<0.5; % It's equal distribution
+        Trial.LeftRewarded = rand<0.5; % It's equal distribution
     end
     % cross-modality difficulty for plotting
-    BpodSystem.Data.Custom.Trials(a).DV = DV;
+    Trial.DV = DV;
+    BpodSystem.Data.Custom.Trials(a) = Trial;
     BpodSystem.Data.Custom.DVsAlreadyGenerated = ...
                             BpodSystem.Data.Custom.DVsAlreadyGenerated + 1;
 end%for a+1:2

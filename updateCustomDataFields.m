@@ -8,7 +8,6 @@ function MatStr = str(matrix_state)
 end
 
 CurTrial = BpodSystem.Data.Custom.Trials(iTrial);
-NextTrial = BpodSystem.Data.Custom.Trials(iTrial+1);
 CurTimer = BpodSystem.Data.Timer(iTrial);
 GUI = TaskParameters.GUI;
 tic;
@@ -50,10 +49,6 @@ CurTrial.ST = NaN;
 CurTrial.Rewarded = false;
 % Signals whether a center-port reward was given after min-sampling ends.
 CurTrial.RewardAfterMinSampling = false;
-% Tracks the amount of water the animal received up tp this point
-% TODO: Check if RewardReceivedTotal is needed and calculate it using
-% CalcRewObtained() function.
-NextTrial.RewardReceivedTotal = 0; % We will updated later
 
 CurTrial.TrialNumber = iTrial;
 
@@ -162,9 +157,6 @@ end
 CurTrial.StimDelay = GUI.StimDelay;
 CurTrial.FeedbackDelay = GUI.FeedbackDelay;
 CurTrial.MinSample = GUI.MinSample;
-NextTrial.RewardMagnitude = GUI.RewardAmount*[1,1];
-NextTrial.CenterPortRewAmount = GUI.CenterPortRewAmount;
-NextTrial.PreStimCntrReward = GUI.PreStimuDelayCntrReward;
 CurTimer.customExtractData = toc; tic;
 
 % If we are running grating experiments, add the grating orientation that was
@@ -353,8 +345,6 @@ CurTimer.customCalcBias = toc; tic;
 
 %create future trials
 % Check if its time to generate more future trials
-% We need first to assign next trial before processing future trials
-BpodSystem.Data.Custom.Trials(iTrial+1) = NextTrial;
 if iTrial > BpodSystem.Data.Custom.DVsAlreadyGenerated - Const.PRE_GENERATE_TRIAL_CHECK
     % Do bias correction only if we have enough trials
     if GUI.CorrectBias && iTrial > 7 %sum(ndxRewd) > Const.BIAS_CORRECT_MIN_RWD_TRIALS
@@ -420,18 +410,21 @@ if iTrial > BpodSystem.Data.Custom.DVsAlreadyGenerated - Const.PRE_GENERATE_TRIA
             end
         end
 
-        BpodSystem.Data.Custom.Trials(lastidx+a).StimulusOmega = StimulusOmega;
-        DV = CalcTrialDV(lastidx+a, GUI.ExperimentType, StimulusOmega);
+        Trial = BpodSystem.Data.Custom.Trials(lastidx+a);
+        Trial.StimulusOmega = StimulusOmega;
+        [Trial, DV] = CalcTrialDV(Trial, GUI.ExperimentType, StimulusOmega);
+        Trial.DV = DV;
         if DV > 0
-            BpodSystem.Data.Custom.Trials(lastidx+a).LeftRewarded = 1;
+            Trial.LeftRewarded = 1;
         elseif DV < 0
-            BpodSystem.Data.Custom.Trials(lastidx+a).LeftRewarded = 0;
+            Trial.LeftRewarded = 0;
         else
-            BpodSystem.Data.Custom.Trials(lastidx+a).LeftRewarded = rand<0.5; % It's equal distribution
+            Trial.LeftRewarded = rand<0.5; % It's equal distribution
         end
         % cross-modality difficulty for plotting
         %  0 <= (left - right) / (left + right) <= 1
-        BpodSystem.Data.Custom.Trials(lastidx+a).DV = DV;
+        Trial.DV = DV;
+        BpodSystem.Data.Custom.Trials(lastidx+a) = Trial;
     end%for a=1:5
     BpodSystem.Data.Custom.DVsAlreadyGenerated = ...
                             BpodSystem.Data.Custom.DVsAlreadyGenerated +...
@@ -443,80 +436,23 @@ else
     CurTimer.customPrepNewTrials = 0;
     CurTimer.customGenNewTrials = 0;
 end%if trial > - 5
-NextTrial = BpodSystem.Data.Custom.Trials(iTrial+1);
-tic;
-% Secondary Experiment DV can be none or another value.
-if rand(1,1) < GUI.SecExpUseProb
-    NextTrial.SecDV = GenSecExp(GUI.SecExperimentType, GUI.SecExpStimIntensity,...
-                                GUI.SecExpStimDir, iTrial+1, GUI.OmegaTable,...
-                                NextTrial.StimulusOmega, NextTrial.LeftRewarded);
-else
-    NextTrial.SecDV = NaN;
-end
-CurTimer.customSecDV = toc; tic;
 
+NextTrial = BpodSystem.Data.Custom.Trials(iTrial+1);
+[NextTrial, GUI, CurTimer] = GenNextTrial(NextTrial, iTrial+1, GUI, CurTimer,...
+                                BpodSystem.Data.Custom.LastSuccessCatchTial,...
+                                BpodSystem.Data.Custom.CatchCount,...
+                                CurTrial.Rewarded);
+
+tic;
 % send auditory stimuli to PulsePal for next trial
 if GUI.ExperimentType == ExperimentType.Auditory && ~BpodSystem.EmulatorMode
     SendCustomPulseTrain(1, BpodSystem.Data.Custom.RightClickTrain{iTrial+1}, ones(1,length(BpodSystem.Data.Custom.RightClickTrain{iTrial+1}))*5);
     SendCustomPulseTrain(2, BpodSystem.Data.Custom.LeftClickTrain{iTrial+1}, ones(1,length(BpodSystem.Data.Custom.LeftClickTrain{iTrial+1}))*5);
 end
 
-
-% Update RDK GUI
-GUI.OmegaTable.RDK = (GUI.OmegaTable.Omega - 50)*2;
-
-% Set current stimulus for next trial
-GUI.CurrentStim = PerfStr(GUI.ExperimentType, NextTrial.DV,...
-                          GUI.SecExperimentType, NextTrial.SecDV);
-
 %%update hidden TaskParameter fields
 TaskParameters.Figures.ParameterGUI.Position = BpodSystem.ProtocolFigures.ParameterGUI.Position;
-CurTimer.customFinializeUpdate = toc; tic;
-
-%determine if optogentics trial
-OptoEnabled = rand(1,1) <  GUI.OptoProb;
-if iTrial < GUI.StartEasyTrials
-    OptoEnabled = false;
-end
-NextTrial.OptoEnabled = OptoEnabled;
-GUI.IsOptoTrial = iff(OptoEnabled, 'true', 'false');
-
-% determine if catch trial
-if iTrial < GUI.StartEasyTrials || GUI.PercentCatch == 0
-    NextTrial.CatchTrial = false;
-else
-    every_n_trials = round(1/GUI.PercentCatch);
-    limit = round(every_n_trials*0.2);
-    lower_limit = every_n_trials - limit;
-    upper_limit = every_n_trials + limit;
-    if ~CurTrial.Rewarded ||...
-     iTrial + 1 < BpodSystem.Data.Custom.LastSuccessCatchTial + lower_limit
-        NextTrial.CatchTrial = false;
-    elseif iTrial + 1 < BpodSystem.Data.Custom.LastSuccessCatchTial + upper_limit
-        %TODO: If OmegaProb changed since last time, then redo it
-        non_zero_prob = GUI.OmegaTable.Omega(GUI.OmegaTable.OmegaProb > 0);
-        non_zero_prob = [1-(non_zero_prob'/100), flip(non_zero_prob'/100)];
-        active_stim_idxs = GetCatchStimIdx(non_zero_prob);
-        cur_stim_idx = GetCatchStimIdx(NextTrial.StimulusOmega);
-        min_catch_counts = min(...
-                      BpodSystem.Data.Custom.CatchCount(active_stim_idxs));
-        min_catch_idxs = intersect(active_stim_idxs,find(...
-            floor(BpodSystem.Data.Custom.CatchCount) == min_catch_counts));
-        NextTrial.CatchTrial = any(min_catch_idxs == cur_stim_idx);
-    else
-        NextTrial.CatchTrial = true;
-    end
-end
-% Create as char vector rather than string so that GUI sync doesn't complain
-GUI.IsCatch = iff(NextTrial.CatchTrial, 'true', 'false');
-% Determine if Forced LED trial:
-if GUI.PortLEDtoCueReward
-    NextTrial.ForcedLEDTrial = rand(1,1) < GUI.PercentForcedLEDTrial;
-else
-    NextTrial.ForcedLEDTrial = false;
-end
-CurTimer.customCatchNForceLed = toc; %tic;
-
+CurTimer.customFinializeUpdate = toc;
 
 if iTrial == 3
        disp('Disabled attempt to save data to PHP server'); 

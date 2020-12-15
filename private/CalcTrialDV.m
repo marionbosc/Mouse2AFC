@@ -1,15 +1,17 @@
-function DV = CalcTrialDV(TrialNum, ExpType, StimulusOmega)
+function [Trial, DV] = CalcTrialDV(Trial, ExpType, StimulusOmega)
+% Does DV differ depending on the ExperimentType? I think it should remain the
+% same for all the experiments, as it should be dependent on stimulus omega.
 switch ExpType
     case ExperimentType.Auditory
-        DV = CalcAudClickTrain(TrialNum, StimulusOmega);
+        [Trial, DV] = CalcAudClickTrain(Trial, StimulusOmega);
     case ExperimentType.LightIntensity
-        DV = CalcLightIntensity(TrialNum, StimulusOmega);
+        [Trial, DV] = CalcLightIntensity(Trial, StimulusOmega);
     case ExperimentType.SoundIntensity
-        DV = CalcSoundIntensity(TrialNum, StimulusOmega);
+        [Trial, DV] = CalcSoundIntensity(Trial, StimulusOmega);
     case ExperimentType.GratingOrientation
-        DV = CalcGratingOrientation(TrialNum, StimulusOmega);
+        [Trial, DV] = CalcGratingOrientation(Trial, StimulusOmega);
     case ExperimentType.RandomDots
-        DV = CalcDotsCoherence(TrialNum, StimulusOmega);
+        [Trial, DV] = CalcDotsCoherence(Trial, StimulusOmega);
     otherwise
         assert(false, 'Unexpected ExperimentType');
 end

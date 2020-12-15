@@ -1,8 +1,7 @@
-function DV = CalcLightIntensity(trialNum, StimulusOmega)
-global BpodSystem;
+function [Trial, DV] = CalcLightIntensity(Trial, StimulusOmega)
 
-BpodSystem.Data.Custom.Trials(trialNum).LightIntensityLeft = round(StimulusOmega * 100);
-BpodSystem.Data.Custom.Trials(trialNum).LightIntensityRight = round((1-StimulusOmega) * 100);
+Trial.LightIntensityLeft = round(StimulusOmega * 100);
+Trial.LightIntensityRight = round((1-StimulusOmega) * 100);
 
 DV = (StimulusOmega * 2) - 1;
 end

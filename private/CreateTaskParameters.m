@@ -164,6 +164,8 @@ TaskParameters.GUI.MouseState = MouseState.FreelyMoving;
 TaskParameters.GUIMeta.MouseState.Style = 'popupmenu';
 TaskParameters.GUIMeta.MouseState.String = MouseState.String;
 TaskParameters.GUI.MouseWeight = nan;
+TaskParameters.GUI.Block = '';
+TaskParameters.GUIMeta.Block.Style = 'text';
 TaskParameters.GUI.Performance = '(Calc. after 1st trial)';
 TaskParameters.GUIMeta.Performance.Style = 'text';
 TaskParameters.GUI.AllPerformance = '(Calc. after 1st trial)';
@@ -174,7 +176,7 @@ TaskParameters.GUI.IsOptoTrial = 'false';
 TaskParameters.GUIMeta.IsOptoTrial.Style = 'text';
 TaskParameters.GUIPanels.CurrentTrial = {'MouseState','MouseWeight',...
     'StimDelay','MinSample','CurrentStim','CalcLeftBias',...
-    'FeedbackDelay','IsCatch','IsOptoTrial','Performance',...
+    'FeedbackDelay','IsCatch','IsOptoTrial','Block','Performance',...
     'AllPerformance'};
 % General Visual options
 TaskParameters.GUI.VisualStimAnglePortRight = VisualStimAngle.Degrees90;
@@ -238,6 +240,20 @@ TaskParameters.GUI.VevaiometricShowPoints = 1;
 TaskParameters.GUIMeta.VevaiometricShowPoints.Style = 'checkbox';
 TaskParameters.GUIPanels.Vevaiometric = {'VevaiometricYLim', ...
     'VevaiometricMinWT','VevaiometricNBin','VevaiometricShowPoints'};
+%% Blocks
+TaskParameters.GUI.Blk2Policy = Blk2Policy.NotUsed;
+TaskParameters.GUIMeta.Blk2Policy.Style = 'popupmenu';
+TaskParameters.GUIMeta.Blk2Policy.String = Blk2Policy.String;
+TaskParameters.GUI.BlkSwitchCond = BlkSwitchCond.TrialsCountAvg_StdDev;
+TaskParameters.GUIMeta.BlkSwitchCond.Style = 'popupmenu';
+TaskParameters.GUIMeta.BlkSwitchCond.String = BlkSwitchCond.String;
+TaskParameters.GUI.BlkSwitchCountAvg = 23;
+TaskParameters.GUI.BlkSwitchCountStd = 4;
+TaskParameters.GUI.BlkSwitchPerfMinGoal = 80;
+TaskParameters.GUI.BlkSwitchPerfMinGoalNumTrials = 4;
+TaskParameters.GUIPanels.Block2 = {'Blk2Policy', 'BlkSwitchCond',...
+    'BlkSwitchCountAvg','BlkSwitchCountStd','BlkSwitchPerfMinGoal',...
+    'BlkSwitchPerfMinGoalNumTrials'};
 %Optogenetics
 TaskParameters.GUI.OptoProb = 0;
 TaskParameters.GUI.OptoOr2P = TTLWireUsage.Optogenetics;
@@ -265,6 +281,7 @@ TaskParameters.GUI = orderfields(TaskParameters.GUI);
 %% Tabs
 TaskParameters.GUITabs.General = {'CurrentTrial','Experiment','General','FeedbackDelay','StimDelay'};
 TaskParameters.GUITabs.Sampling = {'CurrentTrial','LightIntensity','Auditory','SoundIntensity','Sampling','StimulusSelection'};
+TaskParameters.GUITabs.Blocks = {'CurrentTrial','Block2'};
 TaskParameters.GUITabs.Visual = {'CurrentTrial','Grating','RandomDots','VisualGeneral'};
 TaskParameters.GUITabs.Triggers = {'Optogenetics','AirControl'};
 TaskParameters.GUITabs.Plots = {'ShowPlots','Vevaiometric'};

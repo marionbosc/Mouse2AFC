@@ -1,6 +1,5 @@
-function DV = CalcDotsCoherence(trialNum, StimulusOmega)
-global BpodSystem;
+function [Trial, DV] = CalcDotsCoherence(Trial, StimulusOmega)
 DV = (StimulusOmega * 2) - 1;
 % Coherence value is a ratio between 0 and 1
-BpodSystem.Data.Custom.Trials(trialNum).DotsCoherence = abs(DV);
+Trial.DotsCoherence = abs(DV);
 end

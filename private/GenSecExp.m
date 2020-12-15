@@ -1,8 +1,8 @@
-function SecDV = GenSecExp(SecExpType, SecExpStimIntensity_, SecExpStimDir_,...
-                           TrialNum, OmegaTable, StimulusOmega, LeftRewarded)
+function Trial = GenSecExp(Trial, SecExpType, SecExpStimIntensity_,...
+                           SecExpStimDir_, OmegaTable)
 switch SecExpStimIntensity_
     case SecExpStimIntensity.SameAsOriginalIntensity
-        SecStimulusOmega = StimulusOmega;
+        SecStimulusOmega = Trial.StimulusOmega;
     case SecExpStimIntensity.HundredPercent
         SecStimulusOmega = 1;
     case SecExpStimIntensity.TableMaxEnabled
@@ -20,7 +20,7 @@ switch SecExpStimDir_
         % Should we also do a controlled random here?
         SecLeftRewarded = rand(1, 1) > 0.5;
     case SecExpStimDir.SameAsPrimay
-        SecLeftRewarded = LeftRewarded;
+        SecLeftRewarded = Trial.LeftRewarded;
     otherwise
         assert(false, 'Unexpected SecExpStimDir value');
 end
@@ -28,5 +28,7 @@ if (SecLeftRewarded && SecStimulusOmega < 0.5) ||...
    (~SecLeftRewarded && SecStimulusOmega >= 0.5)
     SecStimulusOmega = -SecStimulusOmega + 1;
 end
-SecDV = CalcTrialDV(TrialNum, SecExpType, SecStimulusOmega);
+
+[Trial, SecDV] = CalcTrialDV(Trial, SecExpType, SecStimulusOmega);
+Trial.SecDV = SecDV;
 end
