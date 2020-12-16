@@ -98,7 +98,27 @@ SettingsPath_ = SettingsPath(BpodSystem); % Needed later for unsaved changes
 % The state-matrix is generated only once in each iteration, however some
 % of the trials parameters are pre-generated and updated in the plots few
 % iterations before.
-load('C:\Users\hatem\OneDrive\Documents\py_matlab\Thy1-1_Mouse2AFC_Oct15_2020_Session2.mat');
+load('C:\Users\hatem\OneDrive\Documents\py_matlab\HomeCageHabutate_Mouse2AFC_Jul24_2020_Session3.mat');
+computerName = getenv('computername');
+xTaskParameters = struct;
+xTaskParameters.IgnoreInit = true;
+xTaskParameters.GUIMeta = TaskParameters.GUIMeta;
+xTaskParameters.GUIPanels = TaskParameters.GUIPanels;
+xTaskParameters.Figures = TaskParameters.Figures;
+OrigTrialSettings = BpodSystem.Data.TrialSettings;
+for i = 1:length(SessionData.TrialSettings)
+    xTaskParameters.GUI = SessionData.TrialSettings(i);
+    xTaskParameters.GUI.ComputerName = computerName;
+    xTaskParameters.GUI.OmegaTable = TaskParameters.GUI.OmegaTable;
+    xTaskParameters = InitTaskParameters(xTaskParameters,...
+        SessionData.Custom.Subject, SessionData.Filename);
+    % This is necessary, otherwise assignment fails because they have
+    % different lengths
+    BpodSystem.Data.TrialSettings(i) = xTaskParameters.GUI;
+end
+SessionData.TrialSettings =...
+              BpodSystem.Data.TrialSettings(1:length(SessionData.TrialSettings));
+BpodSystem.Data.TrialSettings = OrigTrialSettings;
 TrialTotalTime = clock();
 tic;
 while true
@@ -138,7 +158,7 @@ while true
                 BpodSystem.BeingUsed = 0;
             end
         end
-        TaskParameters = SessionData.TrialSettings(iTrial);
+        TaskParameters.GUI = SessionData.TrialSettings(iTrial);
         BpodSystem.Data.TrialSettings(iTrial) = TaskParameters.GUI;
         BpodSystem.Data.Timer(iTrial).AppendData = toc; tic;
     end

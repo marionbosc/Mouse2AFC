@@ -59,5 +59,8 @@ end
 % Set to nan so user might remember to set it
 TaskParameters.GUI.MouseWeight = nan;
 TaskParameters.GUI.ComputerName = computerName;
-BpodParameterGUI('init', TaskParameters);
+% A bad hack to only initialize first task parameter
+if ~isfield(TaskParameters, 'IgnoreInit')
+    BpodParameterGUI('init', TaskParameters);
+end
 end
