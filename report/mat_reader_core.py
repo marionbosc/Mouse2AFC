@@ -11,7 +11,7 @@ from states import States, StartEnd
 import sys
 
 MIN_DF_COLS_DROP = ["States","drawParams","rDots", "visual", "Subject", "File",
-                    "Protocol", ]
+                    "Protocol", "OptoEnabled_stimulus_delivery", ]
 
 _months_3chars = list(calendar.month_abbr)
 def decomposeFilePathInfo(filepath):
@@ -65,8 +65,8 @@ def _extractGUI(data, max_trials, is_mini_df, new_data_format):
     "GUI_MinSampleMax", "GUI_RewardAfterMinSampling", "GUI_StimulusTime",
     "GUI_FeedbackDelaySelection", "GUI_CalcLeftBias", "GUI_MouseState",
     "GUI_MouseWeight", "GUI_OptoBrainRegion", "GUI_OptoStartState1",
-    # "GUI_OptoEndState1", "GUI_OptoEndState2",
-    # GUI_OptoMaxTime, GUI_OptoOr2P, GUI_OptoStartDelay
+    # "GUI_OptoEndState1", "GUI_OptoEndState2",GUI_OptoOr2P,
+    "GUI_OptoMaxTime", "GUI_OptoStartDelay",
     ]
 
   diff_arrs = {"Difficulty1": [], "Difficulty2":[], "Difficulty3":[],
@@ -229,9 +229,16 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False,
                 return states
 
             def calcReactionAndMovementTimes(raw_events_li, trials_settings):
+                initiate_time = []
                 reaction_times = []
                 movement_times = []
-                for idx, trial_states_events in enumerate(raw_events_li):
+                from matreader.processrawevents import _extractTrialsPortsEvents
+                from matreader.processrawevents import _getTrialsPorts
+                _extractTrialsPortsEvents(raw_events_li, trials_settings,
+                                          new_data_format)
+                trials_ports = _getTrialsPorts(trials_settings, new_data_format)
+                for idx, (this_trial_ports, trial_states_events) in \
+                                    enumerate(zip(trials_ports, raw_events_li)):
                   trial_states = trial_states_events.States
                   try:
                     trial_events = trial_states_events.Events
@@ -245,13 +252,7 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False,
                   # port{in/out} never get registered. So asserts are treated
                   # as warnings instead with Matlab trial number and filename.
                   if not np.isnan(trial_states.WaitForChoice[0]):
-                    this_trial_settings = trials_settings[idx]
-                    if not new_data_format:
-                      this_trial_settings = this_trial_settings.GUI
-                    trial_ports = this_trial_settings.Ports_LMRAir
-                    l_port = (trial_ports//1000) % 10
-                    c_port = (trial_ports//100) % 10
-                    r_port = (trial_ports//10) % 10
+                    l_port, c_port, r_port = this_trial_ports
                     center_outs = getattr(trial_events,
                                           "Port{}Out".format(c_port),
                                           # Get -1 val as missing portout should

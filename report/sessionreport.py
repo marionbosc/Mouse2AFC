@@ -2,7 +2,7 @@
 # !python -c "import sys; sys.path.append(r'C:\Users\hatem\OneDrive\Documents\BpodUser\Protocols\Mouse2AFC\report'); import sessionreport; sessionreport.showAndSaveReport(r'dummy')"
 #
 # You need to have the following libraries:
-# pip install numpy scipy matplotlib pandas scikit-learn statsmodels colour
+# pip install numpy scipy matplotlib pandas scikit-learn statsmodels colour click
 
 import os
 import pathlib

@@ -5,6 +5,7 @@ import math
 import datetime as dt
 import pathlib
 import os
+import sys
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
@@ -13,19 +14,14 @@ from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
 from enum import Enum, auto, unique
+from utils import grpBySess
 
-class ExpType(): # Don't create as enum as we will compare with real integers
-  LightIntensity = 2
-  RDK = 4
+from definitions import ExpType
 
-  @staticmethod
-  def toStr(exp_type):
-    if exp_type == ExpType.LightIntensity:
-      return "LightIntensity"
-    elif exp_type == ExpType.RDK:
-      return "RDK"
-    else:
-      raise ValueError("Unknown exp_type: " + str(exp_type))
+class MouseState:
+  Unkown = np.nan
+  FreelyMoving = 1
+  HeadFixed = 2
 
 #analysis_for = ExpType.LightIntensity if "lightchasing" in DF_FILE.lower() \
 #                                      else ExpType.RDK
@@ -48,7 +44,7 @@ def setMatplotlibParams(silent=False):
       if attr_name not in original_rc:
         original_rc[attr_name] = mpl.rcParams[attr_name]
 
-    SAVE_FIG_SIZE = (6.4, 4.8) # original mpl.rcParams['figure.figsize'] is [6.4, 4.8]
+    SAVE_FIG_SIZE = (6.4*1.5, 4.8*1.5) # original mpl.rcParams['figure.figsize'] is [6.4, 4.8]
     SCALE_X = SAVE_FIG_SIZE[0]/(original_rc['figure.figsize'][0])
     SCALE_Y = SAVE_FIG_SIZE[1]/(original_rc['figure.figsize'][1])
     for attr_name, attr_val in original_rc.items():
@@ -71,6 +67,32 @@ def setMatplotlibParams(silent=False):
     mpl.rcParams['pdf.fonttype'] = 42
     mpl.rcParams['ps.fonttype'] = 42
 
+    # import seaborn as sns
+    # sns.set(font='Franklin Gothic Book',
+            # rc={'axes.axisbelow': False,
+                # 'axes.edgecolor': 'lightgrey',
+                # 'axes.facecolor': 'None',
+                # 'axes.grid': False,
+                # 'axes.labelcolor': 'dimgrey',
+                # 'axes.spines.right': False,
+                # 'axes.spines.top': False,
+                # 'figure.facecolor': 'white',
+                # 'lines.solid_capstyle': 'round',
+                # 'patch.edgecolor': 'w',
+                # 'patch.force_edgecolor': True,
+                # 'text.color': 'dimgrey',
+                # 'xtick.bottom': False,
+                # 'xtick.color': 'dimgrey',
+                # 'xtick.direction': 'out',
+                # 'xtick.top': False,
+                # 'ytick.color': 'dimgrey',
+                # 'ytick.direction': 'out',
+                # 'ytick.left': False,
+                # 'ytick.right': False})
+    # sns.set_context("notebook", rc={"font.size":16,
+                                    # "axes.titlesize":20,
+                                    # "axes.labelsize":18})
+
 
 def savePlot(title, confd=False, legend=None, animal_name=None):
   titles = []
@@ -84,7 +106,8 @@ def savePlot(title, confd=False, legend=None, animal_name=None):
     _dir = "cdfc/" + os.path.dirname(title) + "/" + animal_name + "/"
     path = _dir + os.path.basename(title)
   else:
-    _dir = "figs/{}".format("sqr/" if (SAVE_FIG_SIZE[0] == SAVE_FIG_SIZE[1]) else "")
+    #_dir = "figs/{}".format("sqr/" if (SAVE_FIG_SIZE[0] == SAVE_FIG_SIZE[1]) else "")
+    _dir = os.path.dirname(title) + os.path.sep
     path = "{}{}{}{}".format(_dir, "cdfc_" if confd else "",
                              (animal_name + "_") if animal_name else "",
                              os.path.basename(title))
@@ -100,6 +123,25 @@ def savePlot(title, confd=False, legend=None, animal_name=None):
 
   #for axis, title in zip(plt.gcf().axes, titles):
   #  axis.set_title(title)
+
+def _calcLeftBias(block):
+  # left_correct_count = block.ChoiceCorrect[block.LeftRewarded == 1].sum()
+  # right_correct_count = block.ChoiceCorrect[block.LeftRewarded == 0].sum()
+  # left_count = block.LeftRewarded.sum()
+  # right_count = len(block)-left_count
+  # perf_l = 0 if left_count == 0 else left_correct_count/left_count
+  # perf_r = 0 if right_count == 0 else right_correct_count/right_count
+  # return (perf_l-perf_r)/2+0.5
+  choices_df = block[block.ChoiceCorrect.notnull()]
+  l_choices = choices_df[choices_df.LeftRewarded == 1]
+  r_choices = choices_df[choices_df.LeftRewarded == 0]
+  assert len(r_choices) == len(choices_df) - len(l_choices)
+  if len(l_choices) and len(r_choices):
+    l_perf = len(l_choices[l_choices.ChoiceCorrect == 1]) / len(l_choices)
+    r_perf = len(r_choices[r_choices.ChoiceCorrect == 1]) / len(r_choices)
+    return (l_perf - r_perf)/2 + 0.5
+  else:
+    return np.nan
 
 @unique
 class PerfPlots(Enum):
@@ -149,16 +191,9 @@ def performanceOverTime(df, head_fixation_date=None, single_session=None,
     sessions = df.groupby(df.index//SINGLE_SESSION_BIN_SIZE) # Group every 10 trials
   else:
     sessions = df.groupby([df.Date,df.SessionNum])
-  def calcLeftBias(block):
-    left_correct_count = block.ChoiceCorrect[block.LeftRewarded == 1].sum()
-    right_correct_count = block.ChoiceCorrect[block.LeftRewarded == 0].sum()
-    left_count = block.LeftRewarded.sum()
-    right_count = num_trials-left_count
-    perf_l = 0 if left_count == 0 else left_correct_count/left_count
-    perf_r = 0 if right_count == 0 else right_correct_count/right_count
-    return (perf_l-perf_r)/2+0.5
 
   x_data = []
+  exp_type = []
   performance = []
   EWD = []
   left_bias = []
@@ -178,40 +213,32 @@ def performanceOverTime(df, head_fixation_date=None, single_session=None,
   head_fixation_session=None
   num_sessions = 0
   for date_sessionnum, block in sessions:
-    if single_session:
-      #print("date_sessionnum:",date_sessionnum, "Block:", block.TrialNumber)
-      bin_idx = date_sessionnum
-      num_trials = len(block)
-      if num_trials < 2: # Should happen only with last bin
-        continue
-      choice_made = block[block.ChoiceLeft.notnull()]
-      if len(choice_made):
-        block_performance = (len(choice_made[choice_made.ChoiceCorrect==1])/
-                             len(choice_made))
-      else:
-        block_performance = 0
+    num_trials = len(block)
+    if single_session and num_trials < 2: # Should happen only with last bin
+      continue
+    elif not single_session and num_trials < MIN_NUM_SESSION_TRIALS:
+      continue
+    # Till now, we can have only one exp-type
+    exp_type.append(block.GUI_ExperimentType.unique()[0])
+    choice_made = block[block.ChoiceLeft.notnull()]
+    if len(choice_made):
+      block_performance = (len(choice_made[choice_made.ChoiceCorrect==1])/
+                            len(choice_made))
     else:
-      date, session_num = date_sessionnum
-      #print("Session:",date,session_num)
-      num_trials = block.MaxTrial.unique()[0]
-      if num_trials < MIN_NUM_SESSION_TRIALS:
-        continue
-      block_performance = block.SessionPerformance.unique()[0]/100.0
-    #print("Session num:", date_sessionnum, "- performance:", block_performance)
+      block_performance = 0
     performance.append(block_performance)
     x_data.append(block.TrialNumber.max() if single_session
                   else len(performance))
     EWD.append(block.EarlyWithdrawal.sum()/num_trials)
-    left_bias.append(calcLeftBias(block))
+    left_bias.append(_calcLeftBias(block))
     sampling_time.append(block.ST.mean())
     sampling_std.append(block.ST.std())
     stim_poke_out.append(round(block.GUI_StimAfterPokeOut.sum()/num_trials))
-    port_cue_led.append(round(block.ForcedLEDTrial.sum()/num_trials))
-    MT.append(block.MT.mean())
-    MT_std.append(block.MT.std())
-    valid_reaction_time = block.ReactionTime[block.ReactionTime != -1]
-    reaction_time.append(valid_reaction_time.mean())
-    reaction_time_std.append(valid_reaction_time.std())
+    port_cue_led.append(block.ForcedLEDTrial.sum()/num_trials) # Can't we just use mean()?
+    MT.append(block.calcMovementTime.mean())
+    MT_std.append(block.calcMovementTime.std())
+    reaction_time.append(block.calcReactionTime.mean())
+    reaction_time_std.append(block.calcReactionTime.std())
     used_feedback_delay.append(block.GUI_FeedbackDelayMax.mean())
     catch_error_trials = block[(block.GUI_CatchError == True) &
                                (block.ChoiceCorrect == 0)]
@@ -234,9 +261,9 @@ def performanceOverTime(df, head_fixation_date=None, single_session=None,
       # experimenter temporarily had multiple values while updating table
       if len(valid_diff) >= 5 and len(valid_diff) > len(block)/10:
         mean_valid_diff = valid_diff.mean()
-        exp_type = block.GUI_ExperimentType.unique()
-        if len(exp_type) == 1 and exp_type[0] == ExpType.RDK:
-          mean_valid_diff = (mean_valid_diff - 50)*2 # Convert to RDK coherence
+        # The next part is already take care of for us in mat_reader.
+        # if len(exp_type[-1]) == 1 and exp_type[-1] == ExpType.RDK:
+        #  mean_valid_diff = (mean_valid_diff - 50)*2 # Convert to RDK coherence
         used_difficulties.append(mean_valid_diff)
         num_points += 1
       else:
@@ -245,14 +272,14 @@ def performanceOverTime(df, head_fixation_date=None, single_session=None,
     num_difficulties.append(min(3,num_points))
 
     if head_fixation_date is not None and head_fixation_session is None and \
-     date >= head_fixation_date:
+     date_sessionnum[0] >= head_fixation_date:
       # The length of any list will do
       head_fixation_session =  len(performance) -1
 
     num_sessions += 1
   # Convert difficulties to list of each difficulty
   difficulties = list(zip(*difficulties))
-  MAX_COUNT_DIFFICULTY= len(difficulties) # i.e == 4
+  MAX_COUNT_DIFFICULTY = 4
   #print("Difficulties:", difficulties)
 
   x_data=np.array(x_data,dtype=np.int)
@@ -261,13 +288,13 @@ def performanceOverTime(df, head_fixation_date=None, single_session=None,
   plots=[PerfPlots.Performance, PerfPlots.EarlyWD, PerfPlots.Bias] + \
         [PerfPlots.Difficulties]*MAX_COUNT_DIFFICULTY
   from colour import Color as ColorLib
-  green=ColorLib("green")
+  diff_color_start=ColorLib("blue")
   color=['k','b','c'] + \
-        list(map(lambda c: c.hex,
-             green.range_to(ColorLib("orange"),MAX_COUNT_DIFFICULTY)))
+        list(map(lambda c: c.rgb,
+             diff_color_start.range_to(ColorLib("gray"),MAX_COUNT_DIFFICULTY)))
   label=["Performance Rate","Early-Withdrawal Rate","Left Bias Rate"] + \
         ["Difficulty {}".format(i+1) for i in range(MAX_COUNT_DIFFICULTY)]
-  alpha=[1.0,1.0,0.6] + [0.8]*MAX_COUNT_DIFFICULTY
+  alpha=[1.0,1.0,0.6] + [0.4]*MAX_COUNT_DIFFICULTY
   # Multiply rates by 100 to convert to percentages
   metrics=[np.array(metric)*100 for metric in [performance, EWD, left_bias]] + \
           difficulties
@@ -278,30 +305,43 @@ def performanceOverTime(df, head_fixation_date=None, single_session=None,
     axes.plot(x_data,metric,color=color[i],label=label[i],alpha=alpha[i])
 
   if PerfPlots.DifficultiesCount in draw_plots:
+    from matplotlib import colors as mat_colors
     color_map=plt.cm.get_cmap('gist_gray')
     def colorMapIdx(num_difficulties): # Map 1-->3 to 0-->1.0
       #return 3 if num_difficulties == 3 else 1 - ((num_difficulties-1)/3)
-      return 0 if num_difficulties == 1 else num_difficulties/3
-
+      return np.array([0, 0, 0, 1-(num_difficulties/3)])
+      #return 0 if num_difficulties == 1 else num_difficulties/3
     for i in range(len(x_data)):
+      #color = color_map(colorMapIdx(num_difficulties[i]))
+      color = colorMapIdx(num_difficulties[i])
+      exp_color = 'y' if exp_type[i] == ExpType.LightIntensity else 'g'
+      # print("Color:", color)
+      color = np.array(color) + np.array(mat_colors.to_rgba(exp_color))
+      color[3] -= 1
       axes.scatter(x_data[i], performance[i]*100,
-                   color=color_map(colorMapIdx(num_difficulties[i])),
+                   color=color,
                    edgecolors='k', marker='o',zorder=10,
                    s=max(20*SCALE_X, min(50*SCALE_X, SCALE_X*7500/num_sessions)))
 
-  if PerfPlots.StimAPO in draw_plots:
-    arr_stim_poke_out = np.ones(len(stim_poke_out)) * 100
-    arr_stim_poke_out[(np.where(np.array(stim_poke_out) == 0)[0])] = np.nan
-    axes.step(x_data,arr_stim_poke_out,color='g',linestyle='-',
-              label='Stim-After-Poke',alpha=0.5,where="mid")
+  for (perf_plot, metric, title, height, c) in [
+                (PerfPlots.StimAPO, stim_poke_out, "Stim-After-Poke", 100, 'g'),
+                (PerfPlots.PortLEDCueRwrd, port_cue_led, "PortLed-Cue", 98,'r')]:
+    if perf_plot not in draw_plots:
+      continue
+    y_data = np.array(metric) * 100 #np.ones(len(stim_poke_out)) * 100
+    y_data[(np.where(np.array(y_data) == 0)[0])] = np.nan
+    axes.step(x_data, y_data, color=c, linestyle='-',
+              label=title, alpha=0.5, where="mid")
 
 
+  axes2_used = False
   if any(perf_plot in draw_plots for perf_plot in [PerfPlots.SamplingT,
                                                    PerfPlots.MovementT,
                                                    PerfPlots.ReactionT,
                                                    PerfPlots.MaxFeedbackDelay,
                                                    PerfPlots.CatchWT]):
     axes2 = axes.twinx()
+    axes2_used = True
     axes2.tick_params(axis='y', labelcolor='k')
     axes2.set_ylabel('Time (s)', color='k')
     axes2.set_ylim(0, max(4,max(catch_wt_correct),max(catch_wt_error)))
@@ -349,28 +389,31 @@ def performanceOverTime(df, head_fixation_date=None, single_session=None,
   if not axes_legend:
     return
 
-  # Continue getting the rest of the labels
-  lines2, labels2 = axes2.get_legend_handles_labels()
-  lines3=[]  # For difficulties  markers
-  labels3=[] # Also for difficulties markers
-  if PerfPlots.DifficultiesCount in draw_plots:
-    for i in range(1,4):
-      # Don't create entry in legend if difficulty count was not used
-      if i not in num_difficulties:
-        continue
-      lines3.append(Line2D([], [], color=color_map(colorMapIdx(i)), marker='o',
-                    linestyle='None',markersize=7.5*SCALE_X,markeredgecolor='k'))
-      labels3.append('{} difficult{}'.format(i, 'y' if i == 1 else 'ies'))
+  if axes2_used:
+    # Continue getting the rest of the labels
+    lines2, labels2 = axes2.get_legend_handles_labels()
+    lines3=[]  # For difficulties  markers
+    labels3=[] # Also for difficulties markers
+    if PerfPlots.DifficultiesCount in draw_plots:
+      for i in range(1,4):
+        # Don't create entry in legend if difficulty count was not used
+        if i not in num_difficulties:
+          continue
+        lines3.append(Line2D([], [], color=colorMapIdx(i),
+                      marker='o', linestyle='None', markersize=7.5*SCALE_X,
+                      markeredgecolor='k'))
+        labels3.append('{} difficult{}'.format(i, 'y' if i == 1 else 'ies'))
 
   fontP = FontProperties()
   fontP.set_size('small')
   #bbox_to_anchor=(1.5, 1.05)
   #bbox_to_anchor=(1*6.0/SAVE_FIG_SIZE[0], -0.15*4.0/SAVE_FIG_SIZE[1])
   bbox_to_anchor=(0.5,-0.18)
-  legend = axes2.legend(lines + lines2 + lines3,labels + labels2 + labels3,
-               loc='upper center',
-               bbox_to_anchor=bbox_to_anchor,ncol=3,fancybox=True,#shadow=True)
-               prop=fontP)
+  all_lines = lines + lines2 + lines3 if axes2_used else lines
+  all_labels = labels + labels2 + labels3 if axes2_used else labels
+  legend = axes.legend(all_lines, all_labels, loc='upper center',
+                       bbox_to_anchor=bbox_to_anchor,ncol=3,fancybox=True,
+                       prop=fontP)#shadow=True)
   return legend
 
 
@@ -454,37 +497,51 @@ class StackMetricUnit(Enum):
 def stackMetric(metric_col_name, df, axes_raw, axes_avg, *,
                 limit_session_at_max_trials, trials_groupping_bin_size,
                 stack_metric_unit,  min_num_pts_per_animal_bin,
-                min_session_len=None, animals_colors=[]):
-  for color_idx, (animal_name, animal_df) in enumerate(df.groupby(df.Name)):
+                min_session_len=None, animals_colors=[], alt_labels=None):
+  for animal_idx, (animal_name, animal_df) in enumerate(df.groupby(df.Name)):
     print("Processing animal:", animal_name)
     metric_avgs = []
     sessions_count = 0
     trials_count = 0
     for (date, sess_num), sess_df in animal_df.groupby([animal_df.Date,
                                                         animal_df.SessionNum]):
-      if min_session_len and sess_df.MaxTrial.iloc[0] <= min_session_len:
+      if min_session_len and len(sess_df) <= min_session_len:
         continue
-      sess_df = sess_df[sess_df.TrialNumber < limit_session_at_max_trials]
-      sess_df = sess_df.reset_index()
+      sess_df = sess_df[sess_df.TrialNumber <= limit_session_at_max_trials]
       sessions_count += 1 # TODO: Remove session if none of its values were used
+      sess_df = sess_df.reset_index()
       #print("Max tria:", sess_df.TrialNumber.max())
       # We can also cut using np.linspace()
       #group_by_arg = pd.cut(sess_df.TrialNumber, trials_groupping_bin_size,
       #                      labels=False, include_lowest=True)
-      for bin_idx, trials_block_df in sess_df.reset_index().groupby(
-                                      sess_df.index//trials_groupping_bin_size):
+      #for bin_idx, trials_block_df in sess_df.groupby(sess_df.index//
+      #                                               trials_groupping_bin_size):
+      #for bin_idx, (_, trials_block_df) in enumerate(sess_df.groupby(group_by_arg)):
+      lower_lim = 0
+      for bin_idx, upper_lim in enumerate(
+              range(trials_groupping_bin_size,
+                    limit_session_at_max_trials + trials_groupping_bin_size,
+                    trials_groupping_bin_size)):
+        # print("Lower lim:", lower_lim, "- Upper lim:", upper_lim)
+        trials_block_df = sess_df[(lower_lim < sess_df.TrialNumber) &
+                                  (sess_df.TrialNumber <= upper_lim)]
+        lower_lim = upper_lim
         # print("Date:",date,"Session num:",sess_num,"Trials bin df:",bin_idx)
+        # Some sessions might have trials disabled, so we have to take care that
+        # we might have empty dataframes
+        if len(metric_avgs) <= bin_idx:
+          metric_avgs.append([])
+
         col = trials_block_df[metric_col_name]
         col = col[col.notnull()]
         if not len(col):
           continue
         trials_count += len(col)
         mean_val = col.mean()
-        if len(metric_avgs) <= bin_idx:
-          metric_avgs.append([])
         metric_avgs[bin_idx].append(mean_val)
         # We can also draw the raw axes here, but we can combine it with the
         # other plotting few lines below
+
     print("Calculating sessions mean and sem for", animal_name)
     print("Metric avg len:", len(metric_avgs))
     # The next variable holds the mean of means for each bin, however we might
@@ -494,17 +551,18 @@ def stackMetric(metric_col_name, df, axes_raw, axes_avg, *,
     metric_mean_of_means = []
     metric_sem = []
     detected_skip=False
-    label = "{} ({} sessions - {:,} trials)".format(animal_name, sessions_count,
+    name = alt_labels[animal_idx] if alt_labels is not None else animal_name
+    label = "{} ({} sessions - {:,} trials)".format(name, sessions_count,
                                                     trials_count)
-    color = animals_colors[color_idx] if len(animals_colors) else None
+    color = animals_colors[animal_idx] if len(animals_colors) else None
     for x_tick, means_array in enumerate(metric_avgs):
       if len(means_array) < min_num_pts_per_animal_bin:
         metric_mean_of_means.append(np.nan)
         metric_sem.append(np.nan)
         detected_skip = True
         continue
-      assert not detected_skip # We shouldn't reach this point if we skipped a
-                               # bin earlier
+      # assert not detected_skip # This can happen if we have disabled trials in
+      #                          # in-between a session
       x_val = (1+x_tick) * trials_groupping_bin_size
       if stack_metric_unit == StackMetricUnit.Percent:
         means_array = np.array(means_array)*100
@@ -514,7 +572,7 @@ def stackMetric(metric_col_name, df, axes_raw, axes_avg, *,
       from scipy.stats import sem # Could also just create a pandas series
       metric_sem.append(sem(means_array))
     Xs = range(trials_groupping_bin_size,
-               (len(metric_avgs)+1)*trials_groupping_bin_size,
+               (1 + len(metric_avgs))*trials_groupping_bin_size,
                trials_groupping_bin_size)
     Xs = np.array(Xs)
     Ys = np.array(metric_mean_of_means)
@@ -532,7 +590,8 @@ def stackMetric(metric_col_name, df, axes_raw, axes_avg, *,
     axes.legend(loc='upper center', bbox_to_anchor=bbox_to_anchor, ncol=2,
                 fancybox=True, prop=fontP)
     axes.set_xlabel("Trial Number")
-    axes.set_xlim(xmin=0)
+    axes.set_xlim(xmin=trials_groupping_bin_size - 2,
+                  xmax=limit_session_at_max_trials + 2)
     axes.set_ylim(bottom=0)
     if stack_metric_unit == StackMetricUnit.Percent:
       #axes.set_ylabel("(%)")
@@ -545,111 +604,187 @@ def stackMetric(metric_col_name, df, axes_raw, axes_avg, *,
       axes.set_ylabel("Ratio")
       axes.set_ylim(ymax=1)
 
-def trialRate(df, axes):
-  axes.set_title("Trial Rate - {}".format(" ".join(df.Name.unique())))
-  groups = df.groupby([df.Date, df.SessionNum])
-  if not len(groups):
-    return
-  # Our sessions doesn't go generally beyond 1.5 hours. I found an instance
-  # where TrialStartTimeStamp give strange times (e.g vgat2)
-  MAX_SESSION_TIME = 3*60*60
-  # Get each session time total time
-  sessions_times = []
-  for (date, session_num), session_df in groups:
-    session_time = session_df.TrialStartTimestamp.max() - \
-                   session_df.TrialStartTimestamp.min()
-    if session_time > MAX_SESSION_TIME:
-      continue
-    sessions_times.append(session_time)
-    continue # Comment this line for debuggig info
-    from time import asctime, localtime
-    print("session date:", date, session_num,
-          "session time: {:,.2f}".format(sessions_times[-1]/60),
-          "- Num. trials:", session_df.TrialNumber.max(),
-          "- Min:", asctime(localtime(session_df.TrialStartSysTime.min())),
-          "- Max:", asctime(localtime(session_df.TrialStartSysTime.max())))
-  # Calculate the sessions times and IQR so we can filter later based on them
-  Q1 = np.quantile(sessions_times, 0.25)
-  Q3 = np.quantile(sessions_times, 0.75)
-  IQR = Q3 - Q1
-  print("Num. Sessions: {}".format(len(groups)))
-  print("Sessions Time: IQR: {} - Q1: {} - Q3: {} - Lower-bound: {} - "
-        "Upper-bound: {}".format(IQR//60, Q1//60, Q3//60, (Q1-1.5*IQR)//60,
-                                 (Q3+1.5*IQR)//60))
+def trialRateAxes(ax=None, animal_name=None):
+  if not ax:
+    ax = plt.axes()
+  ax.set_title("Trial Rate - {}".format(animal_name))
+  ax.xaxis.set_major_formatter(FuncFormatter(
+                                            lambda x, _:'{}'.format(int(x/60))))
+  ax.set_xlabel("Time (Minutes)")
+  ax.set_ylabel("Trial Number")
+  ax.set_xlim(xmin=0)
+  ax.set_ylim(ymin=0)
+  ax.legend(loc="upper left")
+  return ax
 
+def trialRate(df, *, ax, max_sess_time_lim_bug, IQR_filter, num_days_per_clr,
+              print_rmv_sess=True, debug_sessions=False):
+  '''Plot animal trial rate execution.
+
+  max_sess_time_lim_bug = put upper threshold to session max duration in
+    seconds. Sessions generally don't exceed 1.5 hours, however I found
+    an instance where TrialStartTimeStamp give strange times (e.g vgat2)
+  '''
+  # Due to bug: https://stackoverflow.com/a/51058220/11996983 and
+  # https://github.com/pandas-dev/pandas/issues/21651, it's better to convert
+  # date to datetime
+  df = df.copy()
+  df.Date = df.Date.astype('datetime64[ns]')
+  def trialTime(sess_df):
+    return sess_df.TrialStartTimestamp - sess_df.TrialStartTimestamp.min()
+  def assignTimeCol(sess_df):
+    sess_df["Dur"] = trialTime(sess_df)
+    return sess_df
+  df = grpBySess(df).apply(assignTimeCol)
+  df = grpBySess(df).filter(
+                      lambda sess_df: sess_df.Dur.max() < max_sess_time_lim_bug)
+  if not len(df):
+    return
+  # Do a first pass to get each session time total time
+  sess_grps = grpBySess(df) # Calc value only after filtering
+  if debug_sessions:
+    from time import asctime, localtime
+    for (date, session_num), sess_df in sess_grps:
+      dur = trialTime(sess_df)
+      if sess_df.TrialStartSysTime.notnull().all():
+        min_time = asctime(localtime(sess_df.TrialStartSysTime.min()))
+        max_time = asctime(localtime(sess_df.TrialStartSysTime.max()))
+      else:
+        min_time, max_time = np.nan, np.nan
+      print("session date:", date, session_num,
+            "session time: {:,.2f}".format(dur.max()/60),
+            "- Num. trials:", sess_df.TrialNumber.max(), "- len:", len(sess_df),
+            "- Min:", min_time, "- Max:", max_time)
+  if IQR_filter:
+    # Calculate the sessions times and IQR so we can filter later based on them
+    sess_times = sess_grps.Dur.max()
+    Q1 = np.quantile(sess_times, 0.25)
+    Q3 = np.quantile(sess_times, 0.75)
+    IQR = Q3 - Q1
+    low_lim, up_lim = (Q1-1.5*IQR), (Q3+1.5*IQR)
+    print("Num. Sessions: {}".format(len(sess_grps)),
+          "- Max session:", sess_times.max())
+    print("Sessions Time: IQR: {} - Q1: {} - Q3: {} - Lower-bound: {} - "
+          "Upper-bound: {}".format(IQR//60, Q1//60, Q3//60, low_lim//60,
+                                   up_lim//60))
+    filtered_df = sess_grps.filter(
+                           lambda sess_df: low_lim < sess_df.Dur.max() < up_lim)
+    if print_rmv_sess:
+      # TODO: diff filtered and print values here
+      diff_df = df[~df.index.isin(filtered_df.index)]
+      rejected_sess = grpBySess(diff_df)
+      if len(rejected_sess):
+        print("The following sessions are rejected:")
+        for (date, sess_num), sess_df in rejected_sess:
+          print("Date:", date, "Sess:", sess_num,
+                "- Duration (hours):", sess_df.Dur.max()/(60*60.0))
+    df = filtered_df
+    sess_grps = grpBySess(df)
+
+  #first_day = df.Date.min()
+  if sess_grps.ngroups == 1:
+    for (date, session_num), sess_df in sess_grps:
+      ax.plot(sess_df.Dur, sess_df.TrialNumber, color='k')
+    trialRateAxes(ax, animal_name=" ".join(df.Name.unique()))
+    return None
+  # Otherwise break it down by group of sessions
   done_once = False
   incl_sessions = []
-  for (date, session_num), session_df in groups:
-    x_data = session_df.TrialStartTimestamp - \
-             session_df.TrialStartTimestamp.min()
-    session_max_time = x_data.max()
-    if session_max_time > MAX_SESSION_TIME:
-      print("Skipping {}-SessNum:{} - unrealistic max time: {:,}".format(date,
-            session_num, session_max_time))
-      continue
-    elif session_max_time < Q1-1.5*IQR or session_max_time > Q3 + 1.5*IQR:
-      print("Skipping {}-SessNum:{} - max time: {:,} - num. trials: {}".format(
-            date, session_num, int(session_max_time//60),
-            session_df.TrialNumber.max()))
-      continue
-    label = "Single Session ({} sessions)".format(len(groups)) if not done_once\
-                                                               else None
-    done_once = True
-    x_data_min = x_data / 60 # Convert to minutes
-    axes.plot(x_data_min, session_df.TrialNumber, color="gray", label=label)
-    incl_sessions.append(pd.DataFrame({"Time":x_data,
-                                       "TrialNumber":session_df.TrialNumber}))
-
+  slice_size = len(sess_grps)/num_days_per_clr
+  for idx, ((date, session_num), sess_df) in enumerate(sess_grps):
+    color = clr.Age(int(idx/slice_size), num_days_per_clr-1)
+    label = None
+    #if not done_once:
+    #  label = "Single Session ({} sessions)".format(len(sess_times))
+    #  done_once = True
+    ax.plot(sess_df.Dur, sess_df.TrialNumber, color=color, label=label)
+    #incl_sessions.append(pd.DataFrame({"Time":x_data,
+    #                                   "TrialNumber":session_df.TrialNumber}))
   # Draw the average curve only if we have more than one session
-  if len(incl_sessions) > 1:
-    max_sessions_time, max_sessions_trials = list(zip(*map(
-      lambda grp: (grp.Time.max(), grp.TrialNumber.max()), incl_sessions)))
-    median_session_time = np.median(max_sessions_time)
-    median_session_trials_num = np.median(max_sessions_trials)
-    print("Median session time:", median_session_time/60)
-    print("Median session trial nums:", median_session_trials_num)
-    # Get 95% of the max times that exists in all the sessions, such that we
-    # discard unusually long sessions when we plot the fitting function
-    max_session_time_lim = np.percentile(max_sessions_time, 95)
-    print("Max session time limit:", max_session_time_lim)
-    incl_sessions = pd.concat(incl_sessions)
-    incl_sessions = incl_sessions[incl_sessions.Time < max_session_time_lim]
-    incl_sessions.sort_values("Time", inplace=True)
-    def fitFunc(data, c0, c1):
-     return  c0*data + c1*np.sqrt(data)
-    # Using qcut value of 1 has no effect
-    for bin, bin_df in incl_sessions.groupby(pd.qcut(incl_sessions.Time, 1)):
-      x_data = bin_df.Time.values
-      # We need to interpolate the average curve from the other curves
-      from scipy.optimize import curve_fit
-      optimized_Cs, optimize_covar = curve_fit(fitFunc, x_data,
-                                               bin_df.TrialNumber.values)
-      # print("Bin:", bin, "x-len:", np.min(x_data), np.max(x_data),
-      #       "Optimized Cs:", optimized_Cs)
-      y_data = fitFunc(x_data, *optimized_Cs)
-      x_data_min = x_data / 60
-      axes.plot(x_data_min, y_data, color="k", label="Sessions Average",
-                linewidth=3*SCALE_X, alpha=0.8)
+  sess_trials_count = sess_grps.TrialNumber.max()
+  median_session_time = sess_grps.Dur.max().median()
+  median_session_trials_num = sess_grps.TrialNumber.max().median()
+  print("Median session time:", median_session_time/60)
+  print("Median session trial nums:", median_session_trials_num)
+  # Get 95% of the max times that exists in all the sessions, such that we
+  # discard unusually long sessions when we plot the fitting function
+  filtered_df = df[df.Dur < df.Dur.quantile(0.95)]
+  # Drop outer levels now and sort, so later we can plot by index as trial num
+  filtered_df = filtered_df.sort_values("TrialNumber")
+  def fitFunc(data, c0, c1):
+    return  c0*data + c1*np.sqrt(data)
+  # We need to interpolate the average curve from the other curves
+  from scipy.optimize import curve_fit
+  x_train_data = filtered_df.Dur
+  optimized_Cs, optimize_covar = curve_fit(fitFunc, x_train_data,
+                                            filtered_df.TrialNumber.values)
+  # print("Bin:", bin, "x-len:", np.min(x_data), np.max(x_data),
+  #       "Optimized Cs:", optimized_Cs)
+  x_data = np.arange(0, int(x_train_data.max()))
+  y_data = fitFunc(x_data, *optimized_Cs)
+  ax.plot(x_data, y_data, color="k", label="Sessions Average",
+          linewidth=3*SCALE_X, alpha=0.8)
 
-    axes.axvline(median_session_time/60, linestyle="dashed", color='k',
-                 label="Median Session Time", alpha=0.8,
-                 zorder=len(max_sessions_time)) # Draw below average line
-    axes.axhline(median_session_trials_num, linestyle="dashed", color='k',
-                 label="Median Session Trials Count", alpha=0.8,
-                 zorder=len(max_sessions_time))
+  ax.axvline(sess_times.median(), linestyle="dashed", color='k',
+              label="Median Session Time", alpha=0.8,
+              zorder=len(sess_times)) # Draw below average line
+  ax.axhline(sess_trials_count.median(), linestyle="dashed", color='k',
+              label="Median Session Trials Count", alpha=0.8,
+              zorder=len(sess_times))
+  ax = trialRateAxes(ax, animal_name=" ".join(df.Name.unique()))
+  # Add colorbar. Code based on: https://stackoverflow.com/a/52626512/11996983
+  from matplotlib.colors import LinearSegmentedColormap
+  N_GRADES=100
+  cmap = LinearSegmentedColormap.from_list("",
+              [(i/(N_GRADES-1), clr.Age(i, N_GRADES)) for i in range(N_GRADES)])
+  x = range(N_GRADES)
+  y = np.linspace(0,1, N_GRADES)
+  print("x:", len(x), "y:", len(y))
+  sc = ax.scatter(x,y,c=y,cmap=cmap)
+  cb = plt.colorbar(sc, ax=ax)
+  # This part based on: https://kite.com/python/answers/how-to-add-custom-color-bar-text-labels-in-python
+  cb.set_ticks([0, 1])
+  cb.set_ticklabels(["Oldest Session", "Newest Session"])
 
-  axes.xaxis.set_major_formatter(FuncFormatter(lambda x, _:'{}'.format(int(x))))
-  #axes.yaxis.tick_right()
-  #axes.yaxis.set_label_position("right")
-  axes.set_xlabel("Time (Minutes)")
-  axes.set_ylabel("Trial Number")
-  axes.set_xlim(xmin=0)
-  axes.set_ylim(ymin=0)
+  return x_data, y_data
 
-  if len(groups) > 1:
-    pass # TODO: Implement this
-    #groups.aggregate
-    axes.legend(loc="upper left")
+def splitByDV(df, combine_sides=False, periods=3):
+    leftDVBins = pd.interval_range(-1, 0, periods=periods, closed='left')
+    zeroDVBins = pd.interval_range(0, 0, periods=1, closed='both')
+    rightDVBins = pd.interval_range(0, 1, periods=periods, closed='right')
+    #print(leftDVBins, zeroDVBins, rightDVBins)
+    #print(len(df[df.DV < 0]),  len(df[df.DV > 0]))
+    dv_col = df.DV
+    if combine_sides:
+      dv_col = dv_col.abs()
+    cutLeft = pd.cut(dv_col, leftDVBins, labels=False)
+    cutLeftIdxs = ~cutLeft.isnull()
+    cutZero = pd.cut(dv_col, zeroDVBins, labels=False)
+    cutZeroIdxs = ~cutZero.isnull()
+    cutRight = pd.cut(dv_col, rightDVBins, labels=False)
+    cutRightIdxs = ~cutRight.isnull()
+
+    groups = []
+    # For zero, it doesn't matter if we take the right or left edge,
+    # both are the same.
+    for cut, bin_dir, cutIdxs in [(cutLeft, 'left', cutLeftIdxs),
+                                  (cutZero, 'left', cutZeroIdxs),
+                                  (cutRight,'right', cutRightIdxs)]:
+        df_cut = df[cutIdxs]
+        cut = cut[cutIdxs]
+        if not len(cut):
+          continue
+        df_cut_groupped = df_cut.groupby(cut)
+        #df_cut_groupped = list(df_cut_groupped)
+        for dv_range, group_df in df_cut_groupped:
+          #if not len(group_df):
+          entry = dv_range, getattr(dv_range, bin_dir), group_df
+          groups.append(entry)
+          # dv_to_df = [(dv_range, getattr(dv_range, bin_dir), df) \
+          #             for dv_range, df in dv_to_df]
+        #print("dv_to_df", dv_to_df[0])
+        #groups += dv_to_df
+    return groups
 
 
 def interceptSlope(df):
@@ -684,7 +819,7 @@ def psychAxes(animal_name="", axes=None, analysis_for=ExpType.RDK):
     if not axes:
         axes = plt.axes()
     #axes.set_ylim(-.05, 1.05)
-    axes.set_ylim(-5, 105)
+    axes.set_ylim(0, 100)
     axes.set_xlim(-1.05, 1.05)
     axes.set_xlabel(x_label)
     axes.set_ylabel("Choice Left (%)")
@@ -707,47 +842,110 @@ def psychAll(df, PsycStim_axes, *, color, legend_name, linestyle):
     _psych(df, PsycStim_axes, color=color, linewidth=3, legend_name=legend_name,
            linestyle=linestyle)
 
+import numpy as np
+_parstart = np.array([.05,  1,   0.5,  0.5])
+_parmin =   np.array([-1,   0.,   0.,  0])
+_parmax =   np.array([1,    200.,  1,  1])
+_nfits = 10
+def newFit(df, ax, parstart=_parstart, parmin=_parmin, parmax=_parmax,
+           nfits=_nfits, **kargs):
+  df = df[df.ChoiceLeft.notnull()]
+  stims, stim_count, stim_ratio_correct = [], [], []
+  for dv_interval, dv_single, dv_df in splitByDV(df, periods=5):
+    dv_group = dv_df.DV.mean()
+    #print("DV group: ", dv_group, "- Dv len:", dv_len,
+    #      "- Perf:", 100*dv_df.ChoiceCorrect.sum()/dv_len,
+    #      "- Left perf:", 100*dv_df.ChoiceLeft.sum()/dv_len)
+    stims.append(dv_group)
+    stim_count.append(len(dv_df))
+    stim_ratio_correct.append(dv_df.ChoiceLeft.mean())
+
+  pars, fitFn = psychFitBasic(stims=stims, stim_count=stim_count, nfits=nfits,
+                              stim_ratio_correct=stim_ratio_correct,
+                              parstart=parstart, parmin=parmin, parmax=parmax)
+  _range = np.arange(-1,1,0.02)
+  y_fit = fitFn(_range) * 100
+  ax.plot(_range, y_fit, **kargs)
+  return pars[0], pars[1], (_range, y_fit)
+
+def psychFitBasic(stims, stim_count, stim_ratio_correct, parstart=_parstart,
+                  parmin=_parmin, parmax=_parmax, nfits=_nfits):
+  data = np.array([stims, stim_count, stim_ratio_correct])
+  #print(data)
+  from psychofit import psychofit
+  P_model = 'erf_psycho_2gammas'
+  pars, L = psychofit.mle_fit_psycho(data=data, P_model=P_model,
+                                     parstart=parstart, parmin=parmin,
+                                     parmax=parmax, nfits=nfits)
+  output_str = f"α: {pars[0]} - β: {pars[1]} - λ1: {pars[2]}" +\
+               f" - λ2: {pars[3]}" if len(pars) == 4 else ""
+  if sys.stdout.encoding != "UTF-8":
+    output_str = output_str.encode(sys.stdout.encoding, errors='replace')
+  print(output_str)
+  #print("Pars:", pars)
+  #ax.plot(stims, data[2,:]*100, 'bs', mfc='b')
+  fn = getattr(psychofit, P_model) # Get the right function from the module
+  from functools import partial
+  wrapFitFn = partial(fn, pars)
+  return pars, wrapFitFn
+
+class PsychFitCrit(Enum):
+  GLM = auto()
+  Sigmoid = auto()
+  MaxLikelihood = auto()
+
+class MaxLikelihoodModel(str, Enum):
+  Weibull = "weibull"
+  Weibull50 = "weibull50"
+  ErfPsycho = "erf_psycho"
+  ErfPsycho2gammas = "erf_psycho_2gammas"
+  def __str__(self):
+    return f"{self.value}"
+
+
 def _psych(df, PsycStim_axes, color, linewidth, legend_name, *, alpha=1,
-           plot_points=True, offset=False, SEM=False, GLM=True, min_slope=None,
-           linestyle="solid"):
+           plot_points=True, offset=False, SEM=False, min_slope=None,
+           crit=PsychFitCrit.MaxLikelihood,
+           max_likli_crit=MaxLikelihoodModel.Weibull,
+           linestyle="solid", marker='o', markersize=1.5,
+           annotate_pts=False, **kargs):
     '''Do the actual plotting'''
     #ndxNan = isnan(DataCustom.ChoiceLeft);
-    ndxNan = df.ChoiceLeft.isnull()
-    ndxChoice = df.ForcedLEDTrial == 0
-    StimDV = df.DV
+    validNonForced = ~df.ChoiceLeft.isnull() & df.ForcedLEDTrial == 0
+    df = df[df.ForcedLEDTrial == 0]
+    df = df[~df.ChoiceLeft.isnull()]
     if plot_points:
-      StimBin = 10
-      EXTRA_BIN=2
-      BinIdx = pd.cut(StimDV,np.linspace(StimDV.min(), StimDV.max(),
-                      StimBin+EXTRA_BIN), labels=False, include_lowest=True)
-      # Choice trials
-      PsycY = df.ChoiceLeft[(~ndxNan) & ndxChoice].groupby(
-                                             BinIdx[~ndxNan & ndxChoice]).mean()
-      PsycY *= 100 # Convert to percentile
-      PsycX = (((np.unique(BinIdx[(~ndxNan) & ndxChoice])+1)/StimBin)*2)-1-(
-                                                          EXTRA_BIN*(1/StimBin))
-      if offset: # Shift points a little bit to the right/light so that their center
-                 # would overlap with the histogram bar's center, that's all
-        lt_zero = PsycX[PsycX<0]
-        gt_zero = PsycX[PsycX>0]
-        lt_zero += 0.5/(StimBin/2)
-        gt_zero -= 0.5/(StimBin/2)
-        PsycX = np.concatenate([lt_zero,gt_zero])
+      df_by_dv = splitByDV(df, periods=5) # This used to be 3
+      PsycY = [dv_df.ChoiceLeft.mean() * 100 for _, _, dv_df in df_by_dv]
+      PsycX = [dv_interval.mid if offset else dv_single
+               for dv_interval, dv_single, _ in df_by_dv]
 
       # WTerr = df.FeedbackTime[ndxError & ndxMinWT].groupby(
                                             #BinIdx[ndxError & ndxMinWT]).mean()
       # Xerr = (((np.unique(BinIdx[ndxError & ndxMinWT])+1)/DVNBin)*2)-1-(
                                                           #EXTRA_BIN*(1/DVNBin))
-      PsycStim_axes.plot(PsycX, PsycY, linestyle='none', marker='o',
+      PsycStim_axes.plot(PsycX, PsycY, linestyle='none', marker=marker,
                          markeredgecolor=color, markerfacecolor=color,
-                         markerSize=1.5*linewidth*SCALE_X, alpha=alpha)
+                         markerSize=markersize*linewidth*SCALE_X, alpha=alpha)
+      if annotate_pts:
+        DVCount = [len(dv_df) for _, _, dv_df in df_by_dv]
+        for x, y, count in zip(PsycX, PsycY, DVCount):
+          PsycStim_axes.annotate(count, (x+0.02, y), fontsize=10)
 
-    if np.sum((~ndxNan) & ndxChoice) > 1:
-        x = StimDV[(~ndxNan) & ndxChoice]
-        y = df.ChoiceLeft[(~ndxNan) & ndxChoice]
+    if np.sum(validNonForced) > 1:
+        StimDV = df.DV
+        x = StimDV[validNonForced]
+        y = df.ChoiceLeft[validNonForced]
 
         x_sampled = np.linspace(StimDV.min(),StimDV.max(),50)
-        if GLM:
+        if crit == PsychFitCrit.MaxLikelihood:
+          if len(legend_name):
+            legend_name="{}{}".format(legend_name,
+                    "" if not plot_points else " ({:,} trials)".format(len(df)))
+          intercept, slope, (x_sampled, y_points) = newFit(df, PsycStim_axes,
+            color=color, alpha=alpha, linestyle=linestyle,
+            linewidth=linewidth*SCALE_X, label=legend_name, **kargs)
+        elif crit == PsychFitCrit.GLM:
           import statsmodels.formula.api as smf
           import statsmodels.api as sm
           import statsmodels.tools.sm_exceptions as sm_exceptions
@@ -777,7 +975,7 @@ def _psych(df, PsycStim_axes, color, linewidth, legend_name, *, alpha=1,
           int_upper = conf_df[:,1]
           #print("Using int_low:", int_low)
           #print("Using int upper:", int_upper)
-        else:
+        elif crit == PsychFitCrit.Sigmoid:
           def fsigmoid(x, a, b):
               return 1.0 / (1.0 + np.exp(-a*(x-b)))
           #y_ind = fsigmoid(np.linspace(-1,1,len(PsycX)), 2, 0)
@@ -791,6 +989,12 @@ def _psych(df, PsycStim_axes, color, linewidth, legend_name, *, alpha=1,
             return None, None
           else:
             y_points = fsigmoid(x_sampled, *popt)
+        else:
+          if crit is None:
+            msg = f"Argument {crit} not specified"
+          else:
+            msg = "Unknown fit function: {crit}"
+          raise ValueError(msg)
 
         #print("Sigmoid: ", fsigmoid(PsycX, *popt))
         if len(legend_name):
@@ -798,18 +1002,22 @@ def _psych(df, PsycStim_axes, color, linewidth, legend_name, *, alpha=1,
                     "" if not plot_points else " ({:,} trials)".format(len(df)))
         else:
           legend_name=None
-        PsycStim_axes.plot(x_sampled, y_points * 100, # Convert y to percentile
-                           color=color, alpha=alpha, linestyle=linestyle,
-                           linewidth=linewidth*SCALE_X, label=legend_name,)
+        # PsycStim_axes.plot(x_sampled, y_points * 100, # Convert y to percentile
+        #                   color=color, alpha=alpha, linestyle=linestyle,
+        #                   linewidth=linewidth*SCALE_X, label=legend_name,)
 
         # print("label: {} - len data: {}".format(legend_name, len(y)))
         if SEM:
           #sem_lower, sem_upper = (int_low, int_upper) if GLM else (-y.sem(), y.sem())
-          y_sem_lower = (int_low * 100) if GLM else y_points - (y.sem() * 100)
-          y_sem_upper = (int_upper * 100) if GLM else y_points +  (y.sem() * 100)
+          if crit == PsychFitCrit.GLM:
+            y_sem_lower = int_low * 100
+            y_sem_upper = int_upper * 100
+          else:
+            y_sem_lower = y_points - (y.sem() * 100)
+            y_sem_upper = y_points +  (y.sem() * 100)
           PsycStim_axes.fill_between(x_sampled, y_sem_upper, y_sem_lower, color=color,
                                      alpha=0.2)
-        if GLM:
+        if crit in (PsychFitCrit.MaxLikelihood, PsychFitCrit.GLM):
           #print("Intercept:", intercept, "- Slope:", slope)
           return intercept, slope
         else:
@@ -818,25 +1026,57 @@ def _psych(df, PsycStim_axes, color, linewidth, legend_name, *, alpha=1,
 
 #chosen_days = RDK_days if analysis_for == ExpType.RDK else lightintensity_days
 
-def psychByAnimal(df, use_chosen_days, PsycStim_axes):
-    df_by_anumal = df.groupby(df.Name)
-    color_gen=plt.cm.rainbow(np.linspace(0,1,len(df_by_anumal)))
-    used_sessions=[]
-    for (animal_name, animal_df), color in zip(df_by_anumal, color_gen):
+def psychByAnimal(df, use_chosen_days, PsycStim_axes, *, min_session_len,
+                  color_rdk, color_lc, list_animals_individually=False,
+                  list_animals_in_legend=True, names_remap_dict=None):
+    used_rdk_sessions = []
+    used_lc_sessions = []
+    for idx, (animal_name, animal_df) in enumerate(df.groupby(df.Name)):
       if use_chosen_days:
         animal_days = chosen_days.get(animal_name, None)
         if animal_days:
           animal_df = animal_df[animal_df.Date.isin(animal_days)]
         else:
           continue
-      animal_df = animal_df[animal_df.MaxTrial > 20]
+      animal_df = animal_df[animal_df.MaxTrial > min_session_len]
       if animal_df.empty:
         continue
-      LINE_WIDTH=1.5
+      # At current implementation, a session is either exclusively one modality
+      # or another. To be future proof, assume that a session can combine both.
+      def getDFExpTypeCounts(_df):
+        rdk_count = len(_df[_df.GUI_ExperimentType == ExpType.RDK])
+        lc_count = len(_df[_df.GUI_ExperimentType == ExpType.LightIntensity])
+        return rdk_count, lc_count
+      def calcExpType(rdk_count, lc_count):
+        return ExpType.RDK if rdk_count > lc_count else ExpType.LightIntensity
+      trials_rdk_count, trials_lc_count =  getDFExpTypeCounts(animal_df)
+      sess_exp_type_counts = animal_df.groupby(["Date","SessionNum"]).apply(
+                                                  getDFExpTypeCounts).to_numpy()
+      sess_rdk_count, sess_lc_count = 0, 0
+      for _rdk_count, _lc_count in sess_exp_type_counts:
+        sess_exp_type = calcExpType(_rdk_count, _lc_count)
+        if sess_exp_type == ExpType.RDK: sess_rdk_count += 1
+        else: sess_lc_count += 1
+      #print("Res:", res.to_numpy())
+      print("Animal:", animal_name, "Sess rdk count:", sess_rdk_count,
+            "Sess lc count:", sess_lc_count, "rdk count:", trials_rdk_count,
+            "lc count:", trials_lc_count)
+      if calcExpType(trials_rdk_count, trials_lc_count) == ExpType.RDK:
+        used_rdk_sessions.append(animal_df)
+        color = color_rdk if type(color_rdk) == str else color_rdk[idx]
+      else:
+        used_lc_sessions.append(animal_df)
+        color = color_lc if type(color_lc) == str else color_lc[idx]
+      LINE_WIDTH=1.5 if list_animals_individually else 0.75
+      if not list_animals_individually or not list_animals_in_legend:
+        label = ""
+      else:
+        label = names_remap_dict[animal_name] if names_remap_dict \
+                                              else animal_name
       _psych(animal_df, PsycStim_axes, color, LINE_WIDTH,
-             NameRemapping[animal_name])
-      used_sessions.append(animal_df)
-    return pd.concat(used_sessions)
+             legend_name=label, alpha=1 if list_animals_individually else 0.4)
+      #used_sessions.append(animal_df)
+    return used_rdk_sessions, used_lc_sessions
 
 
 ChooseDays=True
@@ -953,9 +1193,9 @@ def plotMT(df, color, axes, normalize):
       if len(group) < 100:
         continue
       Xs.append(group_name)
-      Ys.append(group.ReactionTime.median())
-      min_rt = min(min_rt, group.ReactionTime.median())
-      max_rt = max(max_rt, group.ReactionTime.median())
+      Ys.append(group.calcReactionTime.median())
+      min_rt = min(min_rt, group.calcReactionTime.median())
+      max_rt = max(max_rt, group.calcReactionTime.median())
       #print("Group:", group.MT.mean(), "Group_name:", group_name)
     Xs=np.array(Xs,dtype=np.float)
     Ys=np.array(Ys,dtype=np.float)
@@ -995,7 +1235,7 @@ def chronometry(df, axes):
 
   df['DVabs'] = df.DV.abs()
   #color_gen=iter(plt.cm.rainbow(np.linspace(0,1,len(df.DVabs.unique()))))
-  color_gen=iter(['r','g','b'])
+  color_gen=iter(['r','b','g'])
 
   COHRS=[10,50,100]
   df = df[(df.MinSample <= 1.2) | (df.MinSample == 1.5)]
@@ -1049,9 +1289,9 @@ def samplingVsDiff(df, axes, overlap_sides = False):
 
   print("X data:", x_data, "y_data:", y_data)
   axes.errorbar(x_data, y_data, yerr=y_data_sem,
-                label="Sampling Time ({} pts)".format(len(df)))
-  axes.set_title("Samplin vs Difficulty - {} ({} pts)".format(
-                 " ".join(df.Name.unique()),len(df)))
+                label="Sampling Time ({:,} pts)".format(len(df)))
+  axes.set_title("Samplin vs Difficulty - {}".format(
+                 " ".join(df.Name.unique())))
   axes.set_xlabel("Coherence %")
   axes.set_ylabel("Sampling Time (S)")
   axes.legend(loc="upper right", prop={'size': 'small'})
@@ -1564,9 +1804,10 @@ class AccWTMethod(Enum):
     Every100 = 2
     Group0point15 = 3
 
-def accuracyWT(df, filterGroupFn, axes, how=AccWTMethod.Hist):
+def accuracyWT(df, filterGroupFn, axes, how=AccWTMethod.Hist, normalized=False,
+               animal_name=None):
   df = df[(df.GUI_FeedbackDelaySelection == 3) & (df.GUI_CatchError == True)]
-  df = df[(df.FeedbackTime > 0.5)]
+  if not normalized: df = df[(df.FeedbackTime > 0.5)]
   catch_trials = df[(df.CatchTrial == 1) & # All valid catch trials
                     ((df.ChoiceCorrect == 0) | (df.ChoiceCorrect == 1))]
   catch_trials = filterGroupFn(catch_trials)
@@ -1579,7 +1820,7 @@ def accuracyWT(df, filterGroupFn, axes, how=AccWTMethod.Hist):
   count_incorrect = 0
 
   from math import floor, ceil
-  BIN_SIZE_SEC=1
+  BIN_SIZE_SEC=1 if not normalized else 0.1
   bins_range = np.arange(floor(catch_trials.FeedbackTime.min()),
                          ceil(catch_trials.FeedbackTime.max()) + 1, BIN_SIZE_SEC)
   print("Used bins:", bins_range)
@@ -1682,8 +1923,10 @@ def accuracyWT(df, filterGroupFn, axes, how=AccWTMethod.Hist):
   elif how == AccWTMethod.Group0point15:
     how_txt = " (0.15 bins added to nearest)"
     print("X points:", x_points)
-  axes.set_title("Accuracy vs WT{}: {}\n({:,} correct /{:,} incorrect pts)".format(
-    how_txt, " - ".join(df.Name.unique()), count_correct, count_incorrect))
+  if not animal_name:
+    animal_name = " - ".join(df.Name.unique())
+  axes.set_title(f"Accuracy vs WT{how_txt}: {animal_name}""\n"
+             f"({count_correct:,} correct /{count_incorrect:,} incorrect pts)")
 
   axes2=axes.twinx()
   axes2.tick_params(axis='y', labelcolor='r')
@@ -1696,9 +1939,12 @@ def accuracyWT(df, filterGroupFn, axes, how=AccWTMethod.Hist):
   axes.set_facecolor("none")
   axes2.set_facecolor("white")
 
-  axes.set_xlim(0, 15)
-  axes2.set_xlim(0, 15)
-
+  if not normalized:
+    axes.set_xlim(0, 15)
+    axes2.set_xlim(0, 15)
+  else:
+    axes.set_xlim(0, 1)
+    axes2.set_xlim(0, 1)
 
 
 def getDirName(arg):

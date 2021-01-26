@@ -20,6 +20,12 @@ def lightenColor(color, amount):
   c = colorsys.rgb_to_hls(*mc.to_rgb(c))
   return colorsys.hls_to_rgb(c[0], 1 - amount * (1 - c[1]), c[2])
 
+def grpBySess(df):
+  if len(df.Name.unique()) == 1:
+    return df.groupby(["Date", "SessionNum"])
+  else:
+    return df.groupby(["Name", "Date", "SessionNum"])
+
 
 def chunks(lst, n):
   """Yield successive n-sized chunks from lst.

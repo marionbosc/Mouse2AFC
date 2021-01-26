@@ -1,4 +1,6 @@
+import click
 import copy
+import glob
 import subprocess
 import os
 import sys
@@ -7,13 +9,21 @@ import pandas as pd
 
 DEFAULT_DIR=r"C:\BpodUser\Data"
 
-def spawnProcess(session_data_dir):
+def spawnProcess(session_data_dir, only, exclude):
   animal_name, protocol_name = session_data_dir.split(os.path.sep)[-3:-1]
   if "dummy" in animal_name.lower():
     return None
   if protocol_name != "Mouse2AFC":
     return None
   mat_files = os.path.join(session_data_dir, "*.mat")
+  files = glob.glob(mat_files)
+  sub_files = files
+  if only:
+    sub_files = list(filter(lambda f: any([word in f for word in only]),
+                            sub_files))
+  if exclude:
+    sub_files = list(filter(lambda f: not all([word in f for word in exclude]),
+                            exclude))
   print("Animal name:", animal_name, "- Match:", mat_files)
   append_df_arg = []
   for fp in glob.glob(f"{animal_name}*.dump"):
@@ -57,19 +67,21 @@ def concatDfs():
 
 
 
-def batchConvert(dir_path, is_root=True):
+def batchConvert(dir_path, only, exclude, is_root=True):
   sub_processes = []
   for entry in os.listdir(dir_path):
     entry = os.fsdecode(entry)
     entry = os.path.join(dir_path, entry)
+    if any([word in entry for word in exclude]):
+      continue
     #print("Entry:", entry)
     if os.path.isdir(entry):
       if entry.endswith("Session Data"):
         #print("Handling dir:", entry)
-        p = spawnProcess(entry)
+        p = spawnProcess(entry, only, exclude)
         if p is not None: sub_processes.append(p)
       else:
-        sub_sub_processes = batchConvert(entry, is_root=False)
+        sub_sub_processes = batchConvert(entry, only, exclude, is_root=False)
         sub_processes += sub_sub_processes
   if not is_root:
     return sub_processes
@@ -85,10 +97,16 @@ def batchConvert(dir_path, is_root=True):
 @click.command()
 @click.option('--dir', '-d', type=click.Path(exists=True), default=DEFAULT_DIR,
               help="The directory containing the sessions files")
-def main(dir):
+@click.option('--only', '-i', multiple=True,
+              help="If specified, then only paths contains that string will be",
+                   "included")
+@click.option('--exclude', '-x', multiple=True,
+              help="Paths containing such string(s) will be excluded")
+def main(dir, only, exclude):
   #concatDfs()
-  batchConvert(data_dir)
-  batchConvert(dir)
+  if only is None: only = []
+  if exclude is None: exclude = []
+  batchConvert(dir, only, exclude)
 
 if __name__ == "__main__":
   main()
