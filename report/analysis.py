@@ -180,7 +180,7 @@ def performanceOverTime(df, head_fixation_date=None, single_session=None,
   if not axes:
     axes = plt.axes()
   axes.set_xlabel(xlabel="Trial Num" if single_session else "Session Num")
-  axes.set_ylim(0, 105)
+  axes.set_ylim(-2, 105)
   axes.yaxis.set_major_formatter(
                          FuncFormatter(lambda y, _: '{}%'.format(int(y))))
   axes.set_ylabel("Rate (%)")
@@ -207,6 +207,7 @@ def performanceOverTime(df, head_fixation_date=None, single_session=None,
   reaction_time_std = []
   num_difficulties = []
   difficulties = [] # This will be array of arrays
+  difficulties_perf = [] # Ditto
   catch_wt_correct = []
   catch_wt_error = []
   used_feedback_delay = []
@@ -252,7 +253,13 @@ def performanceOverTime(df, head_fixation_date=None, single_session=None,
     else:
         catch_wt_correct.append(np.NaN)
 
+    used_diff_by_trial = ((block.StimulusOmega-0.5).abs()+0.5) * 100
+    used_diff_by_trial[block.GUI_ExperimentType == ExpType.RDK] = \
+              (used_diff_by_trial[block.GUI_ExperimentType == ExpType.RDK]-50)*2
+    # print("Used difficulty by trial:", )
+    # display(used_diff_by_trial)
     used_difficulties = []
+    used_difficulties_perf = []
     num_points = 0
     for diff in [block.Difficulty1, block.Difficulty2,
                  block.Difficulty3, block.Difficulty4]:
@@ -265,10 +272,18 @@ def performanceOverTime(df, head_fixation_date=None, single_session=None,
         # if len(exp_type[-1]) == 1 and exp_type[-1] == ExpType.RDK:
         #  mean_valid_diff = (mean_valid_diff - 50)*2 # Convert to RDK coherence
         used_difficulties.append(mean_valid_diff)
+        trials = block.ChoiceCorrect[used_diff_by_trial == diff]
+        trials = trials[trials.notnull()]
+        # print("Difficulty:", mean_valid_diff)
+        # display(trials)
+        mean_difficult_perf = trials.mean()*100 if len(trials) else np.nan
+        used_difficulties_perf.append(mean_difficult_perf)
         num_points += 1
       else:
         used_difficulties.append(np.nan)
+        used_difficulties_perf.append(np.nan)
     difficulties.append(used_difficulties)
+    difficulties_perf.append(used_difficulties_perf)
     num_difficulties.append(min(3,num_points))
 
     if head_fixation_date is not None and head_fixation_session is None and \
@@ -279,30 +294,37 @@ def performanceOverTime(df, head_fixation_date=None, single_session=None,
     num_sessions += 1
   # Convert difficulties to list of each difficulty
   difficulties = list(zip(*difficulties))
+  difficulties_perf = list(zip(*difficulties_perf))
   MAX_COUNT_DIFFICULTY = 4
-  #print("Difficulties:", difficulties)
+  # print("Difficulties:", difficulties)
+  # print("Difficulties Perf:", difficulties_perf)
 
   x_data=np.array(x_data,dtype=np.int)
   #TODO: Do session all performance
   axes.set_xlim(x_data[0],x_data[-1])
+  # Multiply difficulties by 2 to include difficulties-performance metrics
   plots=[PerfPlots.Performance, PerfPlots.EarlyWD, PerfPlots.Bias] + \
-        [PerfPlots.Difficulties]*MAX_COUNT_DIFFICULTY
+        [PerfPlots.Difficulties]*MAX_COUNT_DIFFICULTY*2
   from colour import Color as ColorLib
   diff_color_start=ColorLib("blue")
-  color=['k','b','c'] + \
-        list(map(lambda c: c.rgb,
-             diff_color_start.range_to(ColorLib("gray"),MAX_COUNT_DIFFICULTY)))
+  difficulties_clrs = list(map(lambda c: c.rgb,
+            diff_color_start.range_to(ColorLib("gray"),MAX_COUNT_DIFFICULTY)))
+  color=['k','b','c'] + difficulties_clrs*2
   label=["Performance Rate","Early-Withdrawal Rate","Left Bias Rate"] + \
-        ["Difficulty {}".format(i+1) for i in range(MAX_COUNT_DIFFICULTY)]
-  alpha=[1.0,1.0,0.6] + [0.4]*MAX_COUNT_DIFFICULTY
+        ["Difficulty {}".format(i+1) for i in range(MAX_COUNT_DIFFICULTY)] + \
+        ([None] * MAX_COUNT_DIFFICULTY) # No label for difficulties performance
+  alpha=[1.0,1.0,0.6] + [0.4]*(MAX_COUNT_DIFFICULTY*2)
+  # Use dashed lines for difficulties performance
+  linestyle=["-"]*(3+MAX_COUNT_DIFFICULTY) + ["--"]*MAX_COUNT_DIFFICULTY
   # Multiply rates by 100 to convert to percentages
   metrics=[np.array(metric)*100 for metric in [performance, EWD, left_bias]] + \
-          difficulties
+          difficulties + difficulties_perf
   for i, metric in enumerate(metrics):
-    if plots[i] not in draw_plots or np.nansum(metric) == 0:
+    if plots[i] not in draw_plots or np.isnan(metric).all():
       continue
     #print("Label:", label[i], "x_data:", len(x_data), "- metric:", len(metric))
-    axes.plot(x_data,metric,color=color[i],label=label[i],alpha=alpha[i])
+    axes.plot(x_data,metric,color=color[i],label=label[i],alpha=alpha[i],
+              linestyle=linestyle[i])
 
   if PerfPlots.DifficultiesCount in draw_plots:
     from matplotlib import colors as mat_colors
@@ -328,7 +350,7 @@ def performanceOverTime(df, head_fixation_date=None, single_session=None,
                 (PerfPlots.PortLEDCueRwrd, port_cue_led, "PortLed-Cue", 98,'r')]:
     if perf_plot not in draw_plots:
       continue
-    y_data = np.array(metric) * 100 #np.ones(len(stim_poke_out)) * 100
+    y_data = np.array(metric) * 100.0 #np.ones(len(stim_poke_out)) * 100
     y_data[(np.where(np.array(y_data) == 0)[0])] = np.nan
     axes.step(x_data, y_data, color=c, linestyle='-',
               label=title, alpha=0.5, where="mid")
@@ -344,7 +366,7 @@ def performanceOverTime(df, head_fixation_date=None, single_session=None,
     axes2_used = True
     axes2.tick_params(axis='y', labelcolor='k')
     axes2.set_ylabel('Time (s)', color='k')
-    axes2.set_ylim(0, max(4,max(catch_wt_correct),max(catch_wt_error)))
+    axes2.set_ylim(-0.1, max(4,max(catch_wt_correct),max(catch_wt_error)))
     plots = [PerfPlots.SamplingT, PerfPlots.MovementT,
              PerfPlots.ReactionT, PerfPlots.MaxFeedbackDelay,
              PerfPlots.CatchWT, PerfPlots.CatchWT]
