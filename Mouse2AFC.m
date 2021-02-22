@@ -116,27 +116,6 @@ SettingsPath_ = SettingsPath(BpodSystem); % Needed later for unsaved changes
 % The state-matrix is generated only once in each iteration, however some
 % of the trials parameters are pre-generated and updated in the plots few
 % iterations before.
-load('C:\Users\hatem\OneDrive\Documents\py_matlab\HomeCageHabutate_Mouse2AFC_Jul24_2020_Session3.mat');
-computerName = getenv('computername');
-xTaskParameters = struct;
-xTaskParameters.IgnoreInit = true;
-xTaskParameters.GUIMeta = TaskParameters.GUIMeta;
-xTaskParameters.GUIPanels = TaskParameters.GUIPanels;
-xTaskParameters.Figures = TaskParameters.Figures;
-OrigTrialSettings = BpodSystem.Data.TrialSettings;
-for i = 1:length(SessionData.TrialSettings)
-    xTaskParameters.GUI = SessionData.TrialSettings(i);
-    xTaskParameters.GUI.ComputerName = computerName;
-    xTaskParameters.GUI.OmegaTable = TaskParameters.GUI.OmegaTable;
-    xTaskParameters = InitTaskParameters(xTaskParameters,...
-        SessionData.Custom.Subject, SessionData.Filename);
-    % This is necessary, otherwise assignment fails because they have
-    % different lengths
-    BpodSystem.Data.TrialSettings(i) = xTaskParameters.GUI;
-end
-SessionData.TrialSettings =...
-              BpodSystem.Data.TrialSettings(1:length(SessionData.TrialSettings));
-BpodSystem.Data.TrialSettings = OrigTrialSettings;
 TrialTotalTime = clock();
 tic;
 while true
@@ -154,29 +133,14 @@ while true
     BpodSystem.Data.Timer(iTrial).TrialTotalTime = seconds(datetime('now') - datetime(TrialTotalTime));
     TrialStartSysTime = clock; % Used to aproximate the start time of the
                                % so we can bind trial later to imaging data.
-    RawEvents = SessionData.RawEvents.Trial(iTrial); %RawEvents = RunStateMatrix;
+    RawEvents = RunStateMatrix;
     TrialTotalTime = clock();
     BpodSystem.Data.Custom.Trials(iTrial).TrialStartSysTime = posixtime(...
                                               datetime(TrialStartSysTime));
     trialEndTime = clock;
-    if true%~isempty(fieldnames(RawEvents))
+    if ~isempty(fieldnames(RawEvents))
         tic;
-        % BpodSystem.Data = AddTrialEvents(BpodSystem.Data,RawEvents);
-        BpodSystem.Data.RawEvents.Trial(iTrial) = SessionData.RawEvents.Trial(iTrial);
-        BpodSystem.Data.RawData.OriginalStateNamesByNumber(iTrial) = SessionData.RawData.OriginalStateNamesByNumber(iTrial);
-        BpodSystem.Data.RawData.OriginalStateData(iTrial) = SessionData.RawData.OriginalStateData(iTrial);
-        BpodSystem.Data.RawData.OriginalEventData(iTrial) = SessionData.RawData.OriginalEventData(iTrial);
-        BpodSystem.Data.RawData.OriginalStateTimestamps(iTrial) = SessionData.RawData.OriginalStateTimestamps(iTrial);
-        BpodSystem.Data.RawData.OriginalEventTimestamps(iTrial) = SessionData.RawData.OriginalEventTimestamps(iTrial);
-        BpodSystem.Data.TrialStartTimestamp(iTrial) = SessionData.TrialStartTimestamp(iTrial);
-        if iTrial == SessionData.nTrials - 1
-            if BpodSystem.SystemSettings.IsVer2
-                BpodSystem.Status.BeingUsed = 0;
-            else
-                BpodSystem.BeingUsed = 0;
-            end
-        end
-        TaskParameters.GUI = SessionData.TrialSettings(iTrial);
+        BpodSystem.Data = AddTrialEvents(BpodSystem.Data,RawEvents);
         BpodSystem.Data.TrialSettings(iTrial) = TaskParameters.GUI;
         BpodSystem.Data.Timer(iTrial).AppendData = toc; tic;
     end
