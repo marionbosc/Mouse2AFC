@@ -151,6 +151,8 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False,
     #print("File patterns:", files_patterns)
     #chained_globs=list(chained_globs); print("Globs:", chained_globs)
     for fp in chained_globs:
+        if "temp_" in fp:
+          continue
         decomposed_name = decomposeFilePathInfo(fp)
         if not decomposed_name:
             print("Skipping badly formatted filename:", fp)
