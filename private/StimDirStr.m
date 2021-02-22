@@ -1,4 +1,4 @@
-function Str = PerfStr(ExpType, DV, SecExpType, SecDV)
+function Str = StimDirStr(ExpType, DV, SecExpType, SecDV)
 
 function Str_ = SingleExp(ExpType_, DV_)
 if ExpType_ == ExperimentType.RandomDots
@@ -12,7 +12,7 @@ end
 
 
 Str = SingleExp(ExpType, DV);
-if ~isnan(SecDV)
+if ~isnan(SecDV) && SecDV ~= ExperimentType.NoStimulus
     Str = sprintf('%s - Sec: %s', Str, SingleExp(SecExpType, SecDV));
 end
 end
