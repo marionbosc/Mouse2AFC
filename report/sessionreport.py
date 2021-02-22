@@ -4,6 +4,7 @@
 # You need to have the following libraries:
 # pip install numpy scipy matplotlib pandas scikit-learn statsmodels colour click
 
+from enum import auto
 import os
 import pathlib
 import sys
@@ -11,6 +12,7 @@ import shutil
 import time
 import traceback
 import matplotlib.pyplot as plt
+from numpy.core.shape_base import block
 import analysis
 import mat_reader_core
 
@@ -41,19 +43,25 @@ class PlotHandler():
     self._plot_showing = False
 
   def pltInBgnd(self, *, fig, auto_close_after_ms):
-    self.waitForCurFig()
+    if auto_close_after_ms:
+      self.waitForCurFig()
     self._cur_running_fig = fig
-    self._plot_showing = True
     self._should_close = True
-    fig.canvas.mpl_connect('button_press_event', self._disableAutoClose)
-    #fig.canvas.mpl_connect('resize_event', self._disableAutoClose)
-    fig.canvas.mpl_connect('close_event', self._closeHandler)
-    # We don't use the _timer instance but we need to keep a reference to it,
-    # otherwise the timer won't run
-    self._timer = fig.canvas.new_timer(interval = auto_close_after_ms)
-    self._timer.add_callback(self._closeWindow)
-    self._timer.start()
-    plt.show(block=False)
+    if auto_close_after_ms:
+      self._plot_showing = True
+      block=False
+      fig.canvas.mpl_connect('button_press_event', self._disableAutoClose)
+      #fig.canvas.mpl_connect('resize_event', self._disableAutoClose)
+      fig.canvas.mpl_connect('close_event', self._closeHandler)
+      # We don't use the _timer instance but we need to keep a reference to it,
+      # otherwise the timer won't run
+      self._timer = fig.canvas.new_timer(interval = auto_close_after_ms)
+      self._timer.add_callback(self._closeWindow)
+      self._timer.start()
+    else:
+      self._plot_showing = False
+      block=True
+    plt.show(block=block)
 
   def waitForCurFig(self):
     start = time.time()
@@ -63,12 +71,15 @@ class PlotHandler():
 
 
 class MakeAndSavePlots():
-  def run(self, session_df, save_dir):
+  def run(self, session_df, save_dir_or_none, auto_close_after_ms=None):
     date_str = session_df.Date.unique()[0].strftime("%Y_%m_%d_%a")
     session_num = session_df.SessionNum.unique()[0]
     animal_name = session_df.Name.unique()[0]
     protocol_name = session_df.Protocol.unique()[0]
-    pathlib.Path(save_dir).mkdir(parents=True, exist_ok=True)
+    if save_dir_or_none:
+      pathlib.Path(save_dir_or_none).mkdir(parents=True, exist_ok=True)
+    if auto_close_after_ms is None:
+      auto_close_after = 60000
 
     copy_to_daily_sessions = False
     onedrive_root_dir = os.getenv("OneDrive")
@@ -87,19 +98,20 @@ class MakeAndSavePlots():
     plot_handler = PlotHandler()
     try:
       fig = self._mainPlot(session_df)
-      plot_handler.pltInBgnd(fig=fig, auto_close_after_ms=60000)
+      plot_handler.pltInBgnd(fig=fig, auto_close_after_ms=auto_close_after_ms)
     except Exception as err:
       print("An exception occurred in main fig:\n", traceback.format_exc(),
             file=sys.stderr)
     else:
-      filename = "{}_Sess{}_{}_{}.png".format(date_str, session_num, "perf",
-                                              animal_name)
-      dst_path = "{}{}{}".format(save_dir, os.path.sep,filename)
-      fig.savefig(dst_path)
-      if copy_to_daily_sessions:
-        daily_path = "{}{}{}.png".format(onedrive_todays_dir, os.path.sep,
+      if save_dir_or_none:
+        filename = "{}_Sess{}_{}_{}.png".format(date_str, session_num, "perf",
+                                                animal_name)
+        dst_path = "{}{}{}".format(save_dir_or_none, os.path.sep,filename)
+        fig.savefig(dst_path)
+        if copy_to_daily_sessions:
+          daily_path = "{}{}{}.png".format(onedrive_todays_dir, os.path.sep,
                               "{}_Sess{}_perf".format(animal_name, session_num))
-        shutil.copyfile(src=dst_path, dst=daily_path)
+          shutil.copyfile(src=dst_path, dst=daily_path)
 
     if session_df.FeedbackTime.max() > 1 and \
      len(session_df[session_df.GUI_FeedbackDelaySelection == 3]) > 10:
@@ -110,13 +122,14 @@ class MakeAndSavePlots():
         print("An exception occurred in confidence fig:\n",
               traceback.format_exc(), file=sys.stderr)
       else:
-        filename = "{}_Sess{}_{}_{}.png".format(date_str, session_num, "veva",
-                                                animal_name)
-        fig.savefig("{}{}{}".format(save_dir, os.path.sep,filename))
-        if copy_to_daily_sessions:
-          daily_path = "{}{}{}.png".format(onedrive_todays_dir, os.path.sep,
+        if save_dir_or_none:
+          filename = "{}_Sess{}_{}_{}.png".format(date_str, session_num, "veva",
+                                                  animal_name)
+          fig.savefig("{}{}{}".format(save_dir_or_none, os.path.sep,filename))
+          if copy_to_daily_sessions:
+            daily_path = "{}{}{}.png".format(onedrive_todays_dir, os.path.sep,
                               "{}_Sess{}_veva".format(animal_name, session_num))
-          shutil.copyfile(src=dst_path, dst=daily_path)
+            shutil.copyfile(src=dst_path, dst=daily_path)
 
     plot_handler.waitForCurFig()
 
@@ -129,6 +142,15 @@ class MakeAndSavePlots():
 
     animal_name = session_df.Name.unique()[0]
     psych_axes = analysis.psychAxes(animal_name, axes=axs[0][0])
+    from opto.optopsych import optoPsychPlot
+    from opto.optoutil import ChainedGrpBy
+    for info, sub_df in ChainedGrpBy(session_df).byBrainRegion().byOptoConfig():
+      brain_region, opto_config = info[-2], info[-1]
+      optoPsychPlot(animal_name, sub_df, PsycStim_axes=psych_axes,
+                    brain_region=brain_region, opto_config=opto_config,
+                    by_animal=True, by_session=True, combine_sides=False,
+                    save_figs=False, save_prefix=False,
+                    incld_grp_info_lgnd=False)
     analysis.psychAnimalSessions(session_df, animal_name, psych_axes,
                                  analysis.METHOD)
 
@@ -183,6 +205,15 @@ class MakeAndSavePlots():
                         hspace=hspace, wspace=wspace)
     return fig, axs
 
+def _showSaveParsed(data_file, save_dir_or_None, auto_close_after_sec=None):
+  session_df, _bad_ssns, _df_updated = mat_reader_core.loadFiles(data_file)
+  print("Session df length:", len(session_df))
+  if auto_close_after_sec is not None:
+    auto_close_after_sec *= 1000 # Convert to ms
+  MakeAndSavePlots().run(session_df, save_dir_or_None,
+                         auto_close_after_ms=auto_close_after_sec)
+  return session_df
+
 def showAndSaveReport():
   data_flie = sys.argv[1]
   save_dir = sys.argv[2]
@@ -192,10 +223,7 @@ def showAndSaveReport():
               r"wfThy2_Mouse2AFC_Dec05_2019_Session1.mat"
               #r"vgat4_Mouse2AFC_Dec09_2019_Session2.mat"
               #r"RDK_WT1_Mouse2AFC_Dec04_2019_Session1.mat"
-
-  session_df, _bad_ssns, _df_updated = mat_reader_core.loadFiles(data_flie)
-  print("Session df length:", len(session_df))
-  MakeAndSavePlots().run(session_df, save_dir)
+  _showSaveParsed(data_flie, save_dir)
 
 if __name__ == "__main__":
   showAndSaveReport()
