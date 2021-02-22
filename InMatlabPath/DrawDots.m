@@ -17,7 +17,7 @@ if nargin == 0
    % connected
    screensNums = max(Screen('Screens'));
 else
-   screensNums = str2double(varargin)
+   screensNums = str2double(varargin);
 end
 
 % Skip sync tests for demo purposes only
