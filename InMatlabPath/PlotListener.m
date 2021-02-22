@@ -59,7 +59,7 @@ while true
              SessionData.Timer] = CreateOrAppendDataArray(...
                                       PREALLOC_TRIALS, TaskParameters_GUI);
             % The handling of TaskParameters is a badhack, fix it properly
-            SessionData = rmfield(SessionData,'TrialSettings'); 
+            SessionData = rmfield(SessionData,'TrialSettings');
             nextSaveAt = SaveEveryNumTrials;
             nextExpandAt = PREALLOC_TRIALS;
             should_initialize = true;
@@ -69,7 +69,7 @@ while true
         iTrial = max([SessionData.Custom.Trials.TrialNumber]);
 
         if should_initialize % First run
-            % TODO: We can just replicate here the unused slots of 
+            % TODO: We can just replicate here the unused slots of
             % TaskParameters up to the PREALLOC_TRIALS with NaN values.
             % TODO: See if you need to disable the graphs again
             GUIHandles = initializeFigures();
@@ -113,7 +113,7 @@ while true
             nextExpandAt = numel(SessionData.Custom.Trials);
             fprintf('Next expansion at: %d\n', nextExpandAt);
             clear Trials TrialSettings Timer;
-        end 
+        end
     end
     %pause(0.01); % Give a chance to render
 end
