@@ -90,7 +90,7 @@ def _extractGUI(data, max_trials, is_mini_df, new_data_format):
           src_table = table.Omega
         diffs = src_table[np.where(table.OmegaProb)[0]]
         # Ensure it's sorted in descending order
-        diffs = -np.sort(-diffs)
+        diffs[::-1].sort()
         for i in range(4): # 0 -> 3
           diff_val = diffs[i] if i < len(diffs) else np.nan
           diff_arrs["Difficulty{}".format(i+1)].append(diff_val)
