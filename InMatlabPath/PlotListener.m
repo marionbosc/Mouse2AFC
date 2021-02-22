@@ -82,7 +82,7 @@ while true
             % if ~initialized_before and iTrial ~= 0, then the loop will
             % repeate again now and will go to the else part
         end
-        
+
         GUIHandles.OutcomePlot = MainPlot2(GUIHandles.OutcomePlot,'update',...
             SessionData.Custom, SessionData.TrialSettings(iTrial),...
             SessionData.TrialStartTimestamp(1:iTrial), iTrial);
@@ -93,9 +93,11 @@ while true
         if iTrial >= nextSaveAt
             fprintf('Saving at Trial #%d\n', iTrial);
             BpodSystem.Data = SessionData;
+            [saveDir, saveFile] = fileparts(SessionData.DataPath);
+            finalSavePath = strcat(saveDir,filesep,'temp_',saveFile);
             % Assign twice for Bpod Gen1 & Gen2 save functions
-            BpodSystem.DataPath = SessionData.DataPath;
-            BpodSystem.Path.CurrentDataFile = SessionData.DataPath;
+            BpodSystem.DataPath = finalSavePath;
+            BpodSystem.Path.CurrentDataFile = finalSavePath;
             BpodSystem.Data = rmfield(BpodSystem.Data,'startTrial');
             BpodSystem.Data = rmfield(BpodSystem.Data,'DataPath');
             SaveBpodSessionData;

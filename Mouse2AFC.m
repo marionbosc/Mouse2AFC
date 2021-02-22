@@ -19,10 +19,15 @@ else
     BpodSystem.DataPath = strrep(BpodSystem.DataPath, 'Mouse2AFC2', 'Mouse2AFC');
 end
 
+dataPath = DataPath(BpodSystem);
 %server data
 [~,BpodSystem.Data.Custom.Rig] = system('hostname');
 BpodSystem.Data.Custom.Subject = SubjectName(BpodSystem);
-
+% Check if there are any unusaved data from the previous run.
+Quit = CheclOldIncompleteSaves(SubjectName(BpodSystem), dataPath);
+if Quit
+    return
+end
 %% Task parameters
 global TaskParameters
 TaskParameters = BpodSystem.ProtocolSettings;
@@ -99,7 +104,6 @@ TaskParameters.GUI.CurrentStim = iff(BpodSystem.Data.Custom.Trials(1).DV > 0, (B
 
 %BpodNotebook('init');
 iTrial=0;
-dataPath = DataPath(BpodSystem);
 %sendPlotData(mapped_file,iTrial,BpodSystem.Data.Custom,TaskParameters.GUI,...
 %[0], dataPath);
 
