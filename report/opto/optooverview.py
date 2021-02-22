@@ -19,7 +19,6 @@ def obtainOptoTrials(animal_df):
 
 
 def optogenetics(df, *, opto_by_state, save_figs, save_prefix=""):
-  df = df[df.TrialNumber > 20]
   # _optoSingleDF(animal_name="All Animals", animal_df=df,
   #               single_sess_psych=False, opto_by_state=opto_by_state,
   #               save_figs=save_figs, save_prefix=save_prefix)
@@ -27,10 +26,13 @@ def optogenetics(df, *, opto_by_state, save_figs, save_prefix=""):
   #   _optoSingleDF(animal_name=animal_name, animal_df=animal_df,
   #                 single_sess_psych=False, opto_by_state=opto_by_state,
   #                 save_figs=save_figs, save_prefix=save_prefix)
-  opto_ssns_df = obtainOptoTrials(df)
-  opto_chain = ChainedGrpBy(opto_ssns_df)
-  opto_chain = opto_chain.filter(lambda ssn_df:
-                       len(ssn_df[ssn_df.OptoEnabled==True])/len(ssn_df) > 0.05)
+  # This shouldn't be necessary as the df should already be filtered out
+  # print("Opto sessions before:", len(df))
+  # opto_ssns_df = obtainOptoTrials(df)
+  # print("Opto sessions after:", len(opto_ssns_df))
+  opto_chain = ChainedGrpBy(df)
+  # opto_chain = opto_chain.filter(lambda ssn_df:
+  #                      len(ssn_df[ssn_df.OptoEnabled==True])/len(ssn_df) > 0.05)
   from .optometrics import optoMetrics
   optoMetrics(opto_chain, save_figs=save_figs, save_prefix=save_prefix)
 

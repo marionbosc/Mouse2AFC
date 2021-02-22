@@ -1,4 +1,4 @@
-import builtins
+import inspect
 from definitions import BrainRegion, MatrixState
 
 class ChainedGrpBy:
@@ -9,6 +9,9 @@ class ChainedGrpBy:
     else:
       self._df_tups = tuple(df)
       self.descr = descr
+
+  def __len__(self):
+    return len(self._df_tups)
 
   def __iter__(self):
     return ChainedGrpBy.Iterator(self)
@@ -22,10 +25,20 @@ class ChainedGrpBy:
       self._idx += 1
       if self._idx == len(self._outer._df_tups):
         raise StopIteration
-      # Weill return info, df
+      # will return info, df
       key, val = self._outer._df_tups[self._idx]
       if len(key) == 1: key = key[0]
       return key, val
+
+
+  def toDF(self):
+    if len(self._df_tups) == 1: # It's a dataframe
+      # print(self._df_tups)
+      return self._df_tups[0][1]
+    else:
+        print(self._df_tups)
+        raise Exception(f"Too many dataframes")
+
 
   def _processBy(self, processFn, descr_str):
     #TODO: This pattern is probably over complicated, find a simpler solution
@@ -76,8 +89,7 @@ class ChainedGrpBy:
     # We need to call splitByOptoTiming() to get us the results
     def processComb(_df, addGrpByTupFn):
       for config_tup, grpby_df in splitByOptoTiming(_df):
-        dur = "Full" if config_tup[2] == -1 else f"{config_tup[2]}s"
-        info = f"{MatrixState(config_tup[0])} S={config_tup[1]}s, T={dur}"
+        info = (MatrixState(config_tup[0]), config_tup[1], config_tup[2])
         addGrpByTupFn(info, grpby_df)
     return self._processBy(processComb, "OptoConfig")
 
@@ -95,10 +107,18 @@ class ChainedGrpBy:
     return self._processBy(processComb, descr_str="Animal")
 
 
-  def filter(self, filterFn):
+  def filter(self, filterFn, *fnArgs):
     new_list = []
+    info_sig = inspect.signature(filterFn).parameters.get("df_info", None)
+    if info_sig and info_sig.kind == inspect.Parameter.KEYWORD_ONLY:
+      wrapFn = filterFn
+    else:
+      def wrapFn(_df, *args, df_info=None): # df_info is ignored
+        return filterFn(_df, *args)
+
     def processDf(_df_info, _df):
-      if filterFn(_df):
+      if len(_df_info) == 1: _df_info = _df_info[0]
+      if wrapFn(_df, *fnArgs, df_info=_df_info):
         new_list.append((_df_info, _df))
 
     if not isinstance(self._df_tups, tuple):
@@ -110,11 +130,14 @@ class ChainedGrpBy:
     return ChainedGrpBy(df=new_list, descr=self.descr)
 
 
-def splitToControOpto(df):
+def splitToControlOpto(df):
   df_opto = df[df.OptoEnabled == 1]
   df_control = df[df.OptoEnabled == 0]
   return df_control, df_opto
 
+def optoConfigStr(state, start, dur):
+  dur = "Full" if dur == -1 else f"{dur}s"
+  return f"{state} S={start}s, T={dur}"
 
 def filterNonOptoSessions(df):
   # Turn opto trials with zero light-time into non-opto trials
@@ -130,7 +153,6 @@ def filterNonOptoSessions(df):
                                                            opto_sessions_tuples)
   return df[idx_bool]
 
-
 def grpByOptoConfig(df):
   opto_config_cols = ['GUI_OptoStartState1', 'GUI_OptoStartDelay',
                       'GUI_OptoMaxTime']
@@ -142,7 +164,6 @@ def optoCOnfigsCounts(df):
   # dataframe
   df_grp_by_opto_count = grp_by_opto.to_frame("Count").reset_index()
   return df_grp_by_opto_count
-
 
 def filterFewTrialsCombinations(df, *, config_min_num_trials, _second_df=None):
   if _second_df is None:
@@ -157,7 +178,6 @@ def filterFewTrialsCombinations(df, *, config_min_num_trials, _second_df=None):
   i2 = df_opto_configs_counts.set_index(opto_config_cols).index
   return df[i1.isin(i2)]
 
-
 def filterNoOptoConfigs(df):
   df_opto = df[df.OptoEnabled == True]
   # Should we do it here by brain region and animal as well?
@@ -165,7 +185,7 @@ def filterNoOptoConfigs(df):
   return filterFewTrialsCombinations(df, config_min_num_trials=0,
                                      _second_df=df_opto)
 
-def splitByOptoTiming(df):
+def splitByBinarySamplingTime(df):
   # Get all opto trials during sampling phase
   from definitions import MatrixState
   df_stim_delv = df[df.GUI_OptoStartState1 ==
@@ -184,6 +204,10 @@ def splitByOptoTiming(df):
   #   display(optoCOnfigsCounts(df_partial_sampling))
   #   print("Full Sampling df:")
   #   display(optoCOnfigsCounts(df_full_sampling))
+  return df_full_sampling, df_partial_sampling
+
+def splitByOptoTiming(df):
+  df_full_sampling, df_partial_sampling = splitByBinarySamplingTime(df)
   grps_concat = []
   START_DELAY=0
   MAX_DUR=-1
@@ -196,19 +220,33 @@ def splitByOptoTiming(df):
   # print( [key for key, _ in grps_concat])
   return grps_concat
 
+def commonOptoSectionFilter(df, *, by_session, by_animal):
+  MIN_NUM_TRIALS_PER_STATE = 50
+  MIN_NUM_TRIALS_PER_SESS = 20
+  min_choice_trials = MIN_NUM_TRIALS_PER_SESS if by_session \
+                                              else MIN_NUM_TRIALS_PER_STATE
+  control_trials, opto_trials = splitToControlOpto(df)
 
-def filterIfNotMinOpto(control_trials, opto_trials, min_num_trials):
-  control_trials = [(grp_info, grp_df,) for grp_info, grp_df in control_trials
-                    if len(grp_df) > min_num_trials]
-  opto_trials =  [(grp_info, grp_df,) for grp_info, grp_df in opto_trials
-                  if len(grp_df) > min_num_trials]
+  def expand(trials_df):
+    trials_df = ChainedGrpBy(trials_df)
+    if by_animal:
+      trials_df = trials_df.byAnimal()
+    if by_session:
+      trials_df = trials_df.bySess()
+    return trials_df
+  control_trials = expand(control_trials)
+  opto_trials = expand(opto_trials)
 
-  def filterIfNotExist(dst_trials, src_trials):
-    new_dst = []
-    grp_infos_src = set([grp_info for grp_info, _ in src_trials])
-    [new_dst.append((dst_grp_info, dst_df,))
-     for dst_grp_info, dst_df in dst_trials  if dst_grp_info in grp_infos_src]
-    return new_dst
-  control_trials = filterIfNotExist(control_trials, opto_trials)
-  opto_trials = filterIfNotExist(opto_trials, control_trials)
+  def fltrMinChoiceTrials(df):
+    return len(df[df.ChoiceCorrect.notnull()]) >= min_choice_trials
+  control_trials = control_trials.filter(fltrMinChoiceTrials)
+  opto_trials =  opto_trials.filter(fltrMinChoiceTrials)
+
+  def filterIfNotExist(df, src_info, *, df_info=None):
+    return df_info in src_info
+  opto_info = set([grp_info for grp_info, _ in opto_trials])
+  control_trials = control_trials.filter(filterIfNotExist, opto_info)
+  control_info = set([grp_info for grp_info, _ in control_trials])
+  opto_trials = opto_trials.filter(filterIfNotExist, control_info)
+
   return control_trials, opto_trials

@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import analysis
 from clr import BrainRegion as BRC, adjustColorLightness
-from .optoutil import ChainedGrpBy
+from .optoutil import ChainedGrpBy, commonOptoSectionFilter
 
 _SECOND, _PERCENT = "Seconds", "%"
 
@@ -21,17 +21,27 @@ def processAnimalMetric(animal_name, df_col_name, display_name, unit,
 
   for brain_region, df in opto_chain.byBrainRegion():
     cur_x_pos += STEP
-    color = BRC[brain_region]
-    color_by_type = {"Opto": adjustColorLightness(color, 1.4),
-                     "Control": adjustColorLightness(color, 0.6)}
+    region_color = BRC[brain_region]
 
-    for start_state, br_df in ChainedGrpBy(df).byState():
+    for opto_config, br_df in ChainedGrpBy(df).byOptoConfig():
+      start_state, start_offset, dur = opto_config
+      if dur != -1:
+        print("Skipping partial sampling:", opto_config)
+        continue
       len_control, len_opto = 0, 0
-      for trial_type, trials_df in ChainedGrpBy(br_df).byOptoTrials():
+      control_trials, opto_trials = commonOptoSectionFilter(br_df,
+                                                            by_animal=False,
+                                                            by_session=False)
+      if not len(control_trials):
+        continue
+      for trial_type, color, trials_df  in [
+        ("Control", adjustColorLightness(region_color, 0.6), control_trials),
+        ("Opto", adjustColorLightness(region_color, 1.4), opto_trials)]:
+        trials_df = trials_df.toDF()
         Xs +=   [cur_x_pos]
         Ys +=   [trials_df[df_col_name].mean()]
         Yerr += [trials_df[df_col_name].sem()]
-        colors += [color_by_type[trial_type]]
+        colors += [color]
         # if unit == percent:
         #   grps_control_mean = grpBySess(control_trials)[df_col_name].mean()
         #   grps_opto_mean = grpBySess(control_trials)[df_col_name].mean()
@@ -48,7 +58,8 @@ def processAnimalMetric(animal_name, df_col_name, display_name, unit,
       x_ticks_labels.append(r"%s (%d $\bf{C}$/%d $\bf{Opto}$ trials)" % (
                             tick_label, len_control, len_opto))
       x_ticks_pos.append(cur_x_pos-BAR_WIDTH)
-      #print(f"expr_id: {expr_id} - Xs: {Xs[-2:]} - Ys: {Ys[-2:]} - Color: {colors[-2:]}")
+      #print(f"expr_id: {expr_id} - Xs: {Xs[-2:]} - Ys: {Ys[-2:]} - "
+      #      f"Color: {colors[-2:]}")
 
   if unit == _PERCENT:
     Ys = np.array(Ys) * 100
@@ -67,7 +78,7 @@ def processAnimalMetric(animal_name, df_col_name, display_name, unit,
             ['Control Trials (dark shade)', 'Opto Trials (light shade)'],
             loc='lower right')
   if save_figs:
-    analysis.savePlot(save_prefix + f"{animal_name}_{display_name}")
+    analysis.savePlot(save_prefix + f"{display_name}_{animal_name}")
   plt.show()
 
 def animalOptoMetrics(animal_name, opto_chain, *, save_figs, save_prefix):
@@ -77,13 +88,18 @@ def animalOptoMetrics(animal_name, opto_chain, *, save_figs, save_prefix):
                         ("EarlyWithdrawal", "Early-Withdrawal", _PERCENT),
                         ("ChoiceCorrect", "Overall Performance", _PERCENT)]:
     processAnimalMetric(animal_name, _df_col_name, _display_name, _unit,
-                        opto_chain, save_figs=save_figs, save_prefix=save_prefix)
+                        opto_chain, save_figs=save_figs,
+                        save_prefix=save_prefix)
 
-def optoMetrics(opto_chain, *, save_figs, save_prefix):
-  animalOptoMetrics("All animals", opto_chain,
-                    save_figs=save_figs, save_prefix=save_prefix)
-  for animal_name, animal_opto_chain in opto_chain.byAnimal():
-    animalOptoMetrics(animal_name, opto_chain, save_figs=save_figs,
-                      save_prefix=save_prefix)
+def optoMetrics(df, *, save_figs, save_prefix):
+  ALL_ANIMALS="All animals"
+  opto_chain = ChainedGrpBy(df)
+  animalOptoMetrics(ALL_ANIMALS, opto_chain,
+                    save_figs=save_figs,
+                    save_prefix=f"{save_prefix}/{ALL_ANIMALS}/")
+  for animal_name, animal_df in opto_chain.byAnimal():
+    animal_opto_chain = ChainedGrpBy(animal_df)
+    animalOptoMetrics(animal_name, animal_opto_chain, save_figs=save_figs,
+                      save_prefix=f"{save_prefix}/{animal_name}/")
 
 
