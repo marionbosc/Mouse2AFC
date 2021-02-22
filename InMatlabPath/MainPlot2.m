@@ -129,6 +129,12 @@ switch Action
         %% Outcome
         iTrial = varargin{1};
         [mn, ~] = rescaleX(AxesHandles.HandleOutcome,iTrial,nTrialsToShow); % recompute xlim
+        %Plot past trial outcomes
+        indxToPlot = mn:iTrial;
+        % As DVs are generated on spot, use Stimulus omega instead as a
+        % proxy for DV for future trials
+        FutureDV = num2cell([DataCustom.Trials(iTrial+1:DataCustom.DVsAlreadyGenerated).StimulusOmega]*2 - 1);
+        [DataCustom.Trials(iTrial+1:DataCustom.DVsAlreadyGenerated).DV] = FutureDV{:};
 
         set(AxesHandles.CurrentTrialCircle, 'xdata', iTrial+1, 'ydata', 0);
         set(AxesHandles.CurrentTrialCross, 'xdata', iTrial+1, 'ydata', 0);
@@ -138,8 +144,6 @@ switch Action
         %plot past&future trials
         set(AxesHandles.DV, 'xdata', mn:DataCustom.DVsAlreadyGenerated,'ydata',[DataCustom.Trials(mn:DataCustom.DVsAlreadyGenerated).DV]);
 
-        %Plot past trial outcomes
-        indxToPlot = mn:iTrial;
         %Cumulative Reward Amount
         RewardObtained = CalcRewObtained(DataCustom, iTrial);
         set(AxesHandles.CumRwd, 'position', [iTrial+1 1], 'string', ...
