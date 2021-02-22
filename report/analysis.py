@@ -1132,25 +1132,35 @@ def psychAnimalSessions(df,ANIMAL,PsycStim_axes,METHOD):
     sessions = df.groupby([df.Date, df.SessionNum])
     used_sessions = []
     done_once = False
+    is1sess = len(sessions) == 1
     for i, (date_sessionnum, session) in enumerate(sessions):
       date, session_num = date_sessionnum
       #print("Session:",date,session_num)
-      num_trials = session.MaxTrial.unique()[0]
-      title="Single Session Performance" if not done_once else ""
-      LINE_WIDTH=0.5
-      ret = _psych(session,PsycStim_axes,"gray",LINE_WIDTH,title,
-                   plot_points=False)
+      if is1sess:
+        num_trials = session.MaxTrial.unique()[0]
+        title = f"All Trials"
+        LINE_WIDTH=3
+      else:
+        title="Single Session Performance" if not done_once else ""
+        LINE_WIDTH=0.5
+      ret = _psych(session, PsycStim_axes,'k' if is1sess else "gray",
+                   LINE_WIDTH, title,
+                   plot_points=is1sess) # Plot points if it's a single session
       if ret != (None, None):
         done_once = True
         used_sessions.append(session)
     # Merge used sessions
-    sessions = pd.concat(used_sessions)
-    LINE_WIDTH=3
-    _psych(sessions, PsycStim_axes,'k',LINE_WIDTH,"Avg. Session Performance",
-           offset=True)
+    if not is1sess:
+      sessions = pd.concat(used_sessions)
+      LINE_WIDTH=3
+      _psych(sessions, PsycStim_axes,'k',LINE_WIDTH,"Avg. Session Performance",
+            offset=True)
+    else:
+      sessions = df
     plotNormTrialDistrib(sessions,PsycStim_axes,METHOD)
     handles, labels = PsycStim_axes.get_legend_handles_labels()
-    labels[0] = labels[0] + " ({:,} sessions)".format(len(used_sessions))
+    if not is1sess:
+      labels[0] = labels[0] + " ({:,} sessions)".format(len(used_sessions))
     #PsycStim_axes.legend(handles, labels, loc='upper left', prop={'size': 'x-small'})
     bbox_to_anchor = (0.5, -0.2)
     PsycStim_axes.legend(handles, labels, loc='upper center',
