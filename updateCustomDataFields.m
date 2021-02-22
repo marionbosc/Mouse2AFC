@@ -283,6 +283,10 @@ CurTimer.customFeedbackDelay = toc; tic;
 %else
 %	indicesRwd = 1;
 %end
+% We need to re-assign the current trial so it would be included in the
+% calculations. It ani't pretty, but I can't think of a cleaner solution on
+% the spot.
+BpodSystem.Data.Custom.Trials(iTrial) = CurTrial;
 LAST_TRIALS=10;
 startTrialBiasCalc = iff(iTrial > LAST_TRIALS, iTrial - LAST_TRIALS, 1);
 %ndxRewd = BpodSystem.Data.Custom.Trials(indicesRwd:iTrial).Rewarded;
@@ -343,9 +347,15 @@ if lengthChoiceMadeTrials >= 1
 end
 CurTimer.customCalcBias = toc; tic;
 
-%create future trials
-% Check if its time to generate more future trials
-if iTrial > BpodSystem.Data.Custom.DVsAlreadyGenerated - Const.PRE_GENERATE_TRIAL_CHECK
+[NextTrialBlockNum, NewLeftBias, NewExpType, NewSecExpType, ...
+ BpodSystem.Data.Custom.BlocksInfo, GUI.Block] = CalcBlockInfo(GUI, iTrial,...
+                                              BpodSystem.Data.Custom.Trials,...
+                                              BpodSystem.Data.Custom.BlocksInfo);
+
+%% Check if we should generate more future trials
+if iTrial+1 >= BpodSystem.Data.Custom.DVsAlreadyGenerated || ...
+   (~all(isnan([NextTrialBlockNum, CurTrial.BlockNum])) &&...
+    NextTrialBlockNum ~= CurTrial.BlockNum)
     % Do bias correction only if we have enough trials
     if GUI.CorrectBias && iTrial > 7 %sum(ndxRewd) > Const.BIAS_CORRECT_MIN_RWD_TRIALS
         LeftBias = GUI.CalcLeftBias;
@@ -360,7 +370,7 @@ if iTrial > BpodSystem.Data.Custom.DVsAlreadyGenerated - Const.PRE_GENERATE_TRIA
 			LeftBias = 0.5;
 		end
     else
-        LeftBias = GUI.LeftBias;
+        LeftBias = NewLeftBias;
     end
     CurTimer.customAdjustBias = toc; tic;
 
@@ -376,8 +386,7 @@ if iTrial > BpodSystem.Data.Custom.DVsAlreadyGenerated - Const.PRE_GENERATE_TRIA
     %CurTimer.customPrepNewTrials = toc; tic;
     [BpodSystem.Data.Custom.Trials,...
      BpodSystem.Data.Custom.DVsAlreadyGenerated] = AssignFutureTrials(...
-        BpodSystem.Data.Custom.Trials, GUI,...
-        BpodSystem.Data.Custom.DVsAlreadyGenerated,...
+        BpodSystem.Data.Custom.Trials, GUI, iTrial+1,...
         Const.PRE_GENERATE_TRIAL_COUNT, LeftBias);
     CurTimer.customGenNewTrials = toc;
 else
@@ -388,11 +397,11 @@ else
 end%if trial > - 5
 
 NextTrial = BpodSystem.Data.Custom.Trials(iTrial+1);
-[NextTrial, GUI, CurTimer] = GenNextTrial(NextTrial, iTrial+1, GUI, CurTimer,...
+[NextTrial, GUI, CurTimer] = GenNextTrial(NextTrial, iTrial+1, GUI,...
+                                NewExpType, NewSecExpType, CurTimer,...
                                 BpodSystem.Data.Custom.LastSuccessCatchTial,...
                                 BpodSystem.Data.Custom.CatchCount,...
-                                CurTrial.Rewarded);
-
+                                CurTrial.Rewarded, NextTrialBlockNum);
 tic;
 % send auditory stimuli to PulsePal for next trial
 if GUI.ExperimentType == ExperimentType.Auditory && ~BpodSystem.EmulatorMode
@@ -419,6 +428,8 @@ end
 %end
 %CurTimer.customSendPhp = toc;
 
+% The CurTrial assignment here is not necessary as it was already assigned
+% above, but we do it just as precaution against future changes.
 BpodSystem.Data.Custom.Trials(iTrial) = CurTrial;
 BpodSystem.Data.Custom.Trials(iTrial+1) = NextTrial;
 BpodSystem.Data.Timer(iTrial) = CurTimer;

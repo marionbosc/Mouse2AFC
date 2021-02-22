@@ -244,15 +244,15 @@ TaskParameters.GUIPanels.Vevaiometric = {'VevaiometricYLim', ...
 TaskParameters.GUI.Blk2Policy = Blk2Policy.NotUsed;
 TaskParameters.GUIMeta.Blk2Policy.Style = 'popupmenu';
 TaskParameters.GUIMeta.Blk2Policy.String = Blk2Policy.String;
-TaskParameters.GUI.BlkSwitchCond = BlkSwitchCond.TrialsCountAvg_StdDev;
+TaskParameters.GUI.BlkSwitchCond = BlkSwitchCond.TrialsRandCountWithinLimits;
 TaskParameters.GUIMeta.BlkSwitchCond.Style = 'popupmenu';
 TaskParameters.GUIMeta.BlkSwitchCond.String = BlkSwitchCond.String;
-TaskParameters.GUI.BlkSwitchCountAvg = 23;
-TaskParameters.GUI.BlkSwitchCountStd = 4;
+TaskParameters.GUI.BlkSwitchLimitBot = 18;
+TaskParameters.GUI.BlkSwitchLimitTop = 22;
 TaskParameters.GUI.BlkSwitchPerfMinGoal = 80;
 TaskParameters.GUI.BlkSwitchPerfMinGoalNumTrials = 4;
 TaskParameters.GUIPanels.Block2 = {'Blk2Policy', 'BlkSwitchCond',...
-    'BlkSwitchCountAvg','BlkSwitchCountStd','BlkSwitchPerfMinGoal',...
+    'BlkSwitchLimitBot','BlkSwitchLimitTop','BlkSwitchPerfMinGoal',...
     'BlkSwitchPerfMinGoalNumTrials'};
 %Optogenetics
 TaskParameters.GUI.OptoProb = 0;

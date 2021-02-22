@@ -1,5 +1,6 @@
 function [NextTrial, GUI, CurTimer] = GenNextTrial(NextTrial, NextTrialIdx,...
-            GUI, CurTimer, LastSuccessCatchTial, CatchCount, IsLastTrialRewarded)
+            GUI, PrimaryExpType, SecExpType, CurTimer, LastSuccessCatchTial,...
+            CatchCount, IsLastTrialRewarded, NextTrialBlockNum)
 % Tracks the amount of water the animal received up tp this point
 % TODO: Check if RewardReceivedTotal is needed and calculate it using
 % CalcRewObtained() function.
@@ -7,11 +8,21 @@ NextTrial.RewardReceivedTotal = 0; % We will updated later
 NextTrial.RewardMagnitude = GUI.RewardAmount*[1,1];
 NextTrial.CenterPortRewAmount = GUI.CenterPortRewAmount;
 NextTrial.PreStimCntrReward = GUI.PreStimuDelayCntrReward;
+% Block number assignment requires No computation, but centralizes all
+% trial generation information in one place
+NextTrial.BlockNum = NextTrialBlockNum;
 
 tic;
+[NextTrial, DV] = CalcTrialDV(NextTrial, PrimaryExpType,...
+                              NextTrial.StimulusOmega);
+NextTrial.DV = DV;
+% cross-modality difficulty for plotting
+%  0 <= (left - right) / (left + right) <= 1
+NextTrial.DV = DV;
+
 % Secondary Experiment DV can be none or another value.
 if rand(1,1) < GUI.SecExpUseProb
-    NextTrial = GenSecExp(NextTrial, GUI.SecExperimentType,...
+    NextTrial = GenSecExp(NextTrial, SecExpType,...
                           GUI.SecExpStimIntensity, GUI.SecExpStimDir,...
                           GUI.OmegaTable);
 else
@@ -20,9 +31,8 @@ end
 CurTimer.customSecDV = toc; tic;
 
 % Set current stimulus for next trial
-GUI.CurrentStim = PerfStr(GUI.ExperimentType, NextTrial.DV,...
-                          GUI.SecExperimentType, NextTrial.SecDV);
-
+GUI.CurrentStim = StimDirStr(PrimaryExpType, NextTrial.DV, SecExpType,...
+                             NextTrial.SecDV);
 %determine if optogentics trial
 OptoEnabled = rand(1,1) <  GUI.OptoProb;
 if NextTrialIdx < GUI.StartEasyTrials
