@@ -12,6 +12,9 @@ switch ExpType
         [Trial, DV] = CalcGratingOrientation(Trial, StimulusOmega);
     case ExperimentType.RandomDots
         [Trial, DV] = CalcDotsCoherence(Trial, StimulusOmega);
+    case ExperimentType.NoStimulus
+        %Trial = Trial;
+        DV = round(StimulusOmega)*2-1;
     otherwise
         assert(false, 'Unexpected ExperimentType');
 end

@@ -112,6 +112,12 @@ elseif ExpType == ExperimentType.RandomDots
     StopStimulus_ = iff(GUI.StimAfterPokeOut, {}, {'SoftCode',6});
     ChoiceStopStimulus_ = iff(GUI.StimAfterPokeOut, {'SoftCode',6}, {});
     EWDStopStimulus_ = {'SoftCode',6};
+elseif ExpType == ExperimentType.NoStimulus
+    DeliverStimulus_ = {};
+    ContDeliverStimulus_ = {};
+    StopStimulus_ = {};
+    ChoiceStopStimulus_ = {};
+    EWDStopStimulus_ = {};
 else
     assert(false, 'Unexpected ExperimentType');
 end
