@@ -834,22 +834,23 @@ def interceptSlope(df):
   intercept, slope = glm_res.params
   return intercept, slope
 
-def psychAxes(animal_name="", axes=None, analysis_for=ExpType.RDK):
+def psychAxes(animal_name="", axes=None, analysis_for=ExpType.RDK,
+              combine_sides=False):
     title="Psychometric Stim{}".format(
                                   " " + animal_name if len(animal_name) else "")
     x_label= "RDK Coherence"  if analysis_for == ExpType.RDK else "Light Intensity"
     if not axes:
         axes = plt.axes()
     #axes.set_ylim(-.05, 1.05)
-    axes.set_ylim(0, 100)
-    axes.set_xlim(-1.05, 1.05)
+    axes.set_ylim(40 if combine_sides else 0, 100)
+    axes.set_xlim(-0.05 if combine_sides else -1.05, 1.05)
     axes.set_xlabel(x_label)
-    axes.set_ylabel("Choice Left (%)")
+    axes.set_ylabel(f"Choice {'left' if combine_sides else 'correct'} (%)")
     axes.yaxis.set_major_formatter(
                          FuncFormatter(lambda y, _: '{}%'.format(int(y))))
     axes.set_title(title)
 
-    x_ticks=np.arange(-1,1.1,0.4)
+    x_ticks=np.arange(0,1.1,0.2) if combine_sides else np.arange(-1,1.1,0.4)
     def cohrStr(tick):
       cohr = int(round(100*tick))
       return "{}%{}".format(abs(cohr),'R' if cohr<0 else "" if cohr==0 else 'L')
@@ -869,23 +870,27 @@ _parstart = np.array([.05,  1,   0.5,  0.5])
 _parmin =   np.array([-1,   0.,   0.,  0])
 _parmax =   np.array([1,    200.,  1,  1])
 _nfits = 10
-def newFit(df, ax, parstart=_parstart, parmin=_parmin, parmax=_parmax,
-           nfits=_nfits, **kargs):
+def newFit(df, ax, *, combine_sides, parstart=_parstart,
+           parmin=_parmin, parmax=_parmax, nfits=_nfits, **kargs):
   df = df[df.ChoiceLeft.notnull()]
   stims, stim_count, stim_ratio_correct = [], [], []
-  for dv_interval, dv_single, dv_df in splitByDV(df, periods=5):
-    dv_group = dv_df.DV.mean()
+  for dv_interval, dv_single, dv_df in splitByDV(df, periods=5,
+                                                 combine_sides=combine_sides):
+    DV = dv_df.DV
+    if combine_sides: DV = DV.abs()
+    dv_group = DV.mean()
     #print("DV group: ", dv_group, "- Dv len:", dv_len,
     #      "- Perf:", 100*dv_df.ChoiceCorrect.sum()/dv_len,
     #      "- Left perf:", 100*dv_df.ChoiceLeft.sum()/dv_len)
     stims.append(dv_group)
     stim_count.append(len(dv_df))
-    stim_ratio_correct.append(dv_df.ChoiceLeft.mean())
+    perf_col = dv_df.ChoiceCorrect if combine_sides else dv_df.ChoiceLeft
+    stim_ratio_correct.append(perf_col.mean())
 
   pars, fitFn = psychFitBasic(stims=stims, stim_count=stim_count, nfits=nfits,
                               stim_ratio_correct=stim_ratio_correct,
                               parstart=parstart, parmin=parmin, parmax=parmax)
-  _range = np.arange(-1,1,0.02)
+  _range = np.arange(0 if combine_sides else -1, 1, 0.02)
   y_fit = fitFn(_range) * 100
   ax.plot(_range, y_fit, **kargs)
   return pars[0], pars[1], (_range, y_fit)
@@ -926,8 +931,8 @@ class MaxLikelihoodModel(str, Enum):
 
 
 def _psych(df, PsycStim_axes, color, linewidth, legend_name, *, alpha=1,
-           plot_points=True, offset=False, SEM=False, min_slope=None,
-           crit=PsychFitCrit.MaxLikelihood,
+           combine_sides=False, plot_points=True, offset=False, SEM=False,
+           min_slope=None, crit=PsychFitCrit.MaxLikelihood,
            max_likli_crit=MaxLikelihoodModel.Weibull,
            linestyle="solid", marker='o', markersize=1.5,
            annotate_pts=False, **kargs):
@@ -936,9 +941,11 @@ def _psych(df, PsycStim_axes, color, linewidth, legend_name, *, alpha=1,
     validNonForced = ~df.ChoiceLeft.isnull() & df.ForcedLEDTrial == 0
     df = df[df.ForcedLEDTrial == 0]
     df = df[~df.ChoiceLeft.isnull()]
+    perf_col = "ChoiceCorrect" if combine_sides else "ChoiceLeft"
     if plot_points:
-      df_by_dv = splitByDV(df, periods=5) # This used to be 3
-      PsycY = [dv_df.ChoiceLeft.mean() * 100 for _, _, dv_df in df_by_dv]
+      # Periods used to be 3
+      df_by_dv = splitByDV(df, combine_sides=combine_sides, periods=5)
+      PsycY = [dv_df[perf_col].mean() * 100 for _, _, dv_df in df_by_dv]
       PsycX = [dv_interval.mid if offset else dv_single
                for dv_interval, dv_single, _ in df_by_dv]
 
@@ -956,8 +963,10 @@ def _psych(df, PsycStim_axes, color, linewidth, legend_name, *, alpha=1,
 
     if np.sum(validNonForced) > 1:
         StimDV = df.DV
+        if combine_sides: StimDV = StimDV.abs()
         x = StimDV[validNonForced]
-        y = df.ChoiceLeft[validNonForced]
+        y_col = df.ChoiceCorrect if combine_sides else df.ChoiceLeft
+        y = y_col[validNonForced]
 
         x_sampled = np.linspace(StimDV.min(),StimDV.max(),50)
         if crit == PsychFitCrit.MaxLikelihood:
@@ -965,15 +974,16 @@ def _psych(df, PsycStim_axes, color, linewidth, legend_name, *, alpha=1,
             legend_name="{}{}".format(legend_name,
                     "" if not plot_points else " ({:,} trials)".format(len(df)))
           intercept, slope, (x_sampled, y_points) = newFit(df, PsycStim_axes,
-            color=color, alpha=alpha, linestyle=linestyle,
-            linewidth=linewidth*SCALE_X, label=legend_name, **kargs)
+            combine_sides=combine_sides, color=color, alpha=alpha,
+            linestyle=linestyle, linewidth=linewidth*SCALE_X, label=legend_name,
+            **kargs)
         elif crit == PsychFitCrit.GLM:
           import statsmodels.formula.api as smf
           import statsmodels.api as sm
           import statsmodels.tools.sm_exceptions as sm_exceptions
 
-          glm_df = pd.DataFrame({'DV':x, 'ChoiceLeft':y})
-          mod1 = smf.glm('ChoiceLeft~DV', data=glm_df,
+          glm_df = pd.DataFrame({'DV':x, perf_col:y})
+          mod1 = smf.glm(f"{perf_col}~DV", data=glm_df,
                          family=sm.families.Binomial(sm.families.links.logit()))
           try:
             glm_res = mod1.fit()
