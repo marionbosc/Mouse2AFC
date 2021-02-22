@@ -72,8 +72,9 @@ elseif ExpType == ExperimentType.GratingOrientation
     drawParams.phase = GUI.phase;
     drawParams.gaborSizeFactor = GUI.gaborSizeFactor;
     drawParams.gaussianFilterRatio = GUI.gaussianFilterRatio;
+    wait_mmap_file = createMMFile(tempdir, 'mmap_matlab_dot_read.dat', 4);
     % Start from the 5th byte
-    serializeAndWrite(dotsMapped_file, 5, drawParams);
+    serializeAndWrite(dotsMapped_file, 5, drawParams, wait_mmap_file, 1);
     dotsMapped_file.Data(1:4) = typecast(uint32(1), 'uint8');
 
     DeliverStimulus_ = {'SoftCode',5};
