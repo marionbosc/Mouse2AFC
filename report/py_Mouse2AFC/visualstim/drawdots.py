@@ -188,14 +188,15 @@ class DrawDots:
                 GL.GL_NICEST if dot_type == 2 else GL.GL_DONT_CARE)
     else:
       self._handleShaders(dot_type)
+    # GL.glGetFloatv(GL.GL_ALIASED_POINT_SIZE_RANGE, (GLfloat*) &pointsizerange);
     # Need this when drawing the dots later
     return (dot_size_pix, dots_life, lifetime, drawParams.apertureSizeWidth,
             drawParams.apertureSizeHeight, drawParams.centerX,
-            drawParams.centerY, (l, r, b, t))
+            drawParams.centerY, (l, r, b, t), dot_type)
 
   def _renderLoop(self, mm_file, dot_size_pix, dots_life, lifetime,
                   aperture_size_width, aperture_size_height, center_x, center_y,
-                  l_r_b_t):
+                  l_r_b_t, dot_type):
     l, r, b, t = l_r_b_t
     ifi = 1/self._frame_rate
     cur_cmd = 2 # This function should have not been called if cur_cmd is not 2
@@ -225,6 +226,9 @@ class DrawDots:
         # Modified from Psychopy's DotsStim.Draw()
         self._wins_ptrs[idx]._setCurrent()
         GL.glPushMatrix()  # push before drawing, pop after
+        if dot_type >= 3:
+          GL.glMultiTexCoord1f(GL.GL_TEXTURE2, dot_size_pix)
+          GL.glUseProgram(self._smooth_point_shader)
         # draw the dots
         # Either call the next setScale() or do what it does
         #cur_win_ptr.setScale('pix') # It's necessary to call this function here
@@ -334,3 +338,4 @@ class DrawDots:
                      1 if dot_type == 3 else 0)
       # Tell shader about current point size in pointSize uniform:
       GL.glEnable(GL.GL_PROGRAM_POINT_SIZE)
+      GL.glDisable(GL.GL_POINT_SMOOTH)
