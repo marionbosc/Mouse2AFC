@@ -381,6 +381,7 @@ while true
                       drawParams.apertureSizeWidth + drawParams.centerX;
         y(deadDots) = (rand(1,sum(deadDots))-.5)*...
                       drawParams.apertureSizeHeight + drawParams.centerY;
+        % TODO: Set new life for the new dots
     else % Static and Moving Grating
         % Shift the grating by "shiftperframe" pixels per frame:
         % the mod'ulo operation makes sure that our "aperture" will snap
