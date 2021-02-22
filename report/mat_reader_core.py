@@ -421,7 +421,7 @@ def reduceTypes(df, debug=False):
         if col_name in ["States", "Date", "GUI_OmegaTable"]: continue
         df[col_name] = df[col_name].astype(str)
     for col_name in df.columns:
-        # print("Col:", col_name, "- type:", str(df[col_name].dtype))
+        # print("Col:", col_name, "- type:", type(df[col_name].iloc[0]))
         if str(df[col_name].dtype) == 'object':
             try:
                 temp = df[col_name].copy()
