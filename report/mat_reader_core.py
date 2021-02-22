@@ -165,7 +165,16 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False,
             print("Not loading already-known few trials sessions:", fp)
             continue
         # decomposed_name will be used far down in the end again
-        mat = loadmat(fp, struct_as_record=False, squeeze_me=True)
+        try:
+          mat = loadmat(fp, struct_as_record=False, squeeze_me=True)
+        except TypeError as e:
+          print(f"Malformated file?: {fp}")
+          print("Failed to to load " + fp + " due to: " + str(e))
+          import traceback
+          traceback.print_exc()
+          bad_filenames.append(fp)
+          continue
+
         data = mat['SessionData']
         try:
             new_data_format=False
@@ -321,9 +330,8 @@ def loadFiles(files_patterns=["*.mat"], stop_at=10000, mini_df=False,
                 else:
                     perf = float('nan')
                 new_dict[dest_key] = perf
-
             new_dict["MaxTrial"] = max_trials
-            if not mini_df:
+            if not mini_df and hasattr(data, "RawEvents"):
                 # Extract trial_states anyhow as they calculate ReactionTime
                 trials_states = list(map(extractStates,
                                      data.RawEvents.Trial[:max_trials]))
