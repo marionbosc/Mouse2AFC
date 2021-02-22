@@ -32,12 +32,15 @@ function sendPlotData (mappedFile, iTrial, bpodData, sessStartTime, dataPath)
 %     msg = rmfield(msg, 'dotsMapped_file');
 %     msg.Custom = rmfield(msg.Custom, 'CatchCount');
 %     msg.Custom = rmfield(msg.Custom, 'drawParams');
-    function struct_dst = recursiveCopy(struct_dst, struct_src)
+    function struct_dst = recursiveCopy(struct_dst, struct_src, lvl)
     fn = fieldnames(struct_src);
     for k=1:numel(fn)
         this_fn = fn{k};
+        % if lvl == 1
+        %     fprintf('Processing:%s\n', this_fn);
+        % end
         if strcmp(this_fn,'dotsMapped_file') || strcmp(this_fn,'CatchCount')...
-           || strcmp(this_fn,'drawParams')
+           || strcmp(this_fn,'drawParams') || strcmp(this_fn,'BlocksInfo')
             continue;
         elseif ~first_send && (strcmp(this_fn,'Protocol') ||...
            strcmp(this_fn,'Subject') ||...
@@ -59,13 +62,15 @@ function sendPlotData (mappedFile, iTrial, bpodData, sessStartTime, dataPath)
             struct_dst.(this_fn) = field;
         elseif isstruct(field)
             struct_dst.(this_fn) = struct;
-            struct_dst.(this_fn) = recursiveCopy(struct_dst.(this_fn), field);
+            struct_dst.(this_fn) = recursiveCopy(struct_dst.(this_fn), field,...
+                                                 lvl+1);
         else
             struct_dst.(this_fn) = field;
         end
     end
     end
-    msg = recursiveCopy(msg, bpodData);
+    msg = recursiveCopy(msg, bpodData, 1); % i.e BpodSystem.Data
+
 %     if ~(plottedTrial <= 1 || plottedTrial > iTrial) % Don't send old info
 %        msg = rmfield(msg, 'Protocol');
        %msg = rmfield(msg, 'Filename'); % PlotListener needs this field
