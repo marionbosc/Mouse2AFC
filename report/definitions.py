@@ -9,8 +9,12 @@ class IntEnumShortStr(IntEnum):
     return self.__str__()
 
 class ExperimentType(IntEnumShortStr):
+  Auditory = 1
   LightIntensity = 2
+  GratingOrientation = 3
   RDK = 4
+  SoundIntensity = 5
+  NoStimulus = 6
 
 ExpType = ExperimentType
 
