@@ -87,30 +87,14 @@ def _reactionTimePerDF(animal_name, df, *, quantile_top_bottom,
   print("Reaction time len:", len(df_accepted),
         "- MinSamplingMax dist:", df_valid_st.GUI_MinSampleMax.value_counts())
 
+  FILTER_QUANTILE = False
+  df_plot_quantile = df_valid_st if FILTER_QUANTILE else None
+
   fig, (ax_min_sampling, ax_st_time) = plt.subplots(1,2)
   fig.set_size_inches(2*analysis.SAVE_FIG_SIZE[0], 1*analysis.SAVE_FIG_SIZE[1])
   _minSampleDist(ax=ax_min_sampling, df=df_valid_st, animal_name=animal_name)
-  # Break each second to 4 bins
-  overstay = df_overstay.ST + df_overstay.calcReactionTime
-  overstay[overstay > 10] = 10
-  max_st = overstay.max() if len(overstay) else df_accepted.ST.max()
-  num_hist_bins = int(np.ceil(max_st*4))
-  print("Hist bins:", num_hist_bins)
-  accepted_correct = df_accepted[df_accepted.ChoiceCorrect == True].ST
-  accepted_incorrect = df_accepted[df_accepted.ChoiceCorrect == False].ST
-  ax_st_time.hist([accepted_correct, accepted_incorrect, overstay], bins=num_hist_bins,
-                   stacked=True, color=['lime', 'r', 'k'],
-                   label=["Correct", "Incorrect", "Overstay"])
-  FILTER_QUANTILE = False
-  if FILTER_QUANTILE:
-    for quantile in [0.99]:#[0.75, 0.9, 0.95, 0.99]:
-      quantile_val = df_valid_st.ST.quantile(quantile)
-      x = np.around(quantile_val*4)/4
-      print(f"quantile {quantile} = {quantile_val} - X: {x}")
-      ax_st_time.axvline(x, linestyle='dashed', label=f'{quantile} Quantile', color='k')
-  ax_st_time.legend(loc='upper right')
-  ax_st_time.set_title("Reaction Time Dist - {}".format(animal_name))
-  ax_st_time.set_xlim(xmin=0, xmax=10)
+  _reactionTimeDist(ax=ax_st_time, df=df_accepted, df_overstay=df_overstay,
+                    df_plot_quantile=df_plot_quantile, animal_name=animal_name)
   if save_figs:
     analysis.savePlot(save_prefix + animal_name + "_sampling_hist")
   plt.show()
@@ -147,3 +131,25 @@ def _minSampleDist(*, ax, df, animal_name):
   ax.hist(df.MinSample, bins=int(np.ceil(df.MinSample.max() * 20)))
   ax.set_title("Min. Sampling Dist - {}".format(animal_name))
   ax.set_xlim(xmin=0, xmax=2)
+
+def _reactionTimeDist(*, ax, df, df_overstay, df_plot_quantile, animal_name):
+  # Break each second to 4 bins
+  overstay = df_overstay.ST + df_overstay.calcReactionTime
+  overstay[overstay > 10] = 10
+  max_st = overstay.max() if len(overstay) else df.ST.max()
+  num_hist_bins = int(np.ceil(max_st*4))
+  print("Hist bins:", num_hist_bins)
+  accepted_correct = df[df.ChoiceCorrect == True].ST
+  accepted_incorrect = df[df.ChoiceCorrect == False].ST
+  ax.hist([accepted_correct, accepted_incorrect, overstay], bins=num_hist_bins,
+          stacked=True, color=['lime', 'r', 'k'],
+          label=["Correct", "Incorrect", "Overstay"])
+  if df_plot_quantile:
+    for quantile in [0.99]:#[0.75, 0.9, 0.95, 0.99]:
+      quantile_val = df_plot_quantile.ST.quantile(quantile)
+      x = np.around(quantile_val*4)/4
+      print(f"quantile {quantile} = {quantile_val} - X: {x}")
+      ax.axvline(x, linestyle='dashed', label=f'{quantile} Quantile', color='k')
+  ax.legend(loc='upper right')
+  ax.set_title("Reaction Time Dist - {}".format(animal_name))
+  ax.set_xlim(xmin=0, xmax=10)
