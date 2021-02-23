@@ -89,11 +89,7 @@ def _reactionTimePerDF(animal_name, df, *, quantile_top_bottom,
 
   fig, (ax_min_sampling, ax_st_time) = plt.subplots(1,2)
   fig.set_size_inches(2*analysis.SAVE_FIG_SIZE[0], 1*analysis.SAVE_FIG_SIZE[1])
-  # Break each second to 20 bins
-  ax_min_sampling.hist(df_valid_st.MinSample,
-                       bins=int(np.ceil(df_valid_st.MinSample.max() * 20)))
-  ax_min_sampling.set_title("Min. Sampling Dist - {}".format(animal_name))
-  ax_min_sampling.set_xlim(xmin=0, xmax=2)
+  _minSampleDist(ax=ax_min_sampling, df=df_valid_st, animal_name=animal_name)
   # Break each second to 4 bins
   overstay = df_overstay.ST + df_overstay.calcReactionTime
   overstay[overstay > 10] = 10
@@ -113,7 +109,7 @@ def _reactionTimePerDF(animal_name, df, *, quantile_top_bottom,
       print(f"quantile {quantile} = {quantile_val} - X: {x}")
       ax_st_time.axvline(x, linestyle='dashed', label=f'{quantile} Quantile', color='k')
   ax_st_time.legend(loc='upper right')
-  ax_st_time.set_title("Sampling Time Dist - {}".format(animal_name))
+  ax_st_time.set_title("Reaction Time Dist - {}".format(animal_name))
   ax_st_time.set_xlim(xmin=0, xmax=10)
   if save_figs:
     analysis.savePlot(save_prefix + animal_name + "_sampling_hist")
@@ -145,3 +141,9 @@ def _reactionTimePerDF(animal_name, df, *, quantile_top_bottom,
              quantile_top_bottom=quantile_top_bottom, legend_loc="upper center",
              save_figs=save_figs, save_prefix=save_prefix,
              save_postfix="_sampling_movement_vs_diff")
+
+def _minSampleDist(*, ax, df, animal_name):
+  # Break each second to 20 bins
+  ax.hist(df.MinSample, bins=int(np.ceil(df.MinSample.max() * 20)))
+  ax.set_title("Min. Sampling Dist - {}".format(animal_name))
+  ax.set_xlim(xmin=0, xmax=2)
