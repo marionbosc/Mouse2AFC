@@ -1,12 +1,19 @@
-from enum import IntEnum
+from numpy import nan as np_nan
+from enum import Enum, IntEnum
 
-
-class IntEnumShortStr(IntEnum):
+class _EnumShortStrMixin:
   def __str__(self):
     return self.name
 
   def __format__(self, fmt):
     return self.__str__()
+
+class FloatEnumShortStr(_EnumShortStrMixin, float, Enum):
+  pass
+
+class IntEnumShortStr(_EnumShortStrMixin, IntEnum):
+  pass
+
 
 class ExperimentType(IntEnumShortStr):
   Auditory = 1
@@ -18,6 +25,10 @@ class ExperimentType(IntEnumShortStr):
 
 ExpType = ExperimentType
 
+class MouseState(FloatEnumShortStr):
+  Unkown = np_nan
+  FreelyMoving = 1
+  HeadFixed = 2
 
 class BrainRegion(IntEnumShortStr):
   V1_L = 1

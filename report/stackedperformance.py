@@ -266,7 +266,7 @@ def stackedPerformance(df, *, min_session_len, limit_session_at_max_trials,
 
 def isAcceptedSessionHeadFixed(sess_df):
   '''A session filter function for head-fixed animals'''
-  from analysis import MouseState
+  from definitions import MouseState
   if len(sess_df[sess_df.GUI_MouseState == MouseState.FreelyMoving]):
     is_accepted = False
   else:

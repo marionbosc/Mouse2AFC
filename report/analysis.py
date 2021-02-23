@@ -18,11 +18,6 @@ from .utils import grpBySess
 
 from .definitions import ExpType
 
-class MouseState:
-  Unkown = np.nan
-  FreelyMoving = 1
-  HeadFixed = 2
-
 #analysis_for = ExpType.LightIntensity if "lightchasing" in DF_FILE.lower() \
 #                                      else ExpType.RDK
 analysis_for = ExpType.RDK
