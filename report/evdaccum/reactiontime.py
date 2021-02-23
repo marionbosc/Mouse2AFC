@@ -91,7 +91,7 @@ def _reactionTimePerDF(animal_name, df, *, quantile_top_bottom,
   print("Reaction time len:", len(df_accepted),
         "- MinSamplingMax dist:", df_valid_st.GUI_MinSampleMax.value_counts())
 
-  FILTER_QUANTILE = False
+  FILTER_QUANTILE = False # 0.99
   df_plot_quantile = df_valid_st if FILTER_QUANTILE else None
 
   fig, (ax_min_sampling, ax_st_time) = plt.subplots(1,2)
@@ -105,7 +105,7 @@ def _reactionTimePerDF(animal_name, df, *, quantile_top_bottom,
 
   if FILTER_QUANTILE:
     df_accepted = df_valid_st[df_valid_st.ST <=
-                              df_valid_st.ST.quantile(quantile)]
+                              df_valid_st.ST.quantile(FILTER_QUANTILE)]
   PsycStim_axes = analysis.psychAxes(animal_name)
   analysis.psychAnimalSessions(df_accepted, animal_name, PsycStim_axes,
                                analysis.METHOD)
