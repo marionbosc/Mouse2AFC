@@ -79,6 +79,10 @@ def _reactionTimePerDF(animal_name, df, *, quantile_top_bottom,
                        short_long_quantile, save_figs, save_prefix):
   df_valid_st = df[df.ST.notnull()]
   del df # We don't need it from this point it, raise an error if it was used
+  # Overstaying is when the maximum time sampling time is reached but the animal
+  # didn't do a decision yet. In such case, we calculate how long the animal
+  # took to move from begging of sampling by adding both the stimulus time and
+  # the animal's reaction time.
   # Subtract 5ms, as sometimes Bpod might give a little bit earlier time than
   # expected
   df_overstay = df_valid_st[df_valid_st.ST >=
