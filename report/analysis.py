@@ -1155,7 +1155,8 @@ def psychAnimalSessions(df,ANIMAL,PsycStim_axes,METHOD):
         LINE_WIDTH=0.5
       ret = _psych(session, PsycStim_axes,'k' if is1sess else "gray",
                    LINE_WIDTH, title,
-                   plot_points=is1sess) # Plot points if it's a single session
+                   # Plot points if it's a single session
+                   plot_points=is1sess, offset=is1sess)
       if ret != (None, None):
         done_once = True
         used_sessions.append(session)
