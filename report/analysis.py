@@ -1167,30 +1167,34 @@ def psychAnimalSessions(df,ANIMAL,PsycStim_axes,METHOD):
             offset=True)
     else:
       sessions = df
-    plotNormTrialDistrib(sessions,PsycStim_axes,METHOD)
+    twax = plotNormTrialDistrib(sessions,PsycStim_axes,METHOD)
     handles, labels = PsycStim_axes.get_legend_handles_labels()
     if not is1sess:
       labels[0] = labels[0] + " ({:,} sessions)".format(len(used_sessions))
     #PsycStim_axes.legend(handles, labels, loc='upper left', prop={'size': 'x-small'})
+    handles2, labels2 = twax.get_legend_handles_labels()
     bbox_to_anchor = (0.5, -0.2)
-    PsycStim_axes.legend(handles, labels, loc='upper center',
+    PsycStim_axes.legend(handles+handles2, labels+labels2, loc='upper center',
               bbox_to_anchor=bbox_to_anchor,ncol=2,fancybox=True,
               prop={'size': 'x-small'})
 
 def plotNormTrialDistrib(df,axes,METHOD):
-    ndxNan = df.ChoiceLeft.isnull()
-    ndxChoice = df.ForcedLEDTrial == 0
-    difficulties = df.DV[(~ndxNan) & ndxChoice]
-    counts, bins = np.histogram(difficulties,bins=10)
+    difficulties = df[df.ChoiceLeft.isnull() & df.ForcedLEDTrial == 0].DV
+    neg = np.arange(-1.01,-0.2, 0.2)
+    pos = np.arange(0.21,1.02, 0.2)
+    mid = [-0.01, 0.01]
+    bins = np.concatenate([neg, mid, pos])
+    counts, _ = np.histogram(difficulties,bins=bins)
     counts = counts.astype(np.float)
-    if METHOD == "max":
-      counts /= counts.max()
-    elif METHOD == "sum":
-      counts /= sum(counts)
-    else:
-      raise ("Unknown METHOD " + METHOD)
-    axes.bar(bins[:-1],counts*100,width=0.2,align='edge',zorder=-1,color='pink',
-             edgecolor='k',label="Norm. difficulty distribution")
+    twax = axes.twinx()
+    twax.set_ylabel("Trial Count")
+    twax.bar(bins[:-1], counts, width=np.diff(bins), align='edge', zorder=-1,
+             color='pink', edgecolor='k', label="Norm. difficulty distribution")
+    if METHOD == "sum":
+      twax.set_ylim(0, np.sum(counts))
+    axes.set_zorder(twax.get_zorder()+1)
+    axes.patch.set_visible(False)
+    return twax
 
 
 def filterSession(df,skip_first,skip_last,min_date,min_perf):
