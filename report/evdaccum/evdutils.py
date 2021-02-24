@@ -118,19 +118,6 @@ def plotHist(*, axs, df, col_name, bins_1sided, bins_2sided,
     axs[ax_idx].set_xlabel("Coherence %")
     axs[ax_idx].set_ylabel("Trials Count (Norm. per Difficulty")
 
-def grpByDifficulty(df, overlap_sides, is_reversed=False, emit_colors=False):
-  if is_reversed: assert overlap_sides == False
-  groupby_on = df.DV.abs() if overlap_sides else df.DV
-  dv_bins = np.linspace(0, 1, 4) if overlap_sides else np.linspace(-1, 1, 7)
-  colors =    [DifficultyClr.Hard, DifficultyClr.Med, DifficultyClr.Easy]
-  if overlap_sides:
-    colors += [DifficultyClr.Easy, DifficultyClr.Med, DifficultyClr.Hard]
-  grp_by_bins = pd.cut(groupby_on, dv_bins, include_lowest=not overlap_sides)
-  for color_idx, (dv_interval, dv_df) in enumerate(df.groupby(grp_by_bins)):
-    dv_val = dv_interval.left if dv_interval.left < 0 else dv_interval.right
-    if is_reversed: dv_val *= -1
-    yield (colors[color_idx], dv_val, dv_df) if emit_colors else (dv_val, dv_df)
-
 def fltrQuantile(df_or_col, quantile_top_bottom, col_name_if_df=None):
   if isinstance(df_or_col, pd.DataFrame):
     assert col_name_if_df is not None
