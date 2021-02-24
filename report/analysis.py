@@ -764,42 +764,18 @@ def trialRate(df, *, ax, max_sess_time_lim_bug, IQR_filter, num_days_per_clr,
 
   return x_data, y_data
 
-def splitByDV(df, combine_sides=False, periods=3):
-    leftDVBins = pd.interval_range(-1, 0, periods=periods, closed='left')
-    zeroDVBins = pd.interval_range(0, 0, periods=1, closed='both')
-    rightDVBins = pd.interval_range(0, 1, periods=periods, closed='right')
-    #print(leftDVBins, zeroDVBins, rightDVBins)
-    #print(len(df[df.DV < 0]),  len(df[df.DV > 0]))
-    dv_col = df.DV
-    if combine_sides:
-      dv_col = dv_col.abs()
-    cutLeft = pd.cut(dv_col, leftDVBins, labels=False)
-    cutLeftIdxs = ~cutLeft.isnull()
-    cutZero = pd.cut(dv_col, zeroDVBins, labels=False)
-    cutZeroIdxs = ~cutZero.isnull()
-    cutRight = pd.cut(dv_col, rightDVBins, labels=False)
-    cutRightIdxs = ~cutRight.isnull()
-
+def splitByDV(df, combine_sides=False, periods=3, separate_zero=True):
+    rng = rngDV(periods=periods, combine_sides=combine_sides,
+                separate_zero=separate_zero)
     groups = []
-    # For zero, it doesn't matter if we take the right or left edge,
-    # both are the same.
-    for cut, bin_dir, cutIdxs in [(cutLeft, 'left', cutLeftIdxs),
-                                  (cutZero, 'left', cutZeroIdxs),
-                                  (cutRight,'right', cutRightIdxs)]:
-        df_cut = df[cutIdxs]
-        cut = cut[cutIdxs]
-        if not len(cut):
-          continue
-        df_cut_groupped = df_cut.groupby(cut)
-        #df_cut_groupped = list(df_cut_groupped)
-        for dv_range, group_df in df_cut_groupped:
-          #if not len(group_df):
-          entry = dv_range, getattr(dv_range, bin_dir), group_df
-          groups.append(entry)
-          # dv_to_df = [(dv_range, getattr(dv_range, bin_dir), df) \
-          #             for dv_range, df in dv_to_df]
-        #print("dv_to_df", dv_to_df[0])
-        #groups += dv_to_df
+    DV = df.DV if not combine_sides else df.DV.abs()
+    for (left, right)  in zip(rng, rng[1:]):
+        if left >= 0:
+          group_df = df[(left <= DV) & (DV < right)]
+        else:
+          group_df = df[(left < DV) & (df.DV <= right)]
+        entry = pd.Interval(left=left, right=right), (left+right)/2, group_df
+        groups.append(entry)
     return groups
 
 

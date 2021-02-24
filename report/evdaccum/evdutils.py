@@ -134,7 +134,7 @@ def metricVsDiff(df, *, col_name, friendly_name, axes, overlap_sides,
   count_pts = 0
   dv_count = {}
   for _, dv_single, dv_df in analysis.splitByDV(df, combine_sides=overlap_sides,
-                                                periods=3):
+                                                periods=3, separate_zero=False):
     if is_reversed:
       dv_single *= -1
     cohr = round(dv_single*100)
