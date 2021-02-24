@@ -133,8 +133,11 @@ def metricVsDiff(df, *, col_name, friendly_name, axes, overlap_sides,
   y_data_sem = []
   count_pts = 0
   dv_count = {}
-  for dv_val, dv_df in grpByDifficulty(df, overlap_sides, is_reversed=is_reversed):
-    cohr = round(dv_val* 100)
+  for _, dv_single, dv_df in analysis.splitByDV(df, combine_sides=overlap_sides,
+                                                periods=3):
+    if is_reversed:
+      dv_single *= -1
+    cohr = round(dv_single*100)
     if quantile_top_bottom:
       metric_fltrd = fltrQuantile(dv_df[col_name],
                                   quantile_top_bottom=quantile_top_bottom)
@@ -146,7 +149,7 @@ def metricVsDiff(df, *, col_name, friendly_name, axes, overlap_sides,
     y_data.append(metric_fltrd.mean())
     y_data_sem.append(metric_fltrd.sem())
     count_pts += len(metric_fltrd)
-    dv_count[dv_val] = len(metric_fltrd)
+    dv_count[dv_single] = len(metric_fltrd)
 
   # print("X data:", x_data)
   # print("y_data:", y_data)
