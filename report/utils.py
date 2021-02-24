@@ -1,4 +1,18 @@
-
+def rngDV(*, periods, combine_sides=False, separate_zero=True):
+  import numpy as np
+  periods += 1 # To include zero point
+  rng = np.linspace(0, 1, periods) + 0.01
+  if not combine_sides:
+    _min = -rng[::-1]
+    if not separate_zero:
+      _min = _min[:-1]
+      rng[0] = 0
+    rng = np.concatenate([_min, rng])
+  else:
+    if not separate_zero:
+      rng = rng[1:]
+    rng = np.concatenate([[0], rng])
+  return rng
 
 def lightenColor(color, amount):
   """Lightens the given color by multiplying (1-luminosity) by the given amount.

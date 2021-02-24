@@ -14,7 +14,7 @@ from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
 from enum import Enum, auto, unique
-from utils import grpBySess
+from utils import grpBySess, rngDV
 from definitions import ExpType
 
 #analysis_for = ExpType.LightIntensity if "lightchasing" in DF_FILE.lower() \
@@ -1175,10 +1175,7 @@ def psychAnimalSessions(df,ANIMAL,PsycStim_axes,METHOD):
 
 def plotNormTrialDistrib(df,axes,METHOD):
     difficulties = df[df.ChoiceLeft.isnull() & df.ForcedLEDTrial == 0].DV
-    neg = np.arange(-1.01,-0.2, 0.2)
-    pos = np.arange(0.21,1.02, 0.2)
-    mid = [-0.01, 0.01]
-    bins = np.concatenate([neg, mid, pos])
+    bins = rngDV(periods=5)
     counts, _ = np.histogram(difficulties,bins=bins)
     counts = counts.astype(np.float)
     twax = axes.twinx()
