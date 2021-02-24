@@ -18,7 +18,7 @@ class Plots(IntFlag):
 AllPlots = sum([plot for plot in Plots])
 NoPlots = 0
 
-def reactionTime(df, *, overall_plots, sess_plots, **kargs ):
+def reactionTime(df, *, overall_plots, sess_plots, **kargs):
   cut_below_trial_num = kargs.pop("cut_below_trial_num")
   for animal_name, animal_df in df.groupby(df.Name):
     _processAnimal(animal_name, animal_df,
@@ -66,7 +66,7 @@ def _processAnimal(animal_name, animal_df, *, cut_below_trial_num,
       print("Name:", name)
       new_save_prefix = save_prefix + f"/{animal_name}_sess/"
       _reactionTimePerDF(animal_name=name, df=sess_df, plots=sess_plots,
-                        save_prefix=new_save_prefix, **kargs)
+                         save_prefix=new_save_prefix, **kargs)
 
 def _fltrSSn(sess_df, exp_type, min_easiest_perf):
   sess_df = sess_df[sess_df.GUI_ExperimentType == exp_type]
