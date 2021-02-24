@@ -77,8 +77,8 @@ def _fltrSSn(sess_df, exp_type, min_easiest_perf):
           f"{sess_df.Date.iloc[0]}-Sess{sess_df.SessionNum.iloc[0]}")
     return False
   trial_difficulty_col = df_choice.DV.abs() * 100
-  if exp_type == ExpType.RDK:
-    trial_difficulty_col = (trial_difficulty_col-50)*2
+  if exp_type != ExpType.RDK:
+    trial_difficulty_col = (trial_difficulty_col/2)+50
   easiest_diff = df_choice[trial_difficulty_col == df_choice.Difficulty1]
   if len(easiest_diff):
     easiest_perf = \
