@@ -178,27 +178,18 @@ def metricVsDiff(df, *, col_name, friendly_name, axes, overlap_sides,
   y_data_sem = []
   count_pts = 0
   dv_count = {}
-  if bins is None:
-    loop_tups = analysis.splitByDV(df, combine_sides=overlap_sides,
-                                   periods=3, separate_zero=False)
-  else:
-    loop_tups = splitByBins(df, bins, combine_sides=overlap_sides)
-  for _, dv_single, dv_df in loop_tups:
-    if is_reversed:
-      dv_single *= -1
+  for dv_single, dv_df in _loopDfByDV(df, col_name=col_name, bins=bins,
+                                      overlap_sides=overlap_sides,
+                                      is_reversed=is_reversed,
+                                      quantile_top_bottom=quantile_top_bottom):
     cohr = round(dv_single*100)
-    if quantile_top_bottom:
-      metric_fltrd = fltrQuantile(dv_df[col_name],
-                                  quantile_top_bottom=quantile_top_bottom)
-    else:
-      metric_fltrd = dv_df[col_name]
-    # print("Cohr:", cohr, "Cohr len:", len(dv_df), col_name, "mean:",
+    # print("Cohr:", cohr, "Cohr len:", len(metric_fltrd), col_name, "mean:",
     #       metric_fltrd.mean())
     x_data.append(cohr)
-    y_data.append(metric_fltrd.mean())
-    y_data_sem.append(metric_fltrd.sem())
-    count_pts += len(metric_fltrd)
-    dv_count[dv_single] = len(metric_fltrd)
+    y_data.append(dv_df[col_name].mean())
+    y_data_sem.append(dv_df[col_name].sem())
+    count_pts += len(dv_df)
+    dv_count[dv_single] = len(dv_df)
 
   # print("X data:", x_data)
   # print("y_data:", y_data)
@@ -211,4 +202,23 @@ def metricVsDiff(df, *, col_name, friendly_name, axes, overlap_sides,
   if y_label is None: y_label = friendly_name
   axes.set_ylabel(y_label)
   axes.legend(loc="lower left", prop={'size': 'small'})
+
+def _loopDfByDV(df, *, col_name, overlap_sides, bins, is_reversed,
+                quantile_top_bottom):
+  if bins is None:
+    loop_tups = analysis.splitByDV(df, combine_sides=overlap_sides,
+                                   periods=3, separate_zero=False)
+  else:
+    loop_tups = splitByBins(df, bins, combine_sides=overlap_sides)
+  groups = []
+  for _, dv_single, dv_df in loop_tups:
+    if is_reversed:
+      dv_single *= -1
+    if quantile_top_bottom:
+      df_fltrd = fltrQuantile(dv_df, quantile_top_bottom=quantile_top_bottom,
+                              col_name_if_df=col_name)
+    else:
+      df_fltrd = dv_df
+    groups.append((dv_single, df_fltrd))
+  return groups
   return dv_count
