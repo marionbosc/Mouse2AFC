@@ -93,7 +93,8 @@ def _fltrSSn(sess_df, exp_type, min_easiest_perf):
   return easiest_perf >= min_easiest_perf
 
 def _reactionTimePerDF(animal_name, df, *, plots, quantile_top_bottom, grpby,
-                       short_long_quantile, save_figs, save_prefix):
+                       short_long_quantile, plot_only_all, save_figs,
+                       save_prefix):
   if plots == NoPlots:
     return
 
@@ -149,6 +150,7 @@ def _reactionTimePerDF(animal_name, df, *, plots, quantile_top_bottom, grpby,
               animal_name=animal_name, y_label="Sampling Time (S)",
               quantile_top_bottom=quantile_top_bottom, grpby=grpby,
               plot_vsDiff=plots & Plots.ReactionTimeVsDiff,
+              plot_only_all=plot_only_all,
               plot_hist=plots & Plots.ReactionTimeVsDiffHist,
               save_figs=save_figs, save_prefix=save_prefix,
               save_postfix="_sampling_vs_diff")
@@ -168,7 +170,7 @@ def _reactionTimePerDF(animal_name, df, *, plots, quantile_top_bottom, grpby,
               quantile_top_bottom=quantile_top_bottom, grpby=grpby,
               plot_vsDiff=plots & Plots.MovementTimeVsDiff,
               plot_hist=plots & Plots.MovementTimeVsDiffHist,
-              legend_loc="upper center",
+              legend_loc="upper center", plot_only_all=plot_only_all,
               save_figs=save_figs, save_prefix=save_prefix,
               save_postfix="_sampling_movement_vs_diff")
 
