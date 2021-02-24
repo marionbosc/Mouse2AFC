@@ -47,7 +47,7 @@ def plotSides(df, *, col_name, friendly_col_name, animal_name, grpby,
     bins_2sided = rngByQuantile(df_all, periods=3, separate_zero=False)
     bins_1sided = rngByQuantile(df_all, periods=3, separate_zero=False,
                                 combine_sides=True)
-  for bar_idx, (side_df, color, label, li_is_reversed) in enumerate(iter_list):
+  for side_df, color, label, li_is_reversed in iter_list:
     kargs = Kargs(df=side_df, col_name=col_name, friendly_name=friendly_col_name,
                   color=color, label=label,
                   quantile_top_bottom=quantile_top_bottom,
@@ -56,37 +56,67 @@ def plotSides(df, *, col_name, friendly_col_name, animal_name, grpby,
       is_reversed = li_is_reversed and not overlap_sides
       quantile_bins = bins_1sided if overlap_sides else bins_2sided
       if plot_vsDiff:
-        dv_count = metricVsDiff(axes=top_row_axs[ax_idx], bins=quantile_bins,
-                                overlap_sides=overlap_sides,
-                                is_reversed=is_reversed, **kargs)
-      if plot_hist:
-        #TODO: dv_count is not calculated unless plot_vsDiff is enabled
-        BAR_WIDTH=0.06 * 100 # Convert to coherence
-        xs = np.array(list(dv_count.keys())) * 100
-        xs = np.around(xs)
-        # -1 depends on number of combinations to center bars
-        xs += BAR_WIDTH*(bar_idx-1)
-        # Normalze Ys
-        ys = np.array(list(dv_count.values()), dtype=np.float64)
-        ys /= ys.max()
-        label += " (Reversed)" if is_reversed else ""
-        bottom_row_axs[ax_idx].bar(xs, ys, color=color, width=BAR_WIDTH,
-                                   label=label)
+        metricVsDiff(axes=top_row_axs[ax_idx], bins=quantile_bins,
+                     overlap_sides=overlap_sides, is_reversed=is_reversed,
+                     **kargs)
 
   if plot_vsDiff and legend_loc:
     top_row_axs[0].legend(loc=legend_loc,prop={'size':'x-small'})
     top_row_axs[1].legend(loc=legend_loc,prop={'size':'x-small'})
 
   if plot_hist:
-    for ax in bottom_row_axs:
-      ax.legend(prop={'size':'x-small'})
-      ax.set_title("Norm. Difficulties Dist. - {}".format(animal_name))
-      ax.set_xlabel("Coherence %")
-      ax.set_ylabel("Trials Count (Norm. per Difficulty")
+    plotHist(axs=bottom_row_axs, df=df_all, col_name=col_name,
+             bins_1sided=bins_1sided, bins_2sided=bins_2sided,
+             quantile_top_bottom=quantile_top_bottom, animal_name=animal_name,
+             plot_only_all=plot_only_all)
 
   if save_figs:
     analysis.savePlot(save_prefix + animal_name + save_postfix)
   plt.show()
+
+def plotHist(*, axs, df, col_name, bins_1sided, bins_2sided,
+             quantile_top_bottom, animal_name, plot_only_all):
+  for ax_idx, overlap_sides in enumerate([False, True]):
+    quantile_bins = bins_1sided if overlap_sides else bins_2sided
+    xs = []
+    if plot_only_all:
+      x_count = []
+    else:
+      x_correct_count, x_incorrect_count = [], []
+    # We assumed the incorrect trials are already reversed here bu the calling
+    # function.
+    for dv_single, dv_df in _loopDfByDV(df, col_name=col_name,
+                                        bins=quantile_bins,
+                                        overlap_sides=overlap_sides,
+                                        is_reversed=False,
+                                       quantile_top_bottom=quantile_top_bottom):
+      xs.append(dv_single)
+      if plot_only_all:
+        x_count.append(len(dv_df))
+      else:
+        x_correct_count.append(len(dv_df[dv_df.ChoiceCorrect == True]))
+        x_incorrect_count.append(len(dv_df[dv_df.ChoiceCorrect == False]))
+    BAR_WIDTH=0.06 * 100 # Convert to coherence
+    xs = np.array(xs) * 100
+    xs = np.around(xs)
+    if plot_only_all:
+      bars = [x_count]
+      colors = [Choice.All]
+      labels = ["All"]
+    else:
+      bars = [x_correct_count, x_incorrect_count]
+      colors = [Choice.Correct, Choice.Incorrect]
+      labels = ["Correct",
+                "Incorect" + (" (Reversed)"  if not overlap_sides else "")]
+    last_bottom = 0
+    for bar, color, label in zip(bars, colors, labels):
+      axs[ax_idx].bar(xs, bar, color=color, width=BAR_WIDTH, label=label,
+                      bottom=last_bottom)
+      last_bottom = bar
+    axs[ax_idx].legend(prop={'size':'x-small'})
+    axs[ax_idx].set_title("Norm. Difficulties Dist. - {}".format(animal_name))
+    axs[ax_idx].set_xlabel("Coherence %")
+    axs[ax_idx].set_ylabel("Trials Count (Norm. per Difficulty")
 
 def grpByDifficulty(df, overlap_sides, is_reversed=False, emit_colors=False):
   if is_reversed: assert overlap_sides == False
@@ -177,7 +207,6 @@ def metricVsDiff(df, *, col_name, friendly_name, axes, overlap_sides,
   y_data = []
   y_data_sem = []
   count_pts = 0
-  dv_count = {}
   for dv_single, dv_df in _loopDfByDV(df, col_name=col_name, bins=bins,
                                       overlap_sides=overlap_sides,
                                       is_reversed=is_reversed,
@@ -189,7 +218,6 @@ def metricVsDiff(df, *, col_name, friendly_name, axes, overlap_sides,
     y_data.append(dv_df[col_name].mean())
     y_data_sem.append(dv_df[col_name].sem())
     count_pts += len(dv_df)
-    dv_count[dv_single] = len(dv_df)
 
   # print("X data:", x_data)
   # print("y_data:", y_data)
@@ -221,4 +249,3 @@ def _loopDfByDV(df, *, col_name, overlap_sides, bins, is_reversed,
       df_fltrd = dv_df
     groups.append((dv_single, df_fltrd))
   return groups
-  return dv_count
