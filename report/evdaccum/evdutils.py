@@ -111,7 +111,7 @@ def plotHist(*, axs, df, col_name, bins_1sided, bins_2sided,
     last_bottom = 0
     for bar, color, label in zip(bars, colors, labels):
       axs[ax_idx].bar(xs, bar, color=color, width=BAR_WIDTH, label=label,
-                      bottom=last_bottom)
+                      bottom=last_bottom, edgecolor='k')
       last_bottom = bar
     axs[ax_idx].legend(prop={'size':'x-small'})
     axs[ax_idx].set_title("Norm. Difficulties Dist. - {}".format(animal_name))
