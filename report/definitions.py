@@ -1,5 +1,5 @@
 from numpy import nan as np_nan
-from enum import Enum, IntEnum
+from enum import Enum
 
 class _EnumShortStrMixin:
   def __str__(self):
@@ -8,12 +8,13 @@ class _EnumShortStrMixin:
   def __format__(self, fmt):
     return self.__str__()
 
-class FloatEnumShortStr(_EnumShortStrMixin, float, Enum):
+class FloatEnumShortStr(float, _EnumShortStrMixin, Enum):
   pass
 
-class IntEnumShortStr(_EnumShortStrMixin, IntEnum):
+# We can't use IntEnum straight away as it complains about the mixin order,
+# we have to do this trick instead.
+class IntEnumShortStr(int, _EnumShortStrMixin, Enum):
   pass
-
 
 class ExperimentType(IntEnumShortStr):
   Auditory = 1
