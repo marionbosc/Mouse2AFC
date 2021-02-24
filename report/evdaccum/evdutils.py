@@ -5,8 +5,10 @@ from report import analysis
 from report.clr import Choice, Difficulty as DifficultyClr
 
 def plotSides(df, *, col_name, friendly_col_name, animal_name,
-              quantile_top_bottom, y_label, save_figs,
+              quantile_top_bottom, y_label, plot_vsDiff, plot_hist, save_figs,
               save_prefix, save_postfix, legend_loc=None, plot_only_all=False):
+  if not plot_vsDiff and not plot_hist:
+    return
   df = df[df.ChoiceCorrect.notnull()]
   REVERSED, NOT_REVERSED=True, False
   # THe next part is a bad hack to group direction together, sorry about this...
@@ -18,13 +20,20 @@ def plotSides(df, *, col_name, friendly_col_name, animal_name,
     iter_list += [
           (df[df.ChoiceCorrect == 1], Choice.Correct,  "Correct", NOT_REVERSED),
           (df_incorrect, Choice.Incorrect,"Incorrect", REVERSED)]
-  ROWS, COLS = (1, 2) if plot_only_all else (2, 2)
-  fig, axs = plt.subplots(ROWS, COLS)
+
+  COLS = 2
+  rows = 0
+  if plot_vsDiff: rows += 1
+  if plot_hist: rows += 1
+  fig, axs = plt.subplots(rows, COLS)
   fig.set_size_inches(COLS*analysis.SAVE_FIG_SIZE[0],
-                      ROWS*analysis.SAVE_FIG_SIZE[1])
-  top_row_axs = axs if plot_only_all else axs[0]
-  if not plot_only_all:
-    bottom_row_axs = axs[1]
+                      rows*analysis.SAVE_FIG_SIZE[1])
+  if rows == 1:
+    axs = [axs]
+  if plot_vsDiff:
+    top_row_axs = axs[0]
+  if plot_hist:
+    bottom_row_axs = axs[-1]
 
   for bar_idx, (side_df, color, label, li_is_reversed) in enumerate(iter_list):
     kargs = Kargs(df=side_df, col_name=col_name, friendly_name=friendly_col_name,
@@ -33,10 +42,12 @@ def plotSides(df, *, col_name, friendly_col_name, animal_name,
                   y_label=y_label, animal_name=animal_name)
     for ax_idx, overlap_sides in enumerate([False, True]):
       is_reversed = li_is_reversed and not overlap_sides
-      dv_count = metricVsDiff(axes=top_row_axs[ax_idx],
-                              overlap_sides=overlap_sides,
-                              is_reversed=is_reversed, **kargs)
-      if not plot_only_all:
+      if plot_vsDiff:
+        dv_count = metricVsDiff(axes=top_row_axs[ax_idx],
+                                overlap_sides=overlap_sides,
+                                is_reversed=is_reversed, **kargs)
+      if plot_hist:
+        #TODO: dv_count is not calculated unless plot_vsDiff is enabled
         BAR_WIDTH=0.06 * 100 # Convert to coherence
         xs = np.array(list(dv_count.keys())) * 100
         xs = np.around(xs)
@@ -49,11 +60,11 @@ def plotSides(df, *, col_name, friendly_col_name, animal_name,
         bottom_row_axs[ax_idx].bar(xs, ys, color=color, width=BAR_WIDTH,
                                    label=label)
 
-  if legend_loc:
+  if plot_vsDiff and legend_loc:
     top_row_axs[0].legend(loc=legend_loc,prop={'size':'x-small'})
     top_row_axs[1].legend(loc=legend_loc,prop={'size':'x-small'})
 
-  if not plot_only_all:
+  if plot_hist:
     for ax in bottom_row_axs:
       ax.legend(prop={'size':'x-small'})
       ax.set_title("Norm. Difficulties Dist. - {}".format(animal_name))
