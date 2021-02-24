@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from report.definitions import MouseState, ExpType
 from report import analysis
-from .evdutils import plotSides, plotShortLongWT
+from .evdutils import GroupBy, plotSides, plotShortLongWT
 
 class Plots(IntFlag):
   MinSampleDistHist = auto()
@@ -92,7 +92,7 @@ def _fltrSSn(sess_df, exp_type, min_easiest_perf):
           f"Len: {len(df_choice)}")
   return easiest_perf >= min_easiest_perf
 
-def _reactionTimePerDF(animal_name, df, *, plots, quantile_top_bottom,
+def _reactionTimePerDF(animal_name, df, *, plots, quantile_top_bottom, grpby,
                        short_long_quantile, save_figs, save_prefix):
   if plots == NoPlots:
     return
@@ -147,7 +147,7 @@ def _reactionTimePerDF(animal_name, df, *, plots, quantile_top_bottom,
   if plots & (Plots.ReactionTimeVsDiff | Plots.ReactionTimeVsDiffHist):
     plotSides(df_accepted, col_name="ST", friendly_col_name="Sampling Time",
               animal_name=animal_name, y_label="Sampling Time (S)",
-              quantile_top_bottom=quantile_top_bottom,
+              quantile_top_bottom=quantile_top_bottom, grpby=grpby,
               plot_vsDiff=plots & Plots.ReactionTimeVsDiff,
               plot_hist=plots & Plots.ReactionTimeVsDiffHist,
               save_figs=save_figs, save_prefix=save_prefix,
@@ -165,7 +165,7 @@ def _reactionTimePerDF(animal_name, df, *, plots, quantile_top_bottom,
     plotSides(df_accepted, col_name="calcMovementTime",
               friendly_col_name="Movement Time",
               animal_name=animal_name, y_label="Movement Time (S)",
-              quantile_top_bottom=quantile_top_bottom,
+              quantile_top_bottom=quantile_top_bottom, grpby=grpby,
               plot_vsDiff=plots & Plots.MovementTimeVsDiff,
               plot_hist=plots & Plots.MovementTimeVsDiffHist,
               legend_loc="upper center",

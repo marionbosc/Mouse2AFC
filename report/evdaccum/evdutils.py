@@ -1,10 +1,15 @@
+from enum import Flag, auto
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from report import analysis
 from report.clr import Choice, Difficulty as DifficultyClr
 
-def plotSides(df, *, col_name, friendly_col_name, animal_name,
+class GroupBy(Flag):
+  Difficulty = auto()
+  EqualSize = auto()
+
+def plotSides(df, *, col_name, friendly_col_name, animal_name, grpby,
               quantile_top_bottom, y_label, plot_vsDiff, plot_hist, save_figs,
               save_prefix, save_postfix, legend_loc=None, plot_only_all=False):
   if not plot_vsDiff and not plot_hist:
@@ -35,6 +40,13 @@ def plotSides(df, *, col_name, friendly_col_name, animal_name,
   if plot_hist:
     bottom_row_axs = axs[-1]
 
+  if grpby == GroupBy.Difficulty:
+    bins_2sided, bins_1sided = None, None
+  else:
+    assert grpby == GroupBy.EqualSize
+    bins_2sided = rngByQuantile(df_all, periods=3, separate_zero=False)
+    bins_1sided = rngByQuantile(df_all, periods=3, separate_zero=False,
+                                combine_sides=True)
   for bar_idx, (side_df, color, label, li_is_reversed) in enumerate(iter_list):
     kargs = Kargs(df=side_df, col_name=col_name, friendly_name=friendly_col_name,
                   color=color, label=label,
@@ -42,8 +54,9 @@ def plotSides(df, *, col_name, friendly_col_name, animal_name,
                   y_label=y_label, animal_name=animal_name)
     for ax_idx, overlap_sides in enumerate([False, True]):
       is_reversed = li_is_reversed and not overlap_sides
+      quantile_bins = bins_1sided if overlap_sides else bins_2sided
       if plot_vsDiff:
-        dv_count = metricVsDiff(axes=top_row_axs[ax_idx],
+        dv_count = metricVsDiff(axes=top_row_axs[ax_idx], bins=quantile_bins,
                                 overlap_sides=overlap_sides,
                                 is_reversed=is_reversed, **kargs)
       if plot_hist:
@@ -125,16 +138,52 @@ def plotShortLongWT(df, col_name, short_long_quantile, friendly_col_name,
 def Kargs(**kargs):
   return kargs
 
+def rngByQuantile(df, combine_sides=False, periods=3, separate_zero=True):
+  _, bins = pd.qcut(df.DV.abs(), periods, retbins=True, duplicates='drop')
+  bins[-1] = 1.01
+  if not combine_sides:
+    if separate_zero:
+      bins[0] = 0.01
+      _min = bins[::-1]
+    else:
+      bins[0] = 0
+      _min = -bins[::-1][:-1] # WHat would be a cleaner syntax?
+    bins = np.concatenate([_min, bins])
+  else:
+    if not separate_zero:
+      bins[0] = 0
+    else:
+      bin_offset_idx = 0 if bins[0] != 0 else 1
+      bins = np.concatenate([[0, 0.01], bins[bin_offset_idx:]])
+  return bins
+
+def splitByBins(df, bins, combine_sides=False):
+  DV = df.DV if not combine_sides else df.DV.abs()
+  groups = []
+  for (left, right) in zip(bins, bins[1:]):
+    if left >= 0:
+      group_df = df[(left <= DV) & (DV < right)]
+    else:
+      group_df = df[(left < DV) & (df.DV <= right)]
+    df = df[~df.index.isin(group_df.index)] # Remove already included items
+    entry = pd.Interval(left=left, right=right), (left+right)/2, group_df
+    groups.append(entry)
+  return groups
+
 def metricVsDiff(df, *, col_name, friendly_name, axes, overlap_sides,
-                 quantile_top_bottom, animal_name, is_reversed=False,
+                 quantile_top_bottom, animal_name, is_reversed=False, bins=None,
                  color=None, label="", y_label=None):
   x_data = []
   y_data = []
   y_data_sem = []
   count_pts = 0
   dv_count = {}
-  for _, dv_single, dv_df in analysis.splitByDV(df, combine_sides=overlap_sides,
-                                                periods=3, separate_zero=False):
+  if bins is None:
+    loop_tups = analysis.splitByDV(df, combine_sides=overlap_sides,
+                                   periods=3, separate_zero=False)
+  else:
+    loop_tups = splitByBins(df, bins, combine_sides=overlap_sides)
+  for _, dv_single, dv_df in loop_tups:
     if is_reversed:
       dv_single *= -1
     cohr = round(dv_single*100)
