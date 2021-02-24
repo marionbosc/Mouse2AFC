@@ -14,8 +14,12 @@ from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
 from enum import Enum, auto, unique
-from utils import grpBySess, rngDV
-from definitions import ExpType
+try:
+  from utils import grpBySess, rngDV
+  from definitions import ExpType
+except ImportError: # Bad hack until we figure how to unify this
+  from .utils import grpBySess, rngDV
+  from .definitions import ExpType
 
 #analysis_for = ExpType.LightIntensity if "lightchasing" in DF_FILE.lower() \
 #                                      else ExpType.RDK

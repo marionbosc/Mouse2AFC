@@ -3,7 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from report.definitions import MouseState, ExpType
 from report import analysis
-from .evdutils import GroupBy, plotSides, plotShortLongWT
+from report.utils import grpBySess
+from .evdutils import plotSides, plotShortLongWT
 
 class Plots(IntFlag):
   MinSampleDistHist = auto()
@@ -48,7 +49,6 @@ def _processAnimal(animal_name, animal_df, *, cut_below_trial_num,
   #st_df = st_df[(0.4 <= st_df.GUI_CalcLeftBias) & (st_df.GUI_CalcLeftBias <= 0.6)]
   #st_df = st_df[st_df.GUI_MinSampleType != 4]
   #st_df = st_df[st_df.SessionPerformance >= 70]
-  from utils import grpBySess
   min_easiest_perf = kargs.pop("min_easiest_perf")
   exp_type = kargs.pop("exp_type")
   st_df = grpBySess(st_df).filter(_fltrSSn, exp_type=exp_type,
