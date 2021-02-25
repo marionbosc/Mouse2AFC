@@ -175,13 +175,13 @@ def rngByQuantile(df, combine_sides=False, periods=3, separate_zero=True):
   return bins
 
 def splitByBins(df, bins, combine_sides=False):
-  DV = df.DV if not combine_sides else df.DV.abs()
   groups = []
   for (left, right) in zip(bins, bins[1:]):
+    DV = df.DV if not combine_sides else df.DV.abs()
     if left >= 0:
       group_df = df[(left <= DV) & (DV < right)]
     else:
-      group_df = df[(left < DV) & (df.DV <= right)]
+      group_df = df[(left < DV) & (DV <= right)]
     df = df[~df.index.isin(group_df.index)] # Remove already included items
     entry = pd.Interval(left=left, right=right), (left+right)/2, group_df
     groups.append(entry)
