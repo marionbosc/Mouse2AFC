@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from report import analysis
+from report.definitions import ExpType
 from report.clr import Choice, Difficulty as DifficultyClr
 
 class GroupBy(Flag):
@@ -239,3 +240,27 @@ def _loopDfByDV(df, *, col_name, overlap_sides, periods, bins, is_reversed,
       df_fltrd = dv_df
     groups.append((dv_single, df_fltrd))
   return groups
+
+def fltrSsns(sess_df, exp_type, min_easiest_perf):
+  sess_df = sess_df[sess_df.GUI_ExperimentType == exp_type]
+  df_choice = sess_df[sess_df.ChoiceCorrect.notnull()]
+  df_choice = df_choice[df_choice.Difficulty3.notnull()]
+  if len(df_choice) and len(df_choice) < 50:
+    print(f"Insufficient trials ({len(df_choice)}) for "
+          f"{sess_df.Date.iloc[0]}-Sess{sess_df.SessionNum.iloc[0]}")
+    return False
+  trial_difficulty_col = df_choice.DV.abs() * 100
+  if exp_type != ExpType.RDK:
+    trial_difficulty_col = (trial_difficulty_col/2)+50
+  easiest_diff = df_choice[trial_difficulty_col == df_choice.Difficulty1]
+  if len(easiest_diff):
+    easiest_perf = \
+      len(easiest_diff[easiest_diff.ChoiceCorrect == 1]) / len(easiest_diff)
+  else:
+    easiest_perf = -1
+  easiest_perf *= 100
+  if len(easiest_diff) and easiest_perf < min_easiest_perf:
+    print(f"Bad performance ({easiest_perf:.2f}%) for "
+          f"{sess_df.Date.iloc[0]}-Sess{sess_df.SessionNum.iloc[0]} - "
+          f"Len: {len(df_choice)}")
+  return easiest_perf >= min_easiest_perf

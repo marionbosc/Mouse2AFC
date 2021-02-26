@@ -1,10 +1,10 @@
 from enum import IntFlag, auto
 import numpy as np
 import matplotlib.pyplot as plt
-from report.definitions import MouseState, ExpType
+from report.definitions import MouseState
 from report import analysis
 from report.utils import grpBySess
-from .evdutils import plotSides, plotShortLongWT
+from .evdutils import plotSides, plotShortLongWT, fltrSsns
 
 class Plots(IntFlag):
   MinSampleDistHist = auto()
@@ -51,7 +51,7 @@ def _processAnimal(animal_name, animal_df, *, cut_below_trial_num,
   #st_df = st_df[st_df.SessionPerformance >= 70]
   min_easiest_perf = kargs.pop("min_easiest_perf")
   exp_type = kargs.pop("exp_type")
-  st_df = grpBySess(st_df).filter(_fltrSSn, exp_type=exp_type,
+  st_df = grpBySess(st_df).filter(fltrSsns, exp_type=exp_type,
                                   min_easiest_perf=min_easiest_perf)
   if len(st_df) < 400:
     return
@@ -67,30 +67,6 @@ def _processAnimal(animal_name, animal_df, *, cut_below_trial_num,
       new_save_prefix = save_prefix + f"/{animal_name}_sess/"
       _reactionTimePerDF(animal_name=name, df=sess_df, plots=sess_plots,
                          save_prefix=new_save_prefix, **kargs)
-
-def _fltrSSn(sess_df, exp_type, min_easiest_perf):
-  sess_df = sess_df[sess_df.GUI_ExperimentType == exp_type]
-  df_choice = sess_df[sess_df.ChoiceCorrect.notnull()]
-  df_choice = df_choice[df_choice.Difficulty3.notnull()]
-  if len(df_choice) < 50:
-    print(f"Insufficient trials ({len(df_choice)}) for "
-          f"{sess_df.Date.iloc[0]}-Sess{sess_df.SessionNum.iloc[0]}")
-    return False
-  trial_difficulty_col = df_choice.DV.abs() * 100
-  if exp_type != ExpType.RDK:
-    trial_difficulty_col = (trial_difficulty_col/2)+50
-  easiest_diff = df_choice[trial_difficulty_col == df_choice.Difficulty1]
-  if len(easiest_diff):
-    easiest_perf = \
-      len(easiest_diff[easiest_diff.ChoiceCorrect == 1]) / len(easiest_diff)
-  else:
-    easiest_perf = -1
-  easiest_perf *= 100
-  if easiest_perf < min_easiest_perf:
-    print(f"Bad performance ({easiest_perf:.2f}%) for "
-          f"{sess_df.Date.iloc[0]}-Sess{sess_df.SessionNum.iloc[0]} - "
-          f"Len: {len(df_choice)}")
-  return easiest_perf >= min_easiest_perf
 
 def _reactionTimePerDF(animal_name, df, *, plots, periods, quantile_top_bottom,
                        grpby, short_long_quantile, plot_only_all, save_figs,
