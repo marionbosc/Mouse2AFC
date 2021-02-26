@@ -15,7 +15,14 @@ def plotSides(df, *, col_name, friendly_col_name, animal_name, periods, grpby,
               save_prefix, save_postfix, legend_loc=None, plot_only_all=False):
   if not plot_vsDiff and not plot_hist:
     return
-  df = df[df.ChoiceCorrect.notnull()]
+  df_only_choice = df[df.ChoiceCorrect.notnull()]
+  # Only filter if we have valid trials, otherwise it's an invalid based df, e.g
+  # EarlyWithdrawals df.
+  if len(df_only_choice):
+    df =  df_only_choice
+  else:
+    print("Keeping unfiltered")
+  del df_only_choice # We no longer need this
   REVERSED, NOT_REVERSED=True, False
   # THe next part is a bad hack to group direction together, sorry about this...
   df_incorrect = df[df.ChoiceCorrect == 0]
@@ -202,6 +209,8 @@ def metricVsDiff(df, *, col_name, periods, friendly_name, axes, overlap_sides,
                                       bins=bins, overlap_sides=overlap_sides,
                                       is_reversed=is_reversed,
                                       quantile_top_bottom=quantile_top_bottom):
+    if not len(dv_df):
+      continue
     cohr = round(dv_single*100)
     # print("Cohr:", cohr, "Cohr len:", len(metric_fltrd), col_name, "mean:",
     #       metric_fltrd.mean())
