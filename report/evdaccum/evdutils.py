@@ -117,7 +117,7 @@ def plotHist(*, axs, df, col_name, periods, bins_1sided, bins_2sided,
     axs[ax_idx].legend(prop={'size':'x-small'})
     axs[ax_idx].set_title("Norm. Difficulties Dist. - {}".format(animal_name))
     axs[ax_idx].set_xlabel("Coherence %")
-    axs[ax_idx].set_ylabel("Trials Count (Norm. per Difficulty")
+    axs[ax_idx].set_ylabel("Trials Count")
 
 def fltrQuantile(df_or_col, quantile_top_bottom, col_name_if_df=None):
   if isinstance(df_or_col, pd.DataFrame):
