@@ -835,20 +835,20 @@ def psychAxes(animal_name="", axes=None, analysis_for=ExpType.RDK,
     axes.axhline(y=50, color='gray', linestyle='dashed', zorder=-10)
     return axes
 
-def psychAll(df, PsycStim_axes, *, color, legend_name, linestyle):
-    _psych(df, PsycStim_axes, color=color, linewidth=3, legend_name=legend_name,
-           linestyle=linestyle)
+def psychAll(df, PsycStim_axes, *, color, legend_name, linestyle, periods=5):
+    _psych(df, PsycStim_axes, periods=periods, color=color, linewidth=3,
+           legend_name=legend_name, linestyle=linestyle)
 
 import numpy as np
 _parstart = np.array([.05,  1,   0.5,  0.5])
 _parmin =   np.array([-1,   0.,   0.,  0])
 _parmax =   np.array([1,    200.,  1,  1])
 _nfits = 10
-def newFit(df, ax, *, combine_sides, parstart=_parstart,
+def newFit(df, ax, *, combine_sides, periods=5, parstart=_parstart,
            parmin=_parmin, parmax=_parmax, nfits=_nfits, **kargs):
   df = df[df.ChoiceLeft.notnull()]
   stims, stim_count, stim_ratio_correct = [], [], []
-  for dv_interval, dv_single, dv_df in splitByDV(df, periods=5,
+  for dv_interval, dv_single, dv_df in splitByDV(df, periods=periods,
                                                  combine_sides=combine_sides):
     DV = dv_df.DV
     if combine_sides: DV = DV.abs()
@@ -904,9 +904,9 @@ class MaxLikelihoodModel(str, Enum):
     return f"{self.value}"
 
 
-def _psych(df, PsycStim_axes, color, linewidth, legend_name, *, alpha=1,
-           combine_sides=False, plot_points=True, offset=False, SEM=False,
-           min_slope=None, crit=PsychFitCrit.MaxLikelihood,
+def _psych(df, PsycStim_axes, color, linewidth, legend_name, *, periods=5,
+           alpha=1, combine_sides=False, plot_points=True, offset=False,
+           SEM=False, min_slope=None, crit=PsychFitCrit.MaxLikelihood,
            max_likli_crit=MaxLikelihoodModel.Weibull,
            linestyle="solid", marker='o', markersize=1.5,
            annotate_pts=False, **kargs):
@@ -918,7 +918,7 @@ def _psych(df, PsycStim_axes, color, linewidth, legend_name, *, alpha=1,
     perf_col = "ChoiceCorrect" if combine_sides else "ChoiceLeft"
     if plot_points:
       # Periods used to be 3
-      df_by_dv = splitByDV(df, combine_sides=combine_sides, periods=5)
+      df_by_dv = splitByDV(df, combine_sides=combine_sides, periods=periods)
       PsycY = [dv_df[perf_col].mean() * 100 for _, _, dv_df in df_by_dv]
       PsycX = [dv_interval.mid if offset else dv_single
                for dv_interval, dv_single, _ in df_by_dv]
@@ -948,9 +948,9 @@ def _psych(df, PsycStim_axes, color, linewidth, legend_name, *, alpha=1,
             legend_name="{}{}".format(legend_name,
                     "" if not plot_points else " ({:,} trials)".format(len(df)))
           intercept, slope, (x_sampled, y_points) = newFit(df, PsycStim_axes,
-            combine_sides=combine_sides, color=color, alpha=alpha,
-            linestyle=linestyle, linewidth=linewidth*SCALE_X, label=legend_name,
-            **kargs)
+            combine_sides=combine_sides, periods=periods, color=color,
+            alpha=alpha, linestyle=linestyle, linewidth=linewidth*SCALE_X,
+            label=legend_name, **kargs)
         elif crit == PsychFitCrit.GLM:
           import statsmodels.formula.api as smf
           import statsmodels.api as sm
@@ -1033,8 +1033,9 @@ def _psych(df, PsycStim_axes, color, linewidth, legend_name, *, alpha=1,
 #chosen_days = RDK_days if analysis_for == ExpType.RDK else lightintensity_days
 
 def psychByAnimal(df, use_chosen_days, PsycStim_axes, *, min_session_len,
-                  color_rdk, color_lc, list_animals_individually=False,
-                  list_animals_in_legend=True, names_remap_dict=None):
+                  periods=5, color_rdk, color_lc,
+                  list_animals_individually=False, list_animals_in_legend=True,
+                  names_remap_dict=None):
     used_rdk_sessions = []
     used_lc_sessions = []
     for idx, (animal_name, animal_df) in enumerate(df.groupby(df.Name)):
@@ -1079,7 +1080,7 @@ def psychByAnimal(df, use_chosen_days, PsycStim_axes, *, min_session_len,
       else:
         label = names_remap_dict[animal_name] if names_remap_dict \
                                               else animal_name
-      _psych(animal_df, PsycStim_axes, color, LINE_WIDTH,
+      _psych(animal_df, PsycStim_axes, color, LINE_WIDTH, periods=periods,
              legend_name=label, alpha=1 if list_animals_individually else 0.4)
       #used_sessions.append(animal_df)
     return used_rdk_sessions, used_lc_sessions
@@ -1108,7 +1109,7 @@ def dfGenerator():
 
 
 METHOD="sum"
-def psychAnimalSessions(df,ANIMAL,PsycStim_axes,METHOD):
+def psychAnimalSessions(df, ANIMAL, PsycStim_axes, METHOD, periods=5):
     if not len(df):
         return
     assert len(df.Name.unique()) == 1 # Assure that we only have one mouse
@@ -1128,7 +1129,7 @@ def psychAnimalSessions(df,ANIMAL,PsycStim_axes,METHOD):
         title="Single Session Performance" if not done_once else ""
         LINE_WIDTH=0.5
       ret = _psych(session, PsycStim_axes,'k' if is1sess else "gray",
-                   LINE_WIDTH, title,
+                   LINE_WIDTH, title, periods=periods,
                    # Plot points if it's a single session
                    plot_points=is1sess, offset=is1sess)
       if ret != (None, None):
@@ -1139,10 +1140,11 @@ def psychAnimalSessions(df,ANIMAL,PsycStim_axes,METHOD):
       sessions = pd.concat(used_sessions)
       LINE_WIDTH=3
       _psych(sessions, PsycStim_axes,'k',LINE_WIDTH,"Avg. Session Performance",
-            offset=True)
+             offset=True, periods=periods)
     else:
       sessions = df
-    twax = plotNormTrialDistrib(sessions,PsycStim_axes,METHOD)
+    twax = plotNormTrialDistrib(sessions, PsycStim_axes, METHOD,
+                       periods=periods)
     handles, labels = PsycStim_axes.get_legend_handles_labels()
     if not is1sess:
       labels[0] = labels[0] + " ({:,} sessions)".format(len(used_sessions))
@@ -1153,9 +1155,9 @@ def psychAnimalSessions(df,ANIMAL,PsycStim_axes,METHOD):
               bbox_to_anchor=bbox_to_anchor,ncol=2,fancybox=True,
               prop={'size': 'x-small'})
 
-def plotNormTrialDistrib(df,axes,METHOD):
+def plotNormTrialDistrib(df, axes, METHOD, periods=5):
     difficulties = df[df.ChoiceLeft.isnull() & df.ForcedLEDTrial == 0].DV
-    bins = rngDV(periods=5)
+    bins = rngDV(periods=periods)
     counts, _ = np.histogram(difficulties,bins=bins)
     counts = counts.astype(np.float)
     twax = axes.twinx()
@@ -1655,7 +1657,8 @@ def noFilter(group):
     else:
         return group
 
-def shortLongWT(df, quantile, filterGroupFn, GLM, axes, mirror=False):
+def shortLongWT(df, quantile, filterGroupFn, GLM, axes, mirror=False,
+                periods=5):
   df = df[(df.GUI_FeedbackDelaySelection == 3) & (df.GUI_CatchError == True)]
   df = df[(df.FeedbackTime > 0.5)]
   df = filterGroupFn(df) # TODO: Check if we should do this
@@ -1691,7 +1694,7 @@ def shortLongWT(df, quantile, filterGroupFn, GLM, axes, mirror=False):
     title += " - {:,} pts (correct: {:,}, incorrect: {:,})".format(
       len(data), len(data[data.ChoiceCorrect==1]), len(data[data.ChoiceCorrect==0]))
     LINE_SIZE=2
-    _psych(data,PsycStim_axes,color,LINE_SIZE,title,
+    _psych(data, PsycStim_axes, color, LINE_SIZE, title, periods=periods,
            plot_points=False, SEM=True, GLM=GLM)
   PsycStim_axes.legend(prop={'size':'x-small'},loc='upper left')
 
