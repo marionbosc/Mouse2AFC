@@ -92,8 +92,8 @@ def _fltrSSn(sess_df, exp_type, min_easiest_perf):
           f"Len: {len(df_choice)}")
   return easiest_perf >= min_easiest_perf
 
-def _reactionTimePerDF(animal_name, df, *, plots, quantile_top_bottom, grpby,
-                       short_long_quantile, plot_only_all, save_figs,
+def _reactionTimePerDF(animal_name, df, *, plots, periods, quantile_top_bottom,
+                       grpby, short_long_quantile, plot_only_all, save_figs,
                        save_prefix):
   if plots == NoPlots:
     return
@@ -147,7 +147,8 @@ def _reactionTimePerDF(animal_name, df, *, plots, quantile_top_bottom, grpby,
 
   if plots & (Plots.ReactionTimeVsDiff | Plots.ReactionTimeVsDiffHist):
     plotSides(df_accepted, col_name="ST", friendly_col_name="Sampling Time",
-              animal_name=animal_name, y_label="Sampling Time (S)",
+              periods=periods, animal_name=animal_name,
+              y_label="Sampling Time (S)",
               quantile_top_bottom=quantile_top_bottom, grpby=grpby,
               plot_vsDiff=plots & Plots.ReactionTimeVsDiff,
               plot_only_all=plot_only_all,
@@ -157,7 +158,7 @@ def _reactionTimePerDF(animal_name, df, *, plots, quantile_top_bottom, grpby,
 
   if plots & Plots.ShortLongReactionTime:
     plotShortLongWT(df_accepted, col_name="ST",
-                    friendly_col_name="Sampling Time",
+                    friendly_col_name="Sampling Time", periods=periods,
                     animal_name=animal_name,
                     save_postfix="_sampling_short_long",
                     short_long_quantile=short_long_quantile,
@@ -165,7 +166,7 @@ def _reactionTimePerDF(animal_name, df, *, plots, quantile_top_bottom, grpby,
 
   if plots & (Plots.MovementTimeVsDiff | Plots.MovementTimeVsDiffHist):
     plotSides(df_accepted, col_name="calcMovementTime",
-              friendly_col_name="Movement Time",
+              friendly_col_name="Movement Time", periods=periods,
               animal_name=animal_name, y_label="Movement Time (S)",
               quantile_top_bottom=quantile_top_bottom, grpby=grpby,
               plot_vsDiff=plots & Plots.MovementTimeVsDiff,

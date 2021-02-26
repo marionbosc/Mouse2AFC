@@ -9,7 +9,7 @@ class GroupBy(Flag):
   Difficulty = auto()
   EqualSize = auto()
 
-def plotSides(df, *, col_name, friendly_col_name, animal_name, grpby,
+def plotSides(df, *, col_name, friendly_col_name, animal_name, periods, grpby,
               quantile_top_bottom, y_label, plot_vsDiff, plot_hist, save_figs,
               save_prefix, save_postfix, legend_loc=None, plot_only_all=False):
   if not plot_vsDiff and not plot_hist:
@@ -44,8 +44,8 @@ def plotSides(df, *, col_name, friendly_col_name, animal_name, grpby,
     bins_2sided, bins_1sided = None, None
   else:
     assert grpby == GroupBy.EqualSize
-    bins_2sided = rngByQuantile(df_all, periods=3, separate_zero=False)
-    bins_1sided = rngByQuantile(df_all, periods=3, separate_zero=False,
+    bins_2sided = rngByQuantile(df_all, periods=periods, separate_zero=False)
+    bins_1sided = rngByQuantile(df_all, periods=periods, separate_zero=False,
                                 combine_sides=True)
   for side_df, color, label, li_is_reversed in iter_list:
     kargs = Kargs(df=side_df, col_name=col_name, friendly_name=friendly_col_name,
@@ -56,16 +56,16 @@ def plotSides(df, *, col_name, friendly_col_name, animal_name, grpby,
       is_reversed = li_is_reversed and not overlap_sides
       quantile_bins = bins_1sided if overlap_sides else bins_2sided
       if plot_vsDiff:
-        metricVsDiff(axes=top_row_axs[ax_idx], bins=quantile_bins,
-                     overlap_sides=overlap_sides, is_reversed=is_reversed,
-                     **kargs)
+        metricVsDiff(axes=top_row_axs[ax_idx], periods=periods,
+                     bins=quantile_bins, overlap_sides=overlap_sides,
+                     is_reversed=is_reversed, **kargs)
 
   if plot_vsDiff and legend_loc:
     top_row_axs[0].legend(loc=legend_loc,prop={'size':'x-small'})
     top_row_axs[1].legend(loc=legend_loc,prop={'size':'x-small'})
 
   if plot_hist:
-    plotHist(axs=bottom_row_axs, df=df_all, col_name=col_name,
+    plotHist(axs=bottom_row_axs, df=df_all, col_name=col_name, periods=periods,
              bins_1sided=bins_1sided, bins_2sided=bins_2sided,
              quantile_top_bottom=quantile_top_bottom, animal_name=animal_name,
              plot_only_all=plot_only_all)
@@ -74,7 +74,7 @@ def plotSides(df, *, col_name, friendly_col_name, animal_name, grpby,
     analysis.savePlot(save_prefix + animal_name + save_postfix)
   plt.show()
 
-def plotHist(*, axs, df, col_name, bins_1sided, bins_2sided,
+def plotHist(*, axs, df, col_name, periods, bins_1sided, bins_2sided,
              quantile_top_bottom, animal_name, plot_only_all):
   for ax_idx, overlap_sides in enumerate([False, True]):
     quantile_bins = bins_1sided if overlap_sides else bins_2sided
@@ -85,7 +85,7 @@ def plotHist(*, axs, df, col_name, bins_1sided, bins_2sided,
       x_correct_count, x_incorrect_count = [], []
     # We assumed the incorrect trials are already reversed here bu the calling
     # function.
-    for dv_single, dv_df in _loopDfByDV(df, col_name=col_name,
+    for dv_single, dv_df in _loopDfByDV(df, periods=periods, col_name=col_name,
                                         bins=quantile_bins,
                                         overlap_sides=overlap_sides,
                                         is_reversed=False,
@@ -127,7 +127,8 @@ def fltrQuantile(df_or_col, quantile_top_bottom, col_name_if_df=None):
   return df_or_col[(col_vals.quantile(quantile_top_bottom) < col_vals) &
                    (col_vals < col_vals.quantile(1 - quantile_top_bottom))]
 
-def shortLongWT(*, short_df, long_df, label, quantile, animal_name, axes):
+def shortLongWT(*, short_df, long_df, periods, label, quantile, animal_name,
+                axes):
   #animal_name = " ".join(short_df.Name.unique()).strip()
   axes_title = animal_name + " (Short-{} < {} quantile)".format(label, quantile)
   PsycStim_axes = analysis.psychAxes(axes_title, axes=axes)
@@ -138,16 +139,18 @@ def shortLongWT(*, short_df, long_df, label, quantile, animal_name, axes):
               f"incorrect: {len(data[data.ChoiceCorrect==0]):,})")
     LINE_SIZE=2
     analysis._psych(data, PsycStim_axes, color, LINE_SIZE, title,
-                    plot_points=False, SEM=True)
+                    plot_points=False, SEM=True, periods=periods)
   PsycStim_axes.legend(prop={'size':'x-small'},loc='upper left')
 
-def plotShortLongWT(df, col_name, short_long_quantile, friendly_col_name,
-                    animal_name, save_figs, save_prefix, save_postfix):
+def plotShortLongWT(df, col_name, short_long_quantile, periods,
+                    friendly_col_name, animal_name, save_figs, save_prefix,
+                    save_postfix):
   ax = plt.axes()
   short_df = df[df[col_name] <= df[col_name].quantile(short_long_quantile)]
   long_df = df[df[col_name] > df[col_name].quantile(short_long_quantile)]
-  shortLongWT(short_df=short_df, long_df=long_df, label=friendly_col_name,
-              animal_name=animal_name, quantile=short_long_quantile, axes=ax)
+  shortLongWT(short_df=short_df, long_df=long_df, periods=periods,
+              label=friendly_col_name, animal_name=animal_name,
+              quantile=short_long_quantile, axes=ax)
   if save_figs:
     analysis.savePlot(save_prefix + animal_name + save_postfix)
   plt.show()
@@ -155,7 +158,7 @@ def plotShortLongWT(df, col_name, short_long_quantile, friendly_col_name,
 def Kargs(**kargs):
   return kargs
 
-def rngByQuantile(df, combine_sides=False, periods=3, separate_zero=True):
+def rngByQuantile(df, *, periods, combine_sides=False, separate_zero=True):
   _, bins = pd.qcut(df.DV.abs(), periods, retbins=True, duplicates='drop')
   bins[-1] = 1.01
   if not combine_sides:
@@ -187,15 +190,15 @@ def splitByBins(df, bins, combine_sides=False):
     groups.append(entry)
   return groups
 
-def metricVsDiff(df, *, col_name, friendly_name, axes, overlap_sides,
+def metricVsDiff(df, *, col_name, periods, friendly_name, axes, overlap_sides,
                  quantile_top_bottom, animal_name, is_reversed=False, bins=None,
                  color=None, label="", y_label=None):
   x_data = []
   y_data = []
   y_data_sem = []
   count_pts = 0
-  for dv_single, dv_df in _loopDfByDV(df, col_name=col_name, bins=bins,
-                                      overlap_sides=overlap_sides,
+  for dv_single, dv_df in _loopDfByDV(df, periods=periods, col_name=col_name,
+                                      bins=bins, overlap_sides=overlap_sides,
                                       is_reversed=is_reversed,
                                       quantile_top_bottom=quantile_top_bottom):
     cohr = round(dv_single*100)
@@ -218,11 +221,11 @@ def metricVsDiff(df, *, col_name, friendly_name, axes, overlap_sides,
   axes.set_ylabel(y_label)
   axes.legend(loc="lower left", prop={'size': 'small'})
 
-def _loopDfByDV(df, *, col_name, overlap_sides, bins, is_reversed,
+def _loopDfByDV(df, *, col_name, overlap_sides, periods, bins, is_reversed,
                 quantile_top_bottom):
   if bins is None:
     loop_tups = analysis.splitByDV(df, combine_sides=overlap_sides,
-                                   periods=3, separate_zero=False)
+                                   periods=periods, separate_zero=False)
   else:
     loop_tups = splitByBins(df, bins, combine_sides=overlap_sides)
   groups = []
