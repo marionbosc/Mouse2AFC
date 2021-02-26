@@ -188,6 +188,7 @@ def rngByQuantile(df, *, periods, combine_sides=False, separate_zero=True):
 def splitByBins(df, bins, combine_sides=False):
   groups = []
   for (left, right) in zip(bins, bins[1:]):
+    # Re-evaluate DV each run as we remove the included items later.
     DV = df.DV if not combine_sides else df.DV.abs()
     if left >= 0:
       group_df = df[(left <= DV) & (DV < right)]
@@ -215,7 +216,7 @@ def metricVsDiff(df, *, col_name, periods, friendly_name, axes, overlap_sides,
     # print("Cohr:", cohr, "Cohr len:", len(metric_fltrd), col_name, "mean:",
     #       metric_fltrd.mean())
     x_data.append(cohr)
-    y_data.append(dv_df[col_name].mean())
+    y_data.append(dv_df[col_name].mean()) #TODO: Add option for median
     y_data_sem.append(dv_df[col_name].sem())
     count_pts += len(dv_df)
 
