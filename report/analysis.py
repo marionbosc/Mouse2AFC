@@ -773,6 +773,7 @@ def splitByDV(df, combine_sides=False, periods=3, separate_zero=True):
                 separate_zero=separate_zero)
     groups = []
     DV = df.DV if not combine_sides else df.DV.abs()
+    # TODO: Can't we just use pd.cut(df, rng)?
     for (left, right)  in zip(rng, rng[1:]):
         if left >= 0:
           group_df = df[(left <= DV) & (DV < right)]
