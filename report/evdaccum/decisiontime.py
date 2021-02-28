@@ -34,6 +34,7 @@ def decisionTime(df, *, animal_plots, sess_plots, all_animals_plots,
                          animal_df.MinSample.mode().iloc[0]]
     print(f"Min sampling for {animal_name} = {fltrd_df.MinSample.unique()}")
     fltrd_df = fltrd_df[fltrd_df.GUI_StimAfterPokeOut == 0]
+    fltrd_df = fltrd_df[fltrd_df.GUI_MinSampleType != 4]
     fltrd_df = fltrd_df[(fltrd_df.OptoEnabled == 0) |
                         fltrd_df.OptoEnabled.isna()]
     fltrd_df = fltrd_df[fltrd_df.GUI_FeedbackDelaySelection.isin([1, 4])]
