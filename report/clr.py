@@ -11,9 +11,9 @@ class Choice:
   All = "blue"
 
 class Difficulty:
-  Easy = "#ff9900"
-  Med = "#14a5ff"
-  Hard = "#be31ff"
+  Easy = "#8a9400"
+  Med = "#009994"
+  Hard = "#680094"
 
 class Duration:
   Short = "#ff8903"
