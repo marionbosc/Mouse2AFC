@@ -4,11 +4,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from report import analysis
 from report.definitions import ExpType
-from report.clr import Choice, Difficulty as DifficultyClr
+from report.clr import Choice
 
 class GroupBy(Flag):
   Difficulty = auto()
   EqualSize = auto()
+  Performance = auto()
 
 def plotSides(df, *, col_name, friendly_col_name, animal_name, periods, grpby,
               quantile_top_bottom, y_label, plot_vsDiff, plot_hist, save_figs,
@@ -50,6 +51,11 @@ def plotSides(df, *, col_name, friendly_col_name, animal_name, periods, grpby,
 
   if grpby == GroupBy.Difficulty:
     bins_2sided, bins_1sided = None, None
+  elif grpby == GroupBy.Performance:
+    bins_2sided = rngByPerf(df_all, periods=periods, separate_zero=False,
+                            fit_fn_periods=10)
+    bins_1sided = rngByPerf(df_all, periods=periods, separate_zero=False,
+                            combine_sides=True, fit_fn_periods=10)
   else:
     assert grpby == GroupBy.EqualSize
     bins_2sided = rngByQuantile(df_all, periods=periods, separate_zero=False)
@@ -165,6 +171,54 @@ def plotShortLongWT(df, col_name, short_long_quantile, periods,
 
 def Kargs(**kargs):
   return kargs
+
+def rngByPerf(df, periods, fit_fn_periods, combine_sides, separate_zero=True):
+  df = df[df.ChoiceCorrect.notnull()]
+  stims, stim_count, stim_ratio_correct = [], [], []
+  for _, _, dv_df in analysis.splitByDV(df, periods=fit_fn_periods,
+                                        combine_sides=combine_sides):
+    DV = dv_df.DV
+    if combine_sides:
+      DV = DV.abs()
+    stims.append(DV.mean())
+    stim_count.append(len(dv_df))
+    perf_col = dv_df.ChoiceCorrect if combine_sides else dv_df.ChoiceLeft
+    stim_ratio_correct.append(perf_col.mean())
+  pars, fitFn = analysis.psychFitBasic(stims=stims, stim_count=stim_count,
+                                       nfits=50,
+                                       stim_ratio_correct=stim_ratio_correct)
+  if combine_sides:
+    possible_dvs = np.linspace(0,1,101)
+  else:
+    possible_dvs = np.linspace(-1,1,201)
+  fits = fitFn(possible_dvs)
+  min_perf = fits[0] if combine_sides else fits[possible_dvs == 0]
+  max_perf_l, max_perf_r = fits[0], fits[-1]
+  bins = [0]
+  if separate_zero:
+    if not combine_sides:
+      bins = [-0.01] + bins
+    bins += [0.01]
+  cut_offs_perf = []
+  for i in range(1, periods):
+    # If periods == 2, and we want to get 66.667% and 83.334%, then in ideal
+    # case min_perf is 50% and max perf is 100%.
+    cutoff_perf_r = min_perf + (max_perf_r-min_perf)*i/periods
+    cutoff_idx_r = np.argmin(np.abs(fits-cutoff_perf_r))
+    bins += [possible_dvs[cutoff_idx_r]]
+    cut_offs_perf += [fits[cutoff_idx_r]]
+    if not combine_sides:
+      cutoff_perf_l = min_perf + (max_perf_l-min_perf)*i/periods
+      cutoff_idx_l = np.argmin(np.abs(fits-cutoff_perf_l))
+      bins = [possible_dvs[cutoff_idx_l]] + bins
+      cut_offs_perf = [fits[cutoff_idx_l]] + cut_offs_perf
+  bins += [1.01]
+  if not combine_sides:
+    bins = [-1.01] + bins
+  # print("Closest dvs are: ", bins, "at perfms:", cut_offs_perf,
+  #       "with min. perf:", min_perf, "and max perf L/R:", max_perf_l,
+  #       max_perf_r)
+  return bins
 
 def rngByQuantile(df, *, periods, combine_sides=False, separate_zero=True):
   _, bins = pd.qcut(df.DV.abs(), periods, retbins=True, duplicates='drop')
