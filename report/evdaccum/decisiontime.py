@@ -58,7 +58,7 @@ def decisionTime(df, *, animal_plots, sess_plots, all_animals_plots,
       fltrd_df = altr_fltrd_df1
     else:
       print(f"Using CenterReward = "
-            f"{altr_fltrd_df2.CenterPortRewAmount.iloc[0]}. "
+            f"{altr_fltrd_df2.CenterPortRewAmount.unique()}. "
             f"With CenterReward len: {len(altr_fltrd_df2)} - With no "
             f"center-rwd len: {len(altr_fltrd_df1)}")
       fltrd_df = altr_fltrd_df2
