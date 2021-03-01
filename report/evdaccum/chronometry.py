@@ -33,7 +33,7 @@ def _processAnimal(animal_name, animal_df, *, plots, min_easiest_perf, exp_type,
   # print(animal_df.GUI_MinSampleType.unique())
   # chron_df = grpBySess(chron_df).filter(
   #   lambda sess:sess.MinSample.min() == 0.3 and  sess.MinSample.max() == 1.2)
-  print(f"Animal: {animal_name} - Chrone data max trial: "
+  print(f"Subjext: {animal_name} - Chrone data max trial: "
         f"{animal_df.MaxTrial.unique()}")
   if plots & Plots.Chronometry:
     chron_df = animal_df.groupby(animal_df.MinSample).filter(
