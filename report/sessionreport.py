@@ -71,7 +71,8 @@ class PlotHandler():
 
 
 class MakeAndSavePlots():
-  def run(self, session_df, save_dir_or_none, auto_close_after_ms=None):
+  def run(self, session_df, save_dir_or_none, show_fig,
+          auto_close_after_ms=None):
     date_str = session_df.Date.unique()[0].strftime("%Y_%m_%d_%a")
     session_num = session_df.SessionNum.unique()[0]
     animal_name = session_df.Name.unique()[0]
@@ -98,7 +99,8 @@ class MakeAndSavePlots():
     plot_handler = PlotHandler()
     try:
       fig = self._mainPlot(session_df)
-      plot_handler.pltInBgnd(fig=fig, auto_close_after_ms=auto_close_after_ms)
+      if show_fig:
+        plot_handler.pltInBgnd(fig=fig, auto_close_after_ms=auto_close_after_ms)
     except Exception as err:
       print("An exception occurred in main fig:\n", traceback.format_exc(),
             file=sys.stderr)
@@ -117,7 +119,8 @@ class MakeAndSavePlots():
      len(session_df[session_df.GUI_FeedbackDelaySelection == 3]) > 10:
       try:
         fig = self._confidencePlot(session_df)
-        plot_handler.pltInBgnd(fig=fig, auto_close_after_ms=6000)
+        if show_fig:
+          plot_handler.pltInBgnd(fig=fig, auto_close_after_ms=6000)
       except:
         print("An exception occurred in confidence fig:\n",
               traceback.format_exc(), file=sys.stderr)
@@ -132,6 +135,8 @@ class MakeAndSavePlots():
             shutil.copyfile(src=dst_path, dst=daily_path)
 
     plot_handler.waitForCurFig()
+    if plt.get_fignums():
+      plt.close()
 
   def _mainPlot(self, session_df):
     fig, axs = self._createSubplots(rows=2, cols=2,
@@ -205,12 +210,13 @@ class MakeAndSavePlots():
                         hspace=hspace, wspace=wspace)
     return fig, axs
 
-def _showSaveParsed(data_file, save_dir_or_None, auto_close_after_sec=None):
+def _showSaveParsed(data_file, save_dir_or_None, show_fig,
+                    auto_close_after_sec=None):
   session_df, _bad_ssns, _df_updated = mat_reader_core.loadFiles(data_file)
   print("Session df length:", len(session_df))
   if auto_close_after_sec is not None:
     auto_close_after_sec *= 1000 # Convert to ms
-  MakeAndSavePlots().run(session_df, save_dir_or_None,
+  MakeAndSavePlots().run(session_df, save_dir_or_None, show_fig=show_fig,
                          auto_close_after_ms=auto_close_after_sec)
   return session_df
 
@@ -223,7 +229,7 @@ def showAndSaveReport():
               r"wfThy2_Mouse2AFC_Dec05_2019_Session1.mat"
               #r"vgat4_Mouse2AFC_Dec09_2019_Session2.mat"
               #r"RDK_WT1_Mouse2AFC_Dec04_2019_Session1.mat"
-  _showSaveParsed(data_flie, save_dir)
+  _showSaveParsed(data_flie, save_dir, show_fig=True)
 
 if __name__ == "__main__":
   showAndSaveReport()
