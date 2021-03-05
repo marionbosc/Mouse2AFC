@@ -14,7 +14,8 @@ def psychGroups(ax, trials_groups, *, combine_sides, _plot_kargs, _psych_kargs,
   grp_alpha = 1 if is1sess else 0.3
   for group_name, group_df in trials_groups:
     group_df = group_df[group_df.ChoiceLeft.notnull()]
-    analysis._psych(group_df, ax, legend_name=group_name, nfits=nfits(group_df),
+    analysis._psych(group_df, ax, legend_name=group_name,
+                    fitkargs={"nfits":nfits(group_df)},
                     combine_sides=combine_sides, **_psych_kargs,
                     **_plot_kargs, alpha=grp_alpha)
 
