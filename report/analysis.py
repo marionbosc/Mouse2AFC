@@ -951,7 +951,7 @@ def _psych(df, PsycStim_axes, color, linewidth, legend_name, *, periods=5,
         if crit == PsychFitCrit.MaxLikelihood:
           if len(legend_name):
             legend_name="{}{}".format(legend_name,
-                    "" if not plot_points else " ({:,} trials)".format(len(df)))
+                    "" if not plot_points else " ({:,} Versuche)".format(len(df)))
           intercept, slope, (x_sampled, y_points) = newFit(df, PsycStim_axes,
             combine_sides=combine_sides, periods=periods, color=color,
             alpha=alpha, linestyle=linestyle, linewidth=linewidth*SCALE_X,
@@ -1130,7 +1130,7 @@ def psychAnimalSessions(df, ANIMAL, PsycStim_axes, METHOD, periods=5,
       #print("Session:",date,session_num)
       if is1sess:
         num_trials = session.MaxTrial.unique()[0]
-        title = f"All Trials"
+        title = f"Alle Versuche"
         LINE_WIDTH=3
       else:
         title="Single Session Performance" if not done_once else ""
@@ -1168,9 +1168,9 @@ def plotNormTrialDistrib(df, axes, METHOD, periods=5):
     counts, _ = np.histogram(difficulties,bins=bins)
     counts = counts.astype(np.float)
     twax = axes.twinx()
-    twax.set_ylabel("Trial Count")
+    twax.set_ylabel("Versuche Zählen")
     twax.bar(bins[:-1], counts, width=np.diff(bins), align='edge', zorder=-1,
-             color='pink', edgecolor='k', label="Norm. difficulty distribution")
+             color='pink', edgecolor='k', label="Normalisiert Schwierigkeitsverteilung")
     if METHOD == "sum":
       twax.set_ylim(0, np.sum(counts))
     axes.set_zorder(twax.get_zorder()+1)

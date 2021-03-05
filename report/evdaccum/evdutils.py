@@ -1,7 +1,12 @@
 from enum import Flag, auto
+
+from pandas.core.indexes import multi
 import numpy as np
 import pandas as pd
+from scipy.stats import gaussian_kde
 import matplotlib.pyplot as plt
+import matplotlib.ticker as plticker
+from matplotlib.ticker import FuncFormatter
 from report import analysis
 from report.definitions import ExpType
 from report.clr import Choice
@@ -29,11 +34,11 @@ def plotSides(df, *, col_name, friendly_col_name, animal_name, periods, grpby,
   df_incorrect = df[df.ChoiceCorrect == 0]
   df_all = df.copy()
   df_all.loc[df_incorrect.index, 'DV'] = -df_incorrect.DV
-  iter_list =    [(df_all, Choice.All, "All", NOT_REVERSED)]
+  iter_list =    [(df_all, Choice.All, "Alle", NOT_REVERSED)]
   if not plot_only_all:
     iter_list += [
-          (df[df.ChoiceCorrect == 1], Choice.Correct,  "Correct", NOT_REVERSED),
-          (df_incorrect, Choice.Incorrect,"Incorrect", REVERSED)]
+          (df[df.ChoiceCorrect == 1], Choice.Correct,  "Korrekt", NOT_REVERSED),
+          (df_incorrect, Choice.Incorrect,"Falsch", REVERSED)]
 
   COLS = 2
   rows = 0
@@ -52,10 +57,11 @@ def plotSides(df, *, col_name, friendly_col_name, animal_name, periods, grpby,
   if grpby == GroupBy.Difficulty:
     bins_2sided, bins_1sided = None, None
   elif grpby == GroupBy.Performance:
-    bins_2sided = rngByPerf(df_all, periods=periods, separate_zero=False,
-                            fit_fn_periods=10)
-    bins_1sided = rngByPerf(df_all, periods=periods, separate_zero=False,
-                            combine_sides=True, fit_fn_periods=10)
+    # Do the correction on the original df, not the inverted df here
+    bins_2sided = rngByPerf(df, periods=periods, separate_zero=False,
+                            fit_fn_periods=10, combine_sides=False)
+    bins_1sided = rngByPerf(df, periods=periods, separate_zero=False,
+                            fit_fn_periods=10, combine_sides=True)
   else:
     assert grpby == GroupBy.EqualSize
     bins_2sided = rngByQuantile(df_all, periods=periods, separate_zero=False)
@@ -116,21 +122,24 @@ def plotHist(*, axs, df, col_name, periods, bins_1sided, bins_2sided,
     if plot_only_all:
       bars = [x_count]
       colors = [Choice.All]
-      labels = ["All"]
+      labels = ["Alle"]
     else:
       bars = [x_correct_count, x_incorrect_count]
       colors = [Choice.Correct, Choice.Incorrect]
-      labels = ["Correct",
-                "Incorect" + (" (Reversed)"  if not overlap_sides else "")]
+      labels = ["Korrekt",
+                "Falsch" + (" (Umgekehrt)"  if not overlap_sides else "")]
     last_bottom = 0
     for bar, color, label in zip(bars, colors, labels):
       axs[ax_idx].bar(xs, bar, color=color, width=BAR_WIDTH, label=label,
                       bottom=last_bottom, edgecolor='k')
       last_bottom = bar
-    axs[ax_idx].legend(prop={'size':'x-small'})
-    axs[ax_idx].set_title("Norm. Difficulties Dist. - {}".format(animal_name))
-    axs[ax_idx].set_xlabel("Coherence %")
-    axs[ax_idx].set_ylabel("Trials Count")
+    axs[ax_idx].legend(loc='lower center', prop={'size':'x-small'})
+    axs[ax_idx].set_title(f"Schwierigkeitsverteilung - {animal_name}")
+    axs[ax_idx].set_xlabel("Kohärenz %")
+    axs[ax_idx].xaxis.set_major_formatter(
+      FuncFormatter(lambda x, _: f"{int(abs(x))}%" + ("" if overlap_sides else
+                                 f"{'L' if x > 0 else 'R' if x < 0 else ''}")))
+    axs[ax_idx].set_ylabel("Versuche Zählen")
 
 def fltrQuantile(df_or_col, quantile_top_bottom, col_name_if_df=None):
   if isinstance(df_or_col, pd.DataFrame):
@@ -173,10 +182,12 @@ def Kargs(**kargs):
   return kargs
 
 def rngByPerf(df, periods, fit_fn_periods, combine_sides, separate_zero=True):
-  df = df[df.ChoiceCorrect.notnull()]
+  df = df[df.ChoiceLeft.notnull()]
   stims, stim_count, stim_ratio_correct = [], [], []
   for _, _, dv_df in analysis.splitByDV(df, periods=fit_fn_periods,
                                         combine_sides=combine_sides):
+    if not len(dv_df):
+      continue
     DV = dv_df.DV
     if combine_sides:
       DV = DV.abs()
@@ -185,7 +196,7 @@ def rngByPerf(df, periods, fit_fn_periods, combine_sides, separate_zero=True):
     perf_col = dv_df.ChoiceCorrect if combine_sides else dv_df.ChoiceLeft
     stim_ratio_correct.append(perf_col.mean())
   pars, fitFn = analysis.psychFitBasic(stims=stims, stim_count=stim_count,
-                                       nfits=50,
+                                       nfits=200,
                                        stim_ratio_correct=stim_ratio_correct)
   if combine_sides:
     possible_dvs = np.linspace(0,1,101)
@@ -200,18 +211,34 @@ def rngByPerf(df, periods, fit_fn_periods, combine_sides, separate_zero=True):
       bins = [-0.01] + bins
     bins += [0.01]
   cut_offs_perf = []
-  for i in range(1, periods):
+  def curBin(i, periods, is_neg):
     # If periods == 2, and we want to get 66.667% and 83.334%, then in ideal
     # case min_perf is 50% and max perf is 100%.
-    cutoff_perf_r = min_perf + (max_perf_r-min_perf)*i/periods
-    cutoff_idx_r = np.argmin(np.abs(fits-cutoff_perf_r))
-    bins += [possible_dvs[cutoff_idx_r]]
-    cut_offs_perf += [fits[cutoff_idx_r]]
+    max_perf = max_perf_r if not is_neg else max_perf_l
+    cutoff_perf = min_perf + (max_perf-min_perf)*i/periods
+    cutoff_idx = np.argmin(np.abs(fits-cutoff_perf))
+    new_bin = possible_dvs[cutoff_idx]
+    mult = 1 if not is_neg else -1
+    # Do we need to handle close to zero cases here?
+    if new_bin >= 1:
+      new_bin = 1
+      mult = -1*(periods-i)
+    elif new_bin <= -1:
+      new_bin = -1
+      mult = periods-i
+    while new_bin in bins:
+      new_bin += 0.01*mult
+    if not is_neg:
+      bins.append(new_bin)
+      cut_offs_perf.append(fits[cutoff_idx])
+    else:
+      bins.insert(0, new_bin)
+      cut_offs_perf.insert(0, fits[cutoff_idx])
+
+  for i in range(1, periods):
+    curBin(i, periods, is_neg=False)
     if not combine_sides:
-      cutoff_perf_l = min_perf + (max_perf_l-min_perf)*i/periods
-      cutoff_idx_l = np.argmin(np.abs(fits-cutoff_perf_l))
-      bins = [possible_dvs[cutoff_idx_l]] + bins
-      cut_offs_perf = [fits[cutoff_idx_l]] + cut_offs_perf
+      curBin(i, periods, is_neg=True)
   bins += [1.01]
   if not combine_sides:
     bins = [-1.01] + bins
@@ -221,7 +248,9 @@ def rngByPerf(df, periods, fit_fn_periods, combine_sides, separate_zero=True):
   return bins
 
 def rngByQuantile(df, *, periods, combine_sides=False, separate_zero=True):
+  #_, bins = pd.qcut(df.DV.abs().rank(method='first'), periods, retbins=True)
   _, bins = pd.qcut(df.DV.abs(), periods, retbins=True, duplicates='drop')
+  # print("Len:", bins)
   bins[-1] = 1.01
   if not combine_sides:
     if separate_zero:
@@ -229,7 +258,7 @@ def rngByQuantile(df, *, periods, combine_sides=False, separate_zero=True):
       _min = bins[::-1]
     else:
       bins[0] = 0
-      _min = -bins[::-1][:-1] # WHat would be a cleaner syntax?
+      _min = -bins[::-1][:-1] # What would be a cleaner syntax?
     bins = np.concatenate([_min, bins])
   else:
     if not separate_zero:
@@ -237,19 +266,16 @@ def rngByQuantile(df, *, periods, combine_sides=False, separate_zero=True):
     else:
       bin_offset_idx = 0 if bins[0] != 0 else 1
       bins = np.concatenate([[0, 0.01], bins[bin_offset_idx:]])
+  # print("Returning bins:", bins)
   return bins
 
 def splitByBins(df, bins, combine_sides=False):
   groups = []
-  for (left, right) in zip(bins, bins[1:]):
-    # Re-evaluate DV each run as we remove the included items later.
-    DV = df.DV if not combine_sides else df.DV.abs()
-    if left >= 0:
-      group_df = df[(left <= DV) & (DV < right)]
-    else:
-      group_df = df[(left < DV) & (DV <= right)]
-    df = df[~df.index.isin(group_df.index)] # Remove already included items
-    entry = pd.Interval(left=left, right=right), (left+right)/2, group_df
+  DV = df.DV.abs() if combine_sides else df.DV
+  for dv_rng, dv_df in df.groupby(pd.cut(DV, bins, include_lowest=True)):
+    # We add zero to avoid having -0.0 printed
+    dv_rng = pd.Interval(np.around(dv_rng.left, 2) + 0, dv_rng.right)
+    entry = dv_rng, (dv_rng.left+dv_rng.right)/2, dv_df
     groups.append(entry)
   return groups
 
@@ -277,11 +303,14 @@ def metricVsDiff(df, *, col_name, periods, friendly_name, axes, overlap_sides,
   # print("X data:", x_data)
   # print("y_data:", y_data)
   # print("y_sem:", y_data_sem)
-  rvrsd_lbl = "(Reversed) " if is_reversed else ""
+  rvrsd_lbl = "(Umgekehrt) " if is_reversed else ""
   label = f"{friendly_name} {label} {rvrsd_lbl}({count_pts:,} pts)"
   axes.errorbar(x_data, y_data, yerr=y_data_sem, color=color, label=label)
-  axes.set_title(f"{friendly_name} vs Difficulty - {animal_name}")
-  axes.set_xlabel("Coherence %")
+  axes.set_title(f"{friendly_name} vs Schwierigkeit - {animal_name}")
+  axes.set_xlabel("Kohärenz %")
+  axes.xaxis.set_major_formatter(
+      FuncFormatter(lambda x, _: f"{int(abs(x))}%" + ("" if overlap_sides else
+                                 f"{'L' if x > 0 else 'R' if x < 0 else ''}")))
   if y_label is None: y_label = friendly_name
   axes.set_ylabel(y_label)
   axes.legend(loc="lower left", prop={'size': 'small'})
@@ -328,3 +357,98 @@ def fltrSsns(sess_df, exp_type, min_easiest_perf):
           f"{sess_df.Date.iloc[0]}-Sess{sess_df.SessionNum.iloc[0]} - "
           f"Len: {len(df_choice)}")
   return easiest_perf >= min_easiest_perf
+
+
+def timeHist(*, ax, df, col_name, friendly_col_name, overstay_col, max_x_lim,
+             animal_name, bins_per_sec, plot_only_all, stacked, normalized,
+             gauss_fit,  quantiles_to_plot, quantiles_to_plot_per_group,
+             legend_loc):
+  if overstay_col is not None:
+    overstay_col[overstay_col > max_x_lim] = max_x_lim
+  else:
+    overstay_col = []
+  max_x = np.amax(overstay_col) if len(overstay_col) else df[col_name].max()
+  # Break each second to n bins
+  bins = np.arange(0, int(np.ceil(max_x*bins_per_sec)), 1/bins_per_sec)
+  if plot_only_all:
+    data = [df[col_name]]
+    colors = [Choice.All]
+    labels = ["Alle"]
+  else:
+    data = [df.loc[df.ChoiceCorrect == True, col_name],
+            df.loc[df.ChoiceCorrect == False, col_name]]
+    colors = [Choice.Correct, Choice.Incorrect]
+    labels = ["Korrekt", "Falsch"]
+  if len(overstay_col):
+    data += [overstay_col] # Should we do overstay per group?
+    colors += ['k']
+    labels += ["Länger Bleiben"]
+  # [0] = histogram, ignore bins edges returned value
+  counts = [np.histogram(data_grp,bins=bins)[0].astype(np.float)
+          for data_grp in data]
+  if normalized:
+    counts = [counts_per_bin/counts_per_bin.max() for counts_per_bin in counts]
+    # counts = [counts_per_bin for counts_per_bin in counts]
+    labels = [f"{label} Norm." for label in labels]
+  labels = [f"{label} ({len(data_grp):,} Versuche)"
+            for label, data_grp in zip(labels, data)]
+  last_bottom = 0
+  is_bar = stacked or len(counts) == 1
+  x = 0
+  for count, label, color, data_grp in zip(counts, labels, colors, data):
+    if len(data_grp) < 2:
+      continue
+    this_bins = (bins[:-1] + bins[1:])/2
+    plt_label = label if not gauss_fit else None
+    alpha = 1 if not gauss_fit else 0.2
+    if is_bar:
+      ax.bar(this_bins, count, width=1/bins_per_sec, align='center',
+             bottom=last_bottom, label=plt_label, color=color, alpha=alpha)
+      last_bottom += count if stacked else 0
+    else:
+      ax.step(this_bins+x, count, label=plt_label, color=color,
+              alpha=alpha, where='mid')
+      x += 0.05
+    if gauss_fit:
+      histGaussianFit(ax=ax, col=data_grp, col_count=count, color=color,
+                      label=label, bandwith=1/bins_per_sec)
+
+  if quantiles_to_plot:
+    plotHistQuantile(ax=ax, col=df[col_name], quantiles=quantiles_to_plot,
+                     color=Choice.All, bins_per_unit=bins_per_sec)
+  if quantiles_to_plot_per_group:
+    plotHistQuantile(ax=ax, col=df.loc[df.ChoiceCorrect == True, col_name],
+                     quantiles=quantiles_to_plot_per_group,
+                     color=Choice.Correct, bins_per_unit=bins_per_sec)
+    plotHistQuantile(ax=ax, col=df.loc[df.ChoiceCorrect == False, col_name],
+                     quantiles=quantiles_to_plot_per_group,
+                     color=Choice.Incorrect, bins_per_unit=bins_per_sec)
+  ax.legend(loc=legend_loc,prop={'size':'x-small'})
+  ax.set_title(f"{friendly_col_name} Histogramm - {animal_name}")
+  ax.set_xlim(xmin=0, xmax=max_x_lim)
+  ax.set_xlabel("Sekunden")
+  ax.set_ylabel("Versuche Zählen")
+  loc = plticker.MultipleLocator(base=1)
+  ax.xaxis.set_major_locator(loc)
+  loc = plticker.MultipleLocator(base=1/bins_per_sec)
+  ax.xaxis.set_minor_locator(loc)
+  return ax
+
+
+def histGaussianFit(*, ax, col, col_count, color, label, bandwith):
+  col = col[col.notnull()]
+  # col.plot.kde(ax=ax, color=color) # For a quick test without scaling
+  xs = np.linspace(col.min()-2, col.max() + 2, 10000)
+  density = gaussian_kde(col)
+  density.covariance_factor = lambda : bandwith
+  density._compute_covariance()
+  y_data = density(xs)
+  y_data *= col_count.max() / y_data.max() # Find a good scaling point
+  ax.plot(xs, y_data, color=color, label=label)
+
+def plotHistQuantile(*, ax, col, quantiles, color, bins_per_unit):
+  for quantile in quantiles:
+    quantile_val = col.quantile(quantile)
+    x = np.around(quantile_val*bins_per_unit)/bins_per_unit
+    # print(f"quantile {quantile} = {quantile_val} - X: {x}")
+    ax.axvline(x, linestyle='dashed', label=f'{quantile} Quantile', color=color)

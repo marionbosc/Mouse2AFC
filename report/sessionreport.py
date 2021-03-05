@@ -231,5 +231,67 @@ def showAndSaveReport():
               #r"RDK_WT1_Mouse2AFC_Dec04_2019_Session1.mat"
   _showSaveParsed(data_flie, save_dir, show_fig=True)
 
+
+import datetime as dt
+import multiprocessing as mp
+import os
+from pathlib import Path
+import matplotlib.pyplot as plt
+
+def makeReport(session_name, save_fig=False, show_fig=True):
+  animal=session_name.split("_")[0]
+  matlab_file = r"C:\BpodUser\Data\__ANIMAL__\Mouse2AFC\Session Data\__SESSION__"
+  matlab_file = matlab_file.replace("__ANIMAL__", animal).replace("__SESSION__", session_name)
+  if save_fig:
+    save_dir_or_None = r"C:\BpodUser\Data\__ANIMAL__\Mouse2AFC\Python Figures\\".replace("__ANIMAL__", animal)
+  else:
+    save_dir_or_None = None
+  df = _showSaveParsed(matlab_file, save_dir_or_None=save_dir_or_None,
+                       show_fig=show_fig, auto_close_after_sec=0)
+  # display(df.Difficulty1)
+  # plt.show()
+  return df
+
+def _iterDir(animal_dir):
+  print("I have been fired for animal:", animal_dir)
+  data_path = Path(f"{animal_dir}/Mouse2AFC/Session Data")
+  figs_path_base   = Path(f"{animal_dir}/Mouse2AFC/Python Figures/")
+  # if True: # Enable for testing
+  #   def makeReport(_f, show_fig, save_fig):
+  #     print("Dry run for:", _f)
+  for _file in data_path.iterdir():
+    if _file.is_file() and _file.name.endswith(".mat"):
+      try:
+        makeReport(_file.name, show_fig=False, save_fig=True)
+      except:
+        pass
+  return f"Animal dir: {animal_dir} done"
+
+def regenerateAllSessionReport():
+  base_dir = Path(r"C:\BpodUser\data\\")
+  animal_names_dirs = [_dir for _dir in base_dir.iterdir()
+      if _dir.is_dir() and "Dummy" not in _dir.name and "Fake" not in _dir.name]
+
+  final_dirs = []
+  for _dir in animal_names_dirs:
+    ct = os.stat(str(_dir)).st_ctime
+    ct = dt.datetime.fromtimestamp(ct)
+    if ct > dt.datetime(2020, 5, 1):
+      #print("Iterating:", _dir, "Created on:", ct)
+      final_dirs.append(str(_dir))
+  print("Final dirs:", final_dirs)
+  n_workers = max(1, mp.cpu_count()-3)
+  print(f"Using {n_workers} workers")
+  with mp.Pool(n_workers) as pool:
+    results = [pool.apply_async(_iterDir, [_dir]) for _dir in final_dirs]
+    print("Fired all workers")
+    for r in results:
+        print(r.get())
+    print("Closing")
+    pool.close()
+    print("Joining")
+    pool.join()
+  print("All done")
+
 if __name__ == "__main__":
   showAndSaveReport()

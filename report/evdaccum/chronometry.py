@@ -72,7 +72,7 @@ def _chronPlot(df, axes, min_sampling_pts, grpby):
     bins = 3
   elif grpby == GroupBy.Performance:
     bins = rngByPerf(df, periods=3, separate_zero=False,  combine_sides=True,
-                      fit_fn_periods=10)
+                     fit_fn_periods=10)
   else:
     assert grpby == GroupBy.EqualSize
     bins = rngByQuantile(df, periods=3, separate_zero=False, combine_sides=True)
@@ -98,9 +98,9 @@ def _chronPlot(df, axes, min_sampling_pts, grpby):
     # First DV is 1.01, which would give 101% cohr.
     left,right = int(rng.left*100), 100 if rng.right > 1 else int(rng.right*100)
     axes.errorbar(x_data, y_data, yerr=y_data_sem, color=color,
-                  label=f"{left}%-{right}% Coherence ({num_points:,} trials)")
+                  label=f"{left}%-{right}% Kohärenz ({num_points:,} Versuche)")
   axes.set_title("Chronometry - {}".format(" ".join(df.Name.unique())))
-  axes.set_xlabel("Sampling Duration (s)")
-  axes.set_ylabel("Performance %")
+  axes.set_xlabel("Abtastzeit (Sekunden)")
+  axes.set_ylabel("Richtigkeit %")
   axes.set_xticks(sorted(list(all_x_points)))
   axes.legend(loc="upper left", prop={'size': 'x-small'})

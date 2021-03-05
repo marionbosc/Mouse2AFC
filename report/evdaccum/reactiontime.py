@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from report.definitions import MouseState
 from report import analysis
 from report.utils import grpBySess
-from .evdutils import plotSides, plotShortLongWT, fltrSsns
+from .evdutils import plotSides, plotShortLongWT, fltrSsns, splitByBins, timeHist
 
 class Plots(IntFlag):
   MinSampleDistHist = auto()
@@ -21,13 +21,15 @@ NoPlots = 0
 
 def reactionTime(df, *, overall_plots, sess_plots, **kargs):
   cut_below_trial_num = kargs.pop("cut_below_trial_num")
+  dv_bins_edges = kargs.pop("dv_bins_edges")
   for animal_name, animal_df in df.groupby(df.Name):
-    _processAnimal(animal_name, animal_df,
+    _processAnimal(animal_name, animal_df, dv_bins_edges=dv_bins_edges,
                    cut_below_trial_num=cut_below_trial_num,
                    overall_plots=overall_plots, sess_plots=sess_plots, **kargs)
 
 def _processAnimal(animal_name, animal_df, *, cut_below_trial_num,
-                   overall_plots, sess_plots, **kargs):
+                   overall_plots, sess_plots, min_total_num_pts_per_animal,
+                   dv_bins_edges, **kargs):
   STIMULUS_TIME_MIN = 2
   animal_df = animal_df[animal_df.GUI_StimAfterPokeOut == 0]
   animal_df = animal_df[animal_df.GUI_MouseState != MouseState.FreelyMoving]
@@ -41,7 +43,7 @@ def _processAnimal(animal_name, animal_df, *, cut_below_trial_num,
   animal_df = animal_df[animal_df.ST.notnull()]
   animal_df = animal_df[animal_df.GUI_StimulusTime >= STIMULUS_TIME_MIN]
   animal_df = animal_df[animal_df.TrialNumber >= cut_below_trial_num]
-  if not len(animal_df) or animal_name in ["RDK_ThyF2", "N1"]:
+  if not len(animal_df):# or animal_name in ["RDK_ThyF2", "N1"]:
     return
   print("Fonud: {} - Num trials: {:,}".format(animal_name, len(animal_df)))
 
@@ -53,22 +55,33 @@ def _processAnimal(animal_name, animal_df, *, cut_below_trial_num,
   exp_type = kargs.pop("exp_type")
   st_df = grpBySess(st_df).filter(fltrSsns, exp_type=exp_type,
                                   min_easiest_perf=min_easiest_perf)
-  if len(st_df) < 400:
+  if len(st_df) < min_total_num_pts_per_animal:
     return
 
   save_prefix = kargs.pop("save_prefix")
-  _reactionTimePerDF(animal_name=animal_name, df=st_df, plots=overall_plots,
-                     save_prefix=save_prefix, **kargs)
+  _loopDVBins(df=st_df, dv_bins_edges=dv_bins_edges, animal_name=animal_name,
+              plots=overall_plots, save_prefix=save_prefix, **kargs)
   if sess_plots != NoPlots: # Don't process at all and save time if not needed
     for sess_info, sess_df in grpBySess(st_df):
       print(animal_name, "Date", sess_info)
-      name = f"{animal_name}_{sess_info[0]}_Sess{sess_info[1]}"
+      name = f"{animal_name}_{sess_info[0]}_Sess{sess_info[1.01]}"
       print("Name:", name)
       new_save_prefix = save_prefix + f"/{animal_name}_sess/"
-      _reactionTimePerDF(animal_name=name, df=sess_df, plots=sess_plots,
-                         save_prefix=new_save_prefix, **kargs)
+      _loopDVBins(df=st_df, dv_bins_edges=dv_bins_edges,
+                  animal_name=animal_name, plots=sess_plots,
+                  save_prefix=new_save_prefix, **kargs)
 
-def _reactionTimePerDF(animal_name, df, *, plots, periods, quantile_top_bottom,
+def _loopDVBins(df, dv_bins_edges, animal_name, **kargs):
+  if len(dv_bins_edges):
+    dv_bins_edges = [0] + dv_bins_edges + [1]
+    for dv_rng, _, dv_df in splitByBins(df, dv_bins_edges, combine_sides=True):
+      new_animal_name = f"{animal_name} — DV={dv_rng.left}-{dv_rng.right}"
+      _reactionTimePerDF(dv_df, animal_name=new_animal_name, **kargs)
+
+  else:
+    _reactionTimePerDF(df, animal_name=animal_name, **kargs)
+
+def _reactionTimePerDF(df, *, animal_name, plots, periods, quantile_top_bottom,
                        grpby, short_long_quantile, plot_only_all, save_figs,
                        save_prefix):
   if plots == NoPlots:
@@ -103,9 +116,13 @@ def _reactionTimePerDF(animal_name, df, *, plots, periods, quantile_top_bottom,
     if plots & Plots.MinSampleDistHist:
       _minSampleDist(ax=axs[0], df=df_valid_st, animal_name=animal_name)
     if plots & Plots.ReactionTimeDistHist:
-      _reactionTimeDist(ax=axs[-1], df=df_accepted, df_overstay=df_overstay,
-                        df_plot_quantile=df_plot_quantile,
-                        animal_name=animal_name)
+      overstay_col = df_overstay.ST + df_overstay.calcReactionTime
+      timeHist(ax=axs[-1], df=df_accepted, col_name="ST", normalized=False,
+              friendly_col_name="Reaktionszeit", overstay_col=overstay_col,
+              gauss_fit=False, max_x_lim=10, bins_per_sec=4, plot_only_all=False,
+              stacked=True, quantiles_to_plot=None,
+              quantiles_to_plot_per_group=None,
+              animal_name=animal_name, legend_loc='upper right')
     if save_figs:
       analysis.savePlot(save_prefix + animal_name + "_sampling_hist")
     plt.show()
@@ -122,9 +139,9 @@ def _reactionTimePerDF(animal_name, df, *, plots, periods, quantile_top_bottom,
     plt.show()
 
   if plots & (Plots.ReactionTimeVsDiff | Plots.ReactionTimeVsDiffHist):
-    plotSides(df_accepted, col_name="ST", friendly_col_name="Sampling Time",
+    plotSides(df_accepted, col_name="ST", friendly_col_name="Reaktionszeit",
               periods=periods, animal_name=animal_name,
-              y_label="Sampling Time (S)",
+              y_label="Reaktionszeit (Sekunden)",
               quantile_top_bottom=quantile_top_bottom, grpby=grpby,
               plot_vsDiff=plots & Plots.ReactionTimeVsDiff,
               plot_only_all=plot_only_all,
@@ -134,7 +151,7 @@ def _reactionTimePerDF(animal_name, df, *, plots, periods, quantile_top_bottom,
 
   if plots & Plots.ShortLongReactionTime:
     plotShortLongWT(df_accepted, col_name="ST",
-                    friendly_col_name="Sampling Time", periods=periods,
+                    friendly_col_name="Reaction Time", periods=periods,
                     animal_name=animal_name,
                     save_postfix="_sampling_short_long",
                     short_long_quantile=short_long_quantile,
