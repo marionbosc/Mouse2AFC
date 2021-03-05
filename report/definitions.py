@@ -8,12 +8,12 @@ class _EnumShortStrMixin:
   def __format__(self, fmt):
     return self.__str__()
 
-class FloatEnumShortStr(float, _EnumShortStrMixin, Enum):
+class FloatEnumShortStr(_EnumShortStrMixin, float, Enum):
   pass
 
 # We can't use IntEnum straight away as it complains about the mixin order,
 # we have to do this trick instead.
-class IntEnumShortStr(int, _EnumShortStrMixin, Enum):
+class IntEnumShortStr(_EnumShortStrMixin, int, Enum):
   pass
 
 class ExperimentType(IntEnumShortStr):
