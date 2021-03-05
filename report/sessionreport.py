@@ -79,7 +79,7 @@ class MakeAndSavePlots():
     if save_dir_or_none:
       pathlib.Path(save_dir_or_none).mkdir(parents=True, exist_ok=True)
     if auto_close_after_ms is None:
-      auto_close_after = 60000
+      auto_close_after_ms = 60000
 
     copy_to_daily_sessions = False
     onedrive_root_dir = os.getenv("OneDrive")
