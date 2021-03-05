@@ -875,7 +875,10 @@ def psychFitBasic(stims, stim_count, stim_ratio_correct, parstart=_parstart,
                   parmin=_parmin, parmax=_parmax, nfits=_nfits):
   data = np.array([stims, stim_count, stim_ratio_correct])
   #print(data)
-  from .psychofit import psychofit
+  try:
+    from .psychofit import psychofit
+  except ImportError:
+    from psychofit import psychofit
   P_model = 'erf_psycho_2gammas'
   pars, L = psychofit.mle_fit_psycho(data=data, P_model=P_model,
                                      parstart=parstart, parmin=parmin,
