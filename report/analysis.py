@@ -820,7 +820,7 @@ def psychAxes(animal_name="", axes=None, analysis_for=ExpType.RDK,
     axes.set_ylim(40 if combine_sides else 0, 100)
     axes.set_xlim(-0.05 if combine_sides else -1.05, 1.05)
     axes.set_xlabel(x_label)
-    axes.set_ylabel(f"Choice {'left' if combine_sides else 'correct'} (%)")
+    axes.set_ylabel(f"Choice {'Left' if not combine_sides else 'Correct'} (%)")
     axes.yaxis.set_major_formatter(
                          FuncFormatter(lambda y, _: '{}%'.format(int(y))))
     axes.set_title(title)
