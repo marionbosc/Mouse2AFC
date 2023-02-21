@@ -127,7 +127,7 @@ def plotHist(*, axs, df, col_name, periods, bins_1sided, bins_2sided,
       bars = [x_correct_count, x_incorrect_count]
       colors = [Choice.Correct, Choice.Incorrect]
       labels = ["Korrekt",
-                "Falsch" + (" (Umgekehrt)"  if not overlap_sides else "")]
+                "Falsch"]
     last_bottom = 0
     for bar, color, label in zip(bars, colors, labels):
       axs[ax_idx].bar(xs, bar, color=color, width=BAR_WIDTH, label=label,
@@ -138,7 +138,7 @@ def plotHist(*, axs, df, col_name, periods, bins_1sided, bins_2sided,
     axs[ax_idx].set_xlabel("Kohärenz %")
     axs[ax_idx].xaxis.set_major_formatter(
       FuncFormatter(lambda x, _: f"{int(abs(x))}%" + ("" if overlap_sides else
-                                 f"{'L' if x > 0 else 'R' if x < 0 else ''}")))
+                              (f"{'L' if x > 0 else ('R' if x < 0 else '')}"))))
     axs[ax_idx].set_ylabel("Versuche Zählen")
 
 def fltrQuantile(df_or_col, quantile_top_bottom, col_name_if_df=None):
