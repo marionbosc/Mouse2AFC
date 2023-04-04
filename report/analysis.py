@@ -934,7 +934,7 @@ def _psych(df, PsycStim_axes, color, linewidth, legend_name, *, periods=5,
                                                           #EXTRA_BIN*(1/DVNBin))
       PsycStim_axes.plot(PsycX, PsycY, linestyle='none', marker=marker,
                          markeredgecolor=color, markerfacecolor=color,
-                         markerSize=markersize*linewidth*SCALE_X, alpha=alpha)
+                         ms=markersize*linewidth*SCALE_X, alpha=alpha)
       if annotate_pts:
         DVCount = [len(dv_df) for _, _, dv_df in df_by_dv]
         for x, y, count in zip(PsycX, PsycY, DVCount):
